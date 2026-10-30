@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Membrane Proteins of Known 3D Structure</title>
+  <meta name="description" content="Browse the mpstruc database of membrane proteins of known 3D structure by family, subfamily, parent and daughter structures.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="logo" href="#top">Our Group</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="index.html#about">About</a></li>
+        <li><a href="index.html#what-we-do">What we do</a></li>
+        <li><a href="index.html#contact">Contact</a></li>
+        <li><a href="mpstruc.html" aria-current="page">Membrane proteins</a></li>
+      </ul>
+    </div>
+  </header>
+
+    <main id="top">
+    <section class="section mp-page">
+      <div class="container">
+        <h1 class="mp-title">Membrane Proteins of Known 3D Structure</h1>
+        <p class="mp-credit">
+          Data from <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a>, created by Stephen White and
+          maintained by Craig Snider (UC Irvine). This is a curation tool for the mpstruc team; mpstruc remains the
+          authoritative source.
+        </p>
+        <nav class="mp-tabs" aria-label="mpstruc sections">
+          <a href="#/" data-tab="database">Database</a>
+          <a href="#/automation" data-tab="automation">Automation</a>
+        </nav>
+        <div id="mpstruc-app" class="mp-app" aria-live="polite">
+          <p class="mp-loading">Loading the database…</p>
+        </div>
+        <noscript><p>This page needs JavaScript to browse the database.</p></noscript>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="year"></span> Our Group</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -10,7 +10,7 @@ mpstruc curators; mpstruc itself remains the authoritative source.
 | Deliverable | State |
 |---|---|
 | 1. XML parser, validation against the reference xlsx, integrity report | **done, awaiting review** |
-| 2. Database tab | not started |
+| 2. Database tab (`../mpstruc.html`) | built, in review |
 | 3. Placement analysis, automation pipeline, evaluation harness | not started |
 | 4. Automation tab | not started |
 | 5. Final README | this file grows with each deliverable |
@@ -21,7 +21,12 @@ mpstruc curators; mpstruc itself remains the authoritative source.
 pip install openpyxl pytest
 python3 -m pytest -q              # 46 tests, offline
 python3 -m mpstruc.report         # writes reports/ (uses RCSB; add --offline to skip)
+python3 -m mpstruc.web            # writes ../data/mpstruc.json for the website (uses RCSB + PubMed)
 ```
+
+The database page is `mpstruc.html` at the site root. It loads `data/mpstruc.json`; regenerate
+that file with `python3 -m mpstruc.web` whenever the XML snapshot changes. Preview it with
+`python3 -m http.server` in the site root and open http://localhost:8000/mpstruc.html.
 
 ## Layout
 
@@ -38,6 +43,8 @@ python3 -m mpstruc.report         # writes reports/ (uses RCSB; add --offline to
 | `mpstruc/integrity.py` | Data-integrity checks (offline and RCSB-backed) |
 | `mpstruc/rcsb.py` | Cached RCSB client (holdings, entry summaries) |
 | `mpstruc/report.py` | Writes `reports/validation.md`, `integrity.md`, and the JSON versions |
+| `mpstruc/web.py` | Exports `../data/mpstruc.json` for the website (sanitised HTML, PDB details, data-issue flags) |
+| `mpstruc/pubmed.py` | Cached PubMed client used by the citation checks |
 
 ## Design decisions
 
