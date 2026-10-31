@@ -670,11 +670,11 @@ links.addEventListener("click", (event) => {
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
-        <label>Show<select name="status">${opt("undecided", "Not yet decided", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
+        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
-          opt(t, `${pct(t)} likely${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
-        <label>Released<select name="age">${opt("", "Any time (last 26 weeks)", v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
+          opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
+        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
@@ -703,7 +703,21 @@ links.addEventListener("click", (event) => {
       <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Shown as</th><th>Structures</th><th>Actually membrane proteins</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
       <p class="mp-summary">${m.mpstrucLater ? `Of the ${m.mpstrucLater.n} structures mpstruc added from ${esc(m.mpstrucLater.window[0])} to ${esc(m.mpstrucLater.window[1])}
-        releases, ${m.mpstrucLater.at_least_50_pct}% are shown as 50% or more likely and ${m.mpstrucLater.at_least_10_pct}% as 10% or more.` : ""}</p>`;
+        releases, ${m.mpstrucLater.at_least_50_pct}% are shown as 50% or more likely and ${m.mpstrucLater.at_least_10_pct}% as 10% or more.` : ""}</p>
+      ${m.review ? `<h3>Checked by hand</h3>
+      <p>The databases used as the answer key miss some membrane proteins, so reviewers read the PDB and UniProt records of a random sample
+        of structures where the score and the databases disagreed:</p>
+      <ul>
+        <li>Of ${m.review.high_score_not_in_databases.checked} structures scored 80% or more that no database lists,
+          <b>${m.review.high_score_not_in_databases.membrane} were real membrane proteins</b> the databases had not caught up with. The other
+          ${m.review.high_score_not_in_databases.not_membrane} contained only an outside part of a membrane protein; the score now checks whether
+          the membrane-crossing segments are actually in the structure.</li>
+        <li>Of ${m.review.low_score_in_databases.checked} structures scored under 20% that a database lists, ${m.review.low_score_in_databases.membrane}
+          were membrane proteins the score missed.</li>
+        <li>Of ${m.review.middle_scores.checked} structures with middle scores (average ${Math.round(m.review.middle_scores.average_score_pct)}%),
+          ${m.review.middle_scores.membrane} were membrane proteins.</li>
+      </ul>
+      <p class="mp-summary">So for high scores the percentage is, if anything, an underestimate of how often the structure is a membrane protein.</p>` : ""}`;
   }
 
   function viewAccuracy() {
@@ -916,6 +930,12 @@ links.addEventListener("click", (event) => {
     if (h !== lastRoute) state.limit = PAGE;
     state.focusHeading = lastRoute !== "" || h !== "";
     lastRoute = h;
+    // Presentation only: the view fade-in runs on navigation, not on every filter or search re-render.
+    app.classList.remove("mp-enter");
+    void app.offsetWidth;
+    app.classList.add("mp-enter");
+    clearTimeout(route.enterTimer);
+    route.enterTimer = setTimeout(() => app.classList.remove("mp-enter"), 900);
     render();
     window.scrollTo(0, 0);
   }
@@ -1036,6 +1056,9 @@ links.addEventListener("click", (event) => {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   const css = (name, fallback) => getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
   let model = null, angle = 0.6, tilt = 0.18, dragging = null, visible = true, last = 0, theme = null;
+  // One animation loop at most: raf holds the pending frame, onScreen tracks the IntersectionObserver.
+  let raf = 0, onScreen = true;
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(frame); };
 
   // Theme comes from CSS custom properties; read once per resize, not per segment.
   function readTheme() {
@@ -1192,21 +1215,27 @@ links.addEventListener("click", (event) => {
   }
 
   function frame(t) {
+    raf = 0;
     if (!model) return;
     const dt = last ? Math.min(t - last, 50) : 0;
     last = t;
     if (!dragging && !reduce.matches) angle += dt * 0.00022;
     draw();
-    if (visible && !reduce.matches) requestAnimationFrame(frame);
+    if (visible && !reduce.matches) schedule();
   }
 
   new ResizeObserver(() => { if (model) { resize(); draw(); } }).observe(canvas);
   new IntersectionObserver(([e]) => {
     const was = visible;
-    visible = e.isIntersecting && !document.hidden;
-    if (visible && !was && model) { last = 0; requestAnimationFrame(frame); }
+    onScreen = e.isIntersecting;
+    visible = onScreen && !document.hidden;
+    if (visible && !was && model) { last = 0; schedule(); }
   }).observe(canvas);
-  document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && model) { last = 0; requestAnimationFrame(frame); } });
+  document.addEventListener("visibilitychange", () => {
+    const was = visible;
+    visible = onScreen && !document.hidden;
+    if (visible && !was && model) { last = 0; schedule(); }
+  });
   canvas.addEventListener("pointerdown", (e) => { dragging = { x: e.clientX, y: e.clientY, a: angle, t: tilt }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener("pointermove", (e) => {
     if (!dragging) return;
