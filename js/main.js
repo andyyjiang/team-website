@@ -474,6 +474,28 @@ links.addEventListener("click", (event) => {
 
   function decisionOf(c) { return decisions[c.pdb] || null; }
 
+  // What a decision remembers about its structure, so it can still be exported
+  // after the structure drops out of a later week's suggestions.
+  function snapshot(c) {
+    return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, pmid: c.pmid, doi: c.doi,
+             suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", likelihood: c.likelihood };
+  }
+
+  // Check a curator-entered owner. Returns {error} or {subgroup} (the owner's subfamily, which the entry must share).
+  function checkOwner(owner, placement, subgroup) {
+    if (!/^[0-9][A-Z0-9]{3}$/.test(owner)) {
+      return { error: "Enter the 4-character PDB ID of the parent (for a daughter) or of the entry it is listed under (for a related entry)." };
+    }
+    const refs = (state.byPdb.get(owner) || []).filter((r) => r.type === "parent" || (placement === "related" && r.type === "daughter"));
+    if (!refs.length) {
+      const fresh = auto.cands.candidates.find((x) => x.pdb === owner);
+      if (placement === "related" && fresh) return { subgroup };
+      return { error: placement === "daughter" ? `${owner} is not a parent protein in mpstruc.` : `${owner} is not a parent or daughter in mpstruc or in this week's suggestions.` };
+    }
+    const sgs = refs.map((r) => r.entry.sg.k);
+    return { subgroup: sgs.includes(subgroup) ? subgroup : sgs[0], moved: !sgs.includes(subgroup) };
+  }
+
   function candidateCard(c) {
     const d = decisionOf(c);
     const editing = auto.editing === c.pdb;
@@ -483,11 +505,14 @@ links.addEventListener("click", (event) => {
       : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || "")}</p>` : "";
     const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
       `<option value="${sg.k}"${sg.k === (d?.subgroup || c.subgroup) ? " selected" : ""}>${esc(strip(sg.name))}</option>`).join("")}</optgroup>`).join("");
-    const editForm = editing ? `<form class="mp-edit" data-pdb="${esc(c.pdb)}">
+    const editPlacement = d?.placement || (c.placement === "review" ? "daughter" : c.placement);
+    const editForm = editing ? `<form class="mp-edit" data-pdb="${esc(c.pdb)}" novalidate>
         <label>Placement<select name="placement">${["parent", "daughter", "related"].map((p) =>
           `<option value="${p}"${p === (d?.placement || (c.placement === "review" ? "daughter" : c.placement)) ? " selected" : ""}>${PLACEMENT_LABEL[p]}</option>`).join("")}</select></label>
         <label>Subfamily<select name="subgroup">${sgOptions}</select></label>
-        <label>Parent or owner PDB ID (for daughters and related entries)<input name="owner" value="${esc(d?.owner || c.ownerPdb || "")}" maxlength="4" pattern="[0-9A-Za-z]{4}"></label>
+        <label>Parent or owner PDB ID (for daughters and related entries)<input name="owner" value="${esc(d?.owner || c.ownerPdb || "")}"
+          maxlength="4" autocomplete="off"${editPlacement === "parent" ? " disabled" : ""}></label>
+        <p class="mp-form-note" aria-live="polite"></p>
         <div class="mp-actions"><button class="mp-btn" type="submit">Save decision</button>
           <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
       </form>` : "";
@@ -547,17 +572,20 @@ links.addEventListener("click", (event) => {
     });
   }
 
+  const atCut = (r) => r && (r.bands || []).find((x) => Math.abs(x.min_likelihood - (auto.backtest.threshold ?? 0)) < 1e-9);
+
   function accuracySummary() {
     const b = auto.backtest && auto.backtest.test;
     if (!b) return "";
-    const band = (b.bands || []).find((x) => Math.abs(x.min_likelihood - (auto.backtest.threshold ?? 0)) < 1e-9);
+    const band = atCut(b), later = atCut(auto.backtest.later);
     return `<div class="mp-stats">
-      <div class="mp-stat"><b>${band ? `${Math.round(band.recall_pct)}%` : "—"}</b><span>of structures mpstruc added were found (at the default cut-off)</span></div>
-      <div class="mp-stat"><b>${b.subgroup_top1.pct}%</b><span>right subfamily as first choice (${b.subgroup_top3.pct}% in top 3)</span></div>
-      <div class="mp-stat"><b>${b.placement_auto.pct}%</b><span>right parent / daughter / related call when suggested</span></div>
-      <div class="mp-stat"><b>${band ? Math.round(band.per_week) : "—"}</b><span>suggestions per week to review</span></div>
+      <div class="mp-stat"><b>${band ? `${Math.round(band.recall_pct)}%` : "—"}</b><span>of structures mpstruc added were suggested in their release week${later ? ` (${Math.round(later.recall_pct)}% once papers are linked)` : ""}</span></div>
+      <div class="mp-stat"><b>${Math.round(b.subgroup_top1.pct)}%</b><span>right subfamily as first choice (${Math.round(b.subgroup_top3.pct)}% in the top 3)</span></div>
+      <div class="mp-stat"><b>${Math.round(b.placement_full_auto.pct)}%</b><span>of suggested placements fully right: type, subfamily and parent</span></div>
+      <div class="mp-stat"><b>${band ? Math.round(band.per_week) : "—"}</b><span>suggestions per week; ${band ? Math.round(band.precision_pct) : "—"}% of them were added to mpstruc</span></div>
     </div>
-    <p class="mp-summary">Measured by replaying ${esc(b.window[0])} to ${esc(b.window[1])} against what mpstruc curators actually did.
+    <p class="mp-summary">Measured by replaying ${esc(b.window[0])} to ${esc(b.window[1])} week by week, as each structure looked when it was
+      released, against what mpstruc curators actually did. Treat every suggestion as a draft.
       <a href="#/automation/accuracy">How accurate is this?</a></p>`;
   }
 
@@ -569,11 +597,12 @@ links.addEventListener("click", (event) => {
     const list = filteredCands();
     const shown = list.slice(0, state.limit);
     const counts = { approved: 0, rejected: 0 };
-    c.candidates.forEach((x) => { const d = decisionOf(x); if (d) counts[d.status]++; });
+    Object.values(decisions).forEach((d) => { if (counts[d.status] != null) counts[d.status]++; });
+    const older = Object.keys(decisions).filter((pdb) => !c.candidates.some((x) => x.pdb === pdb)).length;
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
-      <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} · checked ${esc(c.generated.slice(0, 10))} ·
+      <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length} with a membrane signal</p>
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
@@ -586,40 +615,54 @@ links.addEventListener("click", (event) => {
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml"${counts.approved ? "" : " disabled"}>Download approved as mpstruc XML</button></span></div>
-      <p class="mp-summary">Decisions are saved in this browser only. Download them to send to the mpstruc maintainers.</p>
+      <p class="mp-summary">Decisions are saved in this browser only. Download them to send to the mpstruc maintainers.
+        ${older ? `${older} earlier ${older === 1 ? "decision is" : "decisions are"} no longer in this week's list but still included in the downloads.` : ""}</p>
+      ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
       ${shown.map(candidateCard).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
       ${more(shown.length, list.length)}
     </div>`;
   }
 
   function viewAccuracy() {
-    const b = auto.backtest && auto.backtest.test;
+    const b = auto.backtest && auto.backtest.test, later = auto.backtest && auto.backtest.later;
     if (!b) return '<div class="mp-view"><h2>Accuracy</h2><p class="mp-empty">No accuracy report yet.</p></div>';
     const th = auto.backtest.threshold;
-    const bands = b.bands.map((x) => `<tr${Math.abs(x.min_likelihood - th) < 1e-9 ? ' class="current"' : ""}><td>${pct(x.min_likelihood)}${Math.abs(x.min_likelihood - th) < 1e-9 ? " (default)" : ""}</td>
-      <td>${x.per_week}</td><td>${x.recall_pct}%</td><td>${x.precision_pct ?? "—"}%</td></tr>`).join("");
+    const isCut = (x) => Math.abs(x.min_likelihood - th) < 1e-9;
+    const bands = b.bands.map((x, i) => {
+      const l = later && later.bands[i];
+      return `<tr${isCut(x) ? ' class="current"' : ""}><td>${pct(x.min_likelihood)}${isCut(x) ? " (default)" : ""}</td>
+        <td>${x.per_week}</td><td>${x.recall_pct}%${l ? ` <span class="mp-of">(${l.recall_pct}%)</span>` : ""}</td><td>${x.precision_pct ?? "—"}%</td></tr>`;
+    }).join("");
     const names = { "same-paper": "Same paper as an mpstruc entry → related", "same-paper-batch": "Same paper as another new structure → related",
                     "same-protein": "Same protein as an mpstruc entry → daughter", "partial-protein": "Shares only some proteins → curator decides",
                     "new-protein": "Protein not in mpstruc → new parent", "no-evidence": "No link to any subfamily → curator decides" };
-    const rules = Object.entries(b.by_rule).map(([r, x]) => `<tr><td>${esc(names[r] || r)}</td><td>${x.kind.n}</td>
-      <td>${r.includes("partial") || r === "no-evidence" ? "—" : `${x.kind.pct}%`}</td><td>${x.subgroup.pct ?? "—"}${x.subgroup.pct != null ? "%" : ""}</td>
-      <td>${x.owner.n ? `${x.owner.pct}%` : "—"}</td></tr>`).join("");
+    const rules = Object.entries(b.by_rule).map(([r, x]) => {
+      const decides = !(r.includes("partial") || r === "no-evidence");
+      return `<tr><td>${esc(names[r] || r)}</td><td>${x.kind.n}</td>
+        <td>${decides ? `${x.full.pct}%` : "—"}</td><td>${decides ? `${x.kind.pct}%` : "—"}</td><td>${x.subgroup.pct ?? "—"}${x.subgroup.pct != null ? "%" : ""}</td></tr>`;
+    }).join("");
     const errs = (b.errors || []).slice(0, 40).map((e) => `<tr><td><a href="https://www.rcsb.org/structure/${esc(e.pdb)}" rel="noopener">${esc(e.pdb)}</a></td>
       <td>${esc(PLACEMENT_LABEL[e.pred_kind] || e.pred_kind)}${e.pred_owner ? ` of ${esc(e.pred_owner)}` : ""}<br><span class="mp-of">${esc(sgName(e.pred_sg))}</span></td>
       <td>${esc(e.true_kind)}${e.true_owner ? ` of ${esc(e.true_owner)}` : ""}<br><span class="mp-of">${esc(e.true_sg.map(sgName).join(", "))}</span></td></tr>`).join("");
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/automation">Automation</a> › Accuracy</p>
       <h2>How accurate are the suggestions?</h2>
-      <p>The automation was run as if it were ${esc(b.window[0])}, knowing only what mpstruc contained then, on the
-        ${b.released.toLocaleString()} structures the PDB released up to ${esc(b.window[1])}. Its suggestions were compared with
-        what mpstruc's curators actually did with the ${b.discovery.in_mpstruc} of them they added. The rules, the likelihood model and the
-        default cut-off were all fitted on the half-year before, so this is a fair test.</p>
+      <p>The automation was replayed week by week over ${esc(b.window[0])} to ${esc(b.window[1])}. Each week it knew only what mpstruc
+        contained before that week, and saw each new structure as it looked when released: about half of new structures have no paper
+        linked in their first weeks, which hides the strongest clue. Its suggestions were compared with what mpstruc's curators actually did
+        with the ${b.discovery.in_mpstruc} structures from that period they added. The model and the default cut-off were fitted on the
+        half-year before, so this is a fair test.</p>
+      <p>Every Thursday the job re-checks the last 26 weeks, so a suggestion improves once its paper is linked. Figures in brackets show
+        that later view.</p>
       <h3>Finding new structures</h3>
       <p class="mp-summary">A lower cut-off finds more of what curators add, but means more suggestions to look through.</p>
       <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Show if likely at least</th><th>Suggestions per week</th>
-        <th>Share of mpstruc's additions found</th><th>Share of suggestions that mpstruc added</th></tr></thead><tbody>${bands}</tbody></table></div>
+        <th>Share of mpstruc's additions found (later)</th><th>Share of suggestions that mpstruc added</th></tr></thead><tbody>${bands}</tbody></table></div>
       <h3>Placing them</h3>
-      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Rule</th><th>Structures</th><th>Type right</th><th>Subfamily right</th><th>Parent / owner right</th></tr></thead>
+      <p class="mp-summary">Fully right means the type (parent, daughter or related), the subfamily and the parent or owner all match the curators'
+        choice. ${later ? `Once papers are linked, ${Math.round(later.placement_full_auto.pct)}% of suggested placements are fully right, against
+        ${Math.round(b.placement_full_auto.pct)}% in the release week.` : ""}</p>
+      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Rule</th><th>Structures</th><th>Fully right</th><th>Type right</th><th>Subfamily right</th></tr></thead>
         <tbody>${rules}</tbody></table></div>
       <h3>Examples it got wrong</h3>
       <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>PDB</th><th>Suggested</th><th>Curators chose</th></tr></thead><tbody>${errs}</tbody></table></div>
@@ -640,11 +683,11 @@ links.addEventListener("click", (event) => {
 
   function approvedXml() {
     const today = new Date().toISOString().slice(0, 10);
-    const out = [`<!-- mpstruc entries approved ${today}. Each block says where it goes. Names and descriptions are`,
-                 `     drafts from the PDB title: please edit before adding. -->`];
-    for (const c of auto.cands.candidates) {
-      const d = decisionOf(c);
-      if (!d || d.status !== "approved") continue;
+    const out = [`<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB title. -->`];
+    for (const [pdb, d] of Object.entries(decisions)) {
+      if (d.status !== "approved") continue;
+      const live = auto.cands.candidates.find((x) => x.pdb === pdb);
+      const c = live ? { ...live, organisms: live.organisms } : { pdb, title: d.title, organisms: [d.organism], res: d.res, pmid: d.pmid, doi: d.doi };
       const sgRec = state.sgOf.get(d.subgroup);
       const where = `${sgRec ? sgRec.group.name : ""} : ${sgName(d.subgroup)} (${d.subgroup})`;
       const bib = ["<bibliography>", `<pubMedId>${xmlEsc(c.pmid || "")}</pubMedId>`, "<authors/>", "<year/>", "<title/>", "<journal/>",
@@ -669,12 +712,30 @@ links.addEventListener("click", (event) => {
     const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const cols = ["PDB ID", "Title", "Released", "Decision", "Placement", "Subfamily", "Group", "Parent or owner", "Changed from suggestion",
                   "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Likelihood", "Decided at"];
-    const rows = auto.cands.candidates.filter(decisionOf).map((c) => {
-      const d = decisionOf(c);
-      return [c.pdb, c.title, c.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "", d.edited ? "yes" : "",
-              d.reason || "", c.placement, c.subgroupName || "", c.ownerPdb || "", c.likelihood, d.at].map(q).join(",");
+    const rows = Object.entries(decisions).map(([pdb, d]) => {
+      const c = auto.cands.candidates.find((x) => x.pdb === pdb) || {};
+      return [pdb, c.title ?? d.title, c.released ?? d.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "",
+              d.edited ? "yes" : "", d.reason || "", c.placement ?? d.suggested, sgName(c.subgroup ?? d.suggestedSubgroup), c.ownerPdb ?? d.suggestedOwner ?? "",
+              c.likelihood ?? d.likelihood, d.at].map(q).join(",");
     });
     return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+  }
+
+  // Re-render after a decision and keep keyboard focus nearby: on the same card
+  // if it is still listed, otherwise on the next card (or the list heading).
+  function afterAction(pdb, selector = "[data-act]") {
+    const cards = [...app.querySelectorAll(".mp-cand")].map((el) => el.id);
+    const idx = cards.indexOf(`c-${pdb}`);
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+    const card = document.getElementById(`c-${pdb}`)
+      || (idx >= 0 && cards.slice(idx + 1).map((id) => document.getElementById(id)).find(Boolean));
+    const target = card ? (card.querySelector(selector) || card) : app.querySelector(".mp-view h2");
+    if (target) {
+      if (!target.matches("button, select, input, a")) target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+    }
   }
 
   function wireAutomation() {
@@ -699,7 +760,8 @@ links.addEventListener("click", (event) => {
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
       const act = btn.dataset.act;
       if (act === "approve" && c) {
-        decisions[pdb] = { status: "approved", placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "", at: new Date().toISOString() };
+        decisions[pdb] = { status: "approved", placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "",
+                           at: new Date().toISOString(), ...snapshot(c) };
       } else if (act === "reject" && c) {
         auto.rejecting = pdb;
       } else if (act === "undo") {
@@ -713,21 +775,15 @@ links.addEventListener("click", (event) => {
       saveDecisions();
       if (act !== "edit") auto.editing = null;
       if (act !== "reject") auto.rejecting = null;
-      const y = window.scrollY;
-      render();
-      window.scrollTo(0, y);
-      const card = document.getElementById(`c-${pdb}`);
-      const target = card && (card.querySelector(act === "edit" || act === "reject" ? "select" : "[data-act]") || card);
-      if (target) target.focus({ preventScroll: true });
+      afterAction(pdb, act === "edit" || act === "reject" ? "select" : "[data-act]");
     }));
     app.querySelectorAll("form.mp-reject").forEach((f) => f.addEventListener("submit", (ev) => {
       ev.preventDefault();
-      decisions[f.dataset.pdb] = { status: "rejected", reason: f.elements.reason.value, at: new Date().toISOString() };
+      const rc = auto.cands.candidates.find((x) => x.pdb === f.dataset.pdb);
+      decisions[f.dataset.pdb] = { status: "rejected", reason: f.elements.reason.value, at: new Date().toISOString(), ...(rc ? snapshot(rc) : {}) };
       saveDecisions();
       auto.rejecting = null;
-      const y = window.scrollY;
-      render();
-      window.scrollTo(0, y);
+      afterAction(f.dataset.pdb);
     }));
     app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => f.addEventListener("submit", (ev) => {
       ev.preventDefault();
@@ -735,20 +791,34 @@ links.addEventListener("click", (event) => {
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
       const placement = f.elements.placement.value, subgroup = f.elements.subgroup.value;
       const owner = f.elements.owner.value.trim().toUpperCase();
-      if (placement !== "parent" && !/^[0-9][A-Z0-9]{3}$/.test(owner)) {
-        f.elements.owner.setCustomValidity("Enter the 4-character PDB ID of the parent (for a daughter) or of the entry it is listed under (for a related entry).");
-        f.elements.owner.reportValidity();
-        return;
+      const note = f.querySelector(".mp-form-note");
+      let sg = subgroup;
+      if (placement !== "parent") {
+        const check = checkOwner(owner, placement, subgroup);
+        if (check.error) {
+          note.textContent = check.error;
+          f.elements.owner.setAttribute("aria-invalid", "true");
+          f.elements.owner.focus();
+          return;
+        }
+        sg = check.subgroup;
       }
-      decisions[pdb] = { status: "approved", placement, subgroup, owner: placement === "parent" ? "" : owner, at: new Date().toISOString(),
-                         edited: placement !== c.placement || subgroup !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")) };
+      decisions[pdb] = { status: "approved", placement, subgroup: sg, owner: placement === "parent" ? "" : owner, at: new Date().toISOString(),
+                         edited: placement !== c.placement || sg !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")),
+                         ...snapshot(c) };
       saveDecisions();
       auto.editing = null;
-      const y = window.scrollY;
-      render();
-      window.scrollTo(0, y);
+      afterAction(pdb);
     }));
-    app.querySelectorAll("form.mp-edit input[name=owner]").forEach((i) => i.addEventListener("input", () => i.setCustomValidity("")));
+    app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => {
+      const owner = f.elements.owner, note = f.querySelector(".mp-form-note");
+      f.elements.placement.addEventListener("change", () => {
+        owner.disabled = f.elements.placement.value === "parent";
+        owner.removeAttribute("aria-invalid");
+        note.textContent = "";
+      });
+      owner.addEventListener("input", () => { owner.removeAttribute("aria-invalid"); note.textContent = ""; });
+    });
   }
 
   // ---- router -------------------------------------------------------------
@@ -783,8 +853,29 @@ links.addEventListener("click", (event) => {
     if (kind === "automation") {
       app.innerHTML = viewAutomation(arg);
       wireAutomation();
+      const st = document.getElementById("mp-status");
+      const sum = app.querySelector(".mp-toolbar .mp-summary"), head = app.querySelector(".mp-view h2");
+      if (st) st.textContent = sum ? sum.textContent : (head ? head.textContent : "");
+      if (focusName) {
+        const el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
+        if (el) el.focus();
+      } else if (state.focusHeading && head) {
+        head.setAttribute("tabindex", "-1");
+        head.focus({ preventScroll: true });
+      }
+      state.focusHeading = false;
       const moreA = document.getElementById("mp-more");
-      if (moreA) moreA.addEventListener("click", () => { state.limit += PAGE; const y = window.scrollY; setTimeout(() => { render(); window.scrollTo(0, y); }, 0); });
+      if (moreA) moreA.addEventListener("click", () => {
+        const before = app.querySelectorAll(".mp-cand").length;
+        state.limit += PAGE;
+        const y = window.scrollY;
+        setTimeout(() => {
+          render();
+          window.scrollTo(0, y);
+          const next = app.querySelectorAll(".mp-cand")[before];
+          if (next) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
+        }, 0);
+      });
       return;
     }
 

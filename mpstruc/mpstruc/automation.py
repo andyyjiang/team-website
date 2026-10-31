@@ -61,8 +61,16 @@ def released_between(start: str, end: str) -> list[str]:
          "return_type": "entry", "request_options": {"return_all_hits": True}}
     req = urllib.request.Request(SEARCH, data=json.dumps(q).encode(),
                                  headers={"Content-Type": "application/json", "User-Agent": "mpstruc-curation-tool"})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        body = r.read()
+    for attempt in range(6):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                body = r.read()
+            break
+        except (urllib.error.URLError, TimeoutError, ConnectionError):
+            if attempt == 5:
+                raise
+            import time
+            time.sleep(2 ** (attempt + 1))
     if not body:  # 204: no hits
         return []
     return sorted(x["identifier"] for x in json.loads(body).get("result_set", []))
@@ -100,10 +108,21 @@ def _features(s: dict | None) -> set[str]:
     if not s:
         return set()
     return {f"pfam:{x}" for x in s["pfam"]} | {f"ipr:{x}" for x in s.get("interpro", ())} | \
-           {f"opm:{x}" for x in s.get("opm", ())} | {f"up:{x}" for x in s["uniprot"] - FUSION_UNIPROT}
+           {f"opm:{x}" for x in s.get("opm", ())} | {f"up:{x}" for x in s["core"]}
 
 
-def summarise(entry: dict | None) -> dict | None:
+TM_KEYWORDS = {"KW-0812", "KW-1133", "KW-1134"}  # Transmembrane, TM helix, TM beta strand
+
+
+def summarise(entry: dict | None, extra: dict | None = None) -> dict | None:
+    """What the automation knows about a structure.
+
+    `core` is the structure's membrane protein(s): the UniProt accessions
+    whose UniProt entry carries a transmembrane keyword, or, if none does,
+    all of them; fusion partners are dropped. This uses UniProt rather than
+    the PDB's OPM/PDBTM/MemProtMD tags, which new releases no longer get, so
+    old and new structures are described the same way.
+    """
     s = entity_summary(entry)
     if s is None:
         return None
@@ -111,9 +130,30 @@ def summarise(entry: dict | None) -> dict | None:
             for a in e.get("rcsb_polymer_entity_annotation") or []]
     s["interpro"] = {a["annotation_id"] for a in anns if a.get("type") == "InterPro"}
     s["opm"] = {".".join(a["annotation_id"].split(".")[:3]) for a in anns if a.get("type") == "OPM"}
-    s["opm_type"] = {a["annotation_id"].split(".")[0] for a in anns if a.get("type") == "OPM"}
-    s["core"] = s["uniprot"] - FUSION_UNIPROT
+    kw = (extra or {}).get("kw") or {}
+    tm = {u for u in s["all_uniprot"] if TM_KEYWORDS & set(kw.get(u, ()))}
+    s["core"] = (tm or s["all_uniprot"]) - FUSION_UNIPROT
+    s["uniprot"] = s["core"] | (s["all_uniprot"] & FUSION_UNIPROT)
+    s["keywords"] = {k for ks in kw.values() for k in ks}
+    rel = s.get("released") or ""
+    late = [d for d in (extra or {}).get("db_ref_updates", []) if rel and d <= _plus_days(rel, 365)]
+    s["citation_late"] = bool(late)
     s["title"] = None
+    return s
+
+
+def _plus_days(day: str, n: int) -> str:
+    return (dt.date.fromisoformat(day) + dt.timedelta(days=n)).isoformat()
+
+
+def as_at_release(s: dict) -> dict:
+    """The structure as the weekly job would have seen it in its release week:
+    no paper if the PDB linked it later, and none of the annotations the PDB
+    adds afterwards (OPM/PDBTM/MemProtMD, Pfam, InterPro)."""
+    s = dict(s)
+    if s.get("citation_late"):
+        s["citation"], s["doi"], s["pmid"] = set(), None, None
+    s["sources"], s["opm"], s["pfam"], s["interpro"] = set(), set(), set(), set()
     return s
 
 
@@ -253,11 +293,9 @@ def _parent_pdb(kb: KB, parent_key: str) -> str | None:
     return k.pdb if k else None
 
 
-TM_KEYWORDS = {"KW-0812", "KW-1133", "KW-1134"}  # Transmembrane, TM helix, TM beta strand
+# OPM, PDBTM and MemProtMD tags are not used: the PDB stopped assigning them
+# to new releases during 2025, so they never fire in weekly use.
 SIGNALS = {
-    "opm": "In OPM (membrane orientation database)",
-    "pdbtm": "In PDBTM (transmembrane proteins)",
-    "memprotmd": "In MemProtMD",
     "kw_tm": "UniProt: transmembrane protein",
     "kw_membrane": "UniProt: membrane protein",
     "same_protein": "Same protein as an mpstruc entry",
@@ -290,9 +328,6 @@ def signals(kb: KB, s: dict, batch_papers: set[str] = frozenset()) -> dict[str, 
         **{t: 1.0 for t in title_tokens(s.get("title"))},
     }
     return extra | {
-        "opm": float("OPM" in s["sources"]),
-        "pdbtm": float("PDBTM" in s["sources"]),
-        "memprotmd": float("MemProtMD" in s["sources"]),
         "kw_tm": float(bool(kw & TM_KEYWORDS)),
         "kw_membrane": float("KW-0472" in kw),
         "same_protein": float(any(u in kb.by_uniprot for u in s["core"])),
@@ -304,7 +339,8 @@ def signals(kb: KB, s: dict, batch_papers: set[str] = frozenset()) -> dict[str, 
 
 def in_pool(sig: dict[str, float]) -> bool:
     """Worth scoring at all: some membrane or mpstruc signal fired."""
-    return any(sig.get(k) for k in ("opm", "pdbtm", "memprotmd", "kw_tm", "same_protein", "same_paper"))
+    return any(sig.get(k) for k in ("kw_tm", "same_protein", "same_paper")) or \
+        bool(sig.get("kw_membrane") and sig.get("family"))
 
 
 def score(sig: dict[str, float], model: dict | None) -> float:
@@ -360,16 +396,18 @@ def _reasons(sig: dict[str, float], model: dict | None, n: int = 4) -> list[list
     return [[label(k), round(w, 2)] for k, w in contrib[:n]]
 
 
-def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None = None) -> tuple[list[dict], dict]:
+def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None = None,
+            release_time: bool = False) -> tuple[list[dict], dict]:
+    """Proposals for the given releases. release_time=True shows each structure
+    as it looked in its release week (see as_at_release), for the backtest."""
     ents = rcsb.entry_entities(ids)
     summ = rcsb.entry_summaries(ids)
-    kws = rcsb.entry_keywords(ids)
+    extras = rcsb.entry_extras(ids)
     S = {}
     for pdb in ids:
-        s = summarise(ents.get(pdb))
+        s = summarise(ents.get(pdb), extras.get(pdb))
         if s is None:
             continue
-        s["keywords"] = set(kws.get(pdb) or [])
         info = summ.get(pdb) or {}
         res = (info.get("rcsb_entry_info") or {}).get("resolution_combined") or []
         s["res"] = min(res) if res else None
@@ -384,6 +422,8 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
                                  for o in e.get("rcsb_entity_source_organism") or [] if o.get("ncbi_scientific_name")})
         s["entities"] = [((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "")
                          for e in raw.get("polymer_entities") or []][:8]
+        if release_time:
+            s = as_at_release(s)
         S[pdb] = s
     stats = Counter()
     pool = {}
@@ -431,24 +471,57 @@ def _truth(kb_full: KB, pdb: str) -> list[Known]:
     return kb_full.by_pdb.get(pdb, [])
 
 
-def evaluate(db: Database, start: str, end: str, conf: dict[str, float], model: dict | None = None) -> dict:
-    """Pretend it is `start`: build the KB from earlier entries, run on entries released in [start, end]."""
+def _full_summaries(db: Database) -> dict[str, dict | None]:
+    ids = sorted({e.pdbCode.upper() for e in db.entries()} | {r.pdb.upper() for e in db.entries() for r in e.related})
+    ents, extras = rcsb.entry_entities(ids), rcsb.entry_extras(ids)
+    return {k: summarise(v, extras.get(k)) for k, v in ents.items()}
+
+
+def _weeks(start: str, end: str) -> list[tuple[str, str]]:
+    d0, d1 = dt.date.fromisoformat(start), dt.date.fromisoformat(end)
+    out = []
+    while d0 <= d1:
+        out.append((d0.isoformat(), min(d0 + dt.timedelta(days=6), d1).isoformat()))
+        d0 += dt.timedelta(days=7)
+    return out
+
+
+def evaluate(db: Database, start: str, end: str, conf: dict[str, float], model: dict | None = None,
+             release_time: bool = True) -> dict:
+    """Replay [start, end] one week at a time, as the weekly job runs.
+
+    Each week the automation knows only the mpstruc entries released before
+    that week, sees that week's releases, and is scored against what mpstruc's
+    curators eventually did with them. release_time=True shows each structure
+    as it looked in its release week (no late-linked paper, no later PDB
+    annotations); False uses today's PDB data, as a re-check weeks later would.
+    Curation lag (curators adding an entry weeks after its release) is not
+    modelled; shifting the cutoff by 30-90 days changed the results by <=1 point.
+    """
     ids_all = released_between(start, end)
-    full_ids = sorted({e.pdbCode.upper() for e in db.entries()} | {r.pdb.upper() for e in db.entries() for r in e.related})
-    S = {k: summarise(v) for k, v in rcsb.entry_entities(full_ids).items()}
+    S = _full_summaries(db)
     kb_full = build_kb(db, S)
-    kb = build_kb(db, S, cutoff=start)
-    props, stats = propose(kb, ids_all, conf, model)
+    released = {k: (v or {}).get("released", "") for k, v in
+                {k: summarise(v) for k, v in rcsb.entry_entities(ids_all).items()}.items()}
+    props, stats, truth_ids = [], Counter(), set()
+    for ws, we in _weeks(start, end):
+        ids = [p for p in ids_all if ws <= released.get(p, "") <= we]
+        if not ids:
+            continue
+        kb = build_kb(db, S, cutoff=ws)
+        p, st = propose(kb, ids, conf, model, release_time=release_time)
+        props += p
+        stats.update(st)
+        truth_ids |= {pdb for pdb in ids if pdb in kb_full.by_pdb and pdb not in kb.by_pdb}
     proposed = {p["pdb"]: p for p in props}
-    truth_ids = {pdb for pdb in ids_all if pdb in kb_full.by_pdb and pdb not in kb.by_pdb}
 
     rows = []
     for pdb in sorted(truth_ids | proposed.keys()):
-        t = _truth(kb_full, pdb)
+        t = kb_full.by_pdb.get(pdb, [])
         p = proposed.get(pdb)
         row = {"pdb": pdb, "in_mpstruc": bool(t), "proposed": bool(p)}
         if p:
-            row.update({"sig": p["sig"], "likelihood": p["likelihood"]})
+            row.update({"sig": p["sig"], "likelihood": p["likelihood"], "group": p.get("doi") or p.get("pmid") or pdb})
         if t and p:
             tk = t[0]
             row.update({
@@ -467,18 +540,22 @@ def evaluate(db: Database, start: str, end: str, conf: dict[str, float], model: 
                 "pct": round(100 * sum(1 for r in rs if ok(r)) / len(rs), 1) if rs else None}
     sg_ok = lambda r: r["pred_sg"] in r["true_sg"]
     kind_ok = lambda r: r["pred_kind"] == r["true_kind"]
+    full_ok = lambda r: kind_ok(r) and sg_ok(r) and (r["true_kind"] == "parent" or r["pred_owner"] == r["true_owner"])
     by_rule = {rule: {
         "kind": acc([r for r in both if r["rule"] == rule], kind_ok),
+        "full": acc([r for r in both if r["rule"] == rule], full_ok),
         "subgroup": acc([r for r in both if r["rule"] == rule and r["pred_sg"]], sg_ok),
         "owner": acc([r for r in both if r["rule"] == rule and r["pred_kind"] in ("daughter", "related", "review")
                       and r["true_kind"] in ("daughter", "related")], lambda r: r["pred_owner"] == r["true_owner"]),
     } for rule in sorted({r["rule"] for r in both})}
     confusion = Counter((r["true_kind"], r["pred_kind"]) for r in both)
     n_true = len(truth_ids)
-    n_found = len(both)
-    weeks = max(1.0, (dt.date.fromisoformat(end) - dt.date.fromisoformat(start)).days / 7)
+    weeks = max(1.0, ((dt.date.fromisoformat(end) - dt.date.fromisoformat(start)).days + 1) / 7)
+    cuts = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
+    if model and model.get("threshold") is not None:
+        cuts.add(model["threshold"])
     bands = []
-    for t in sorted({0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9} | ({model.get("threshold")} if model and model.get("threshold") is not None else set())):
+    for t in sorted(cuts):
         shown = [r for r in rows if r["proposed"] and r["likelihood"] >= t]
         hit = sum(1 for r in shown if r["in_mpstruc"])
         bands.append({"min_likelihood": t, "per_week": round(len(shown) / weeks, 1),
@@ -486,51 +563,55 @@ def evaluate(db: Database, start: str, end: str, conf: dict[str, float], model: 
                       "precision_pct": round(100 * hit / len(shown), 1) if shown else None})
     auto = [r for r in both if r["pred_kind"] != "review"]
     return {
-        "window": [start, end], "released": len(ids_all), "stats": stats, "weeks": round(weeks, 1),
-        "discovery": {"in_mpstruc": n_true, "found": n_found,
-                      "recall_pct": round(100 * n_found / n_true, 1) if n_true else None,
-                      "proposed": len(proposed), "proposed_not_in_mpstruc": len(proposed) - n_found},
+        "window": [start, end], "release_time": release_time, "released": len(ids_all), "stats": dict(stats),
+        "weeks": round(weeks, 1),
+        "discovery": {"in_mpstruc": n_true, "found": len(both),
+                      "recall_pct": round(100 * len(both) / n_true, 1) if n_true else None,
+                      "proposed": len(proposed), "proposed_not_in_mpstruc": len(proposed) - len(both)},
         "bands": bands,
         "placement_type": acc(both, kind_ok),
         "placement_auto": acc(auto, kind_ok),
+        "placement_full": acc(both, full_ok),
+        "placement_full_auto": acc(auto, full_ok),
         "sent_to_review_pct": round(100 * (len(both) - len(auto)) / len(both), 1) if both else None,
         "subgroup_top1": acc([r for r in both if r["pred_sg"]], sg_ok),
         "subgroup_top3": acc([r for r in both if r["sg_top3"]], lambda r: bool(set(r["sg_top3"]) & set(r["true_sg"]))),
         "by_rule": by_rule,
         "confusion": {f"{a}→{b}": n for (a, b), n in sorted(confusion.items())},
-        "training": [(r["sig"], int(r["in_mpstruc"])) for r in rows if r["proposed"]],
+        "training": [(r["sig"], int(r["in_mpstruc"]), r["group"]) for r in rows if r["proposed"]],
         "misses": [r for r in rows if r["in_mpstruc"] and not r["proposed"]][:200],
-        "errors": [r for r in both if not kind_ok(r) or not sg_ok(r)][:300],
+        "errors": [r for r in both if not full_ok(r)][:300],
     }
 
 
 def confidences(result: dict) -> dict[str, float]:
-    """Per-rule confidence = how often that rule's placement (type and subfamily) was right in the backtest."""
+    """Per-rule confidence = how often that rule's suggestion was fully right
+    (type, subfamily and parent/owner) in the tuning period."""
     out = {}
     names = {"same-paper": "related", "same-paper-batch": "related-batch", "same-protein": "daughter",
              "partial-protein": "partial", "new-protein": "parent"}
     for rule, r in result["by_rule"].items():
-        if rule in names and r["kind"]["n"]:
-            ok = r["kind"]["correct"] / r["kind"]["n"]
-            if r["subgroup"]["n"]:
-                ok *= r["subgroup"]["correct"] / r["subgroup"]["n"]
-            out[names[rule]] = round(ok, 3)
+        if rule in names and r["full"]["n"]:
+            out[names[rule]] = round(r["full"]["correct"] / r["full"]["n"], 3)
     return out
 
 
 def pick_threshold(training: list, n_true: int, min_recall: float = 0.9, folds: int = 5) -> float:
     """Highest likelihood cut that still finds min_recall of what mpstruc added.
 
-    Uses out-of-fold scores (each structure scored by a model fitted without
-    it), so the cut is not flattered by the model having seen the answers.
-    n_true counts all structures mpstruc added in the period, flagged or not.
+    Uses out-of-fold scores with folds grouped by paper, so structures from
+    one paper (which share title words and signals) are never split between
+    the fitted and the scored part. n_true counts everything mpstruc added in
+    the period, flagged or not.
     """
+    import zlib
+    fold = lambda g: zlib.crc32(str(g).encode()) % folds
     oof = []
     for f in range(folds):
-        train = [r for i, r in enumerate(training) if i % folds != f]
-        hold = [r for i, r in enumerate(training) if i % folds == f]
-        m = fit_model([x for x, _ in train], [y for _, y in train])
-        oof += [(score(x, m), y) for x, y in hold]
+        train = [r for r in training if fold(r[2]) != f]
+        hold = [r for r in training if fold(r[2]) == f]
+        m = fit_model([x for x, _, _ in train], [y for _, y, _ in train])
+        oof += [(score(x, m), y) for x, y, _ in hold]
     best = 0.0
     for t in [i / 100 for i in range(0, 100)]:
         if sum(y for sc, y in oof if sc >= t) >= min_recall * n_true:
@@ -538,44 +619,60 @@ def pick_threshold(training: list, n_true: int, min_recall: float = 0.9, folds: 
     return best
 
 
-def backtest_md(tune: dict, test: dict, conf: dict, model: dict, threshold: float) -> str:
+def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, threshold: float) -> str:
+    def headline(r):
+        b = next(x for x in r["bands"] if abs(x["min_likelihood"] - threshold) < 1e-9)
+        return (f"| {'release week' if r['release_time'] else 'once papers are linked'} | {b['recall_pct']}% | {b['per_week']} | "
+                f"{b['precision_pct']}% | {r['subgroup_top1']['pct']}% ({r['subgroup_top3']['pct']}%) | "
+                f"{r['placement_auto']['pct']}% | {r['placement_full_auto']['pct']}% | {r['sent_to_review_pct']}% |")
+
     def block(r, title):
-        d = r["discovery"]
-        L = [f"## {title}: structures released {r['window'][0]} to {r['window'][1]}", "",
-             f"- Released in the PDB: {r['released']:,}",
-             f"- Of these, later added to mpstruc: {d['in_mpstruc']:,}",
-             f"- **Flagged by the automation: {d['found']:,} ({d['recall_pct']}%)**",
-             f"- Flagged but not (yet) in mpstruc: {d['proposed_not_in_mpstruc']:,}",
-             "", "Ranking by likelihood (how many a curator would look at each week):", "",
+        L = [f"## {title}", "",
+             f"Structures released {r['window'][0]} to {r['window'][1]}, replayed one week at a time"
+             f"{' as each looked in its release week' if r['release_time'] else ' with today’s PDB data'}.", "",
+             f"- Released: {r['released']:,}; later added to mpstruc: {r['discovery']['in_mpstruc']:,}; "
+             f"flagged at any likelihood: {r['discovery']['found']:,} ({r['discovery']['recall_pct']}%)", "",
              "| Show if likelihood ≥ | Per week | Finds (recall) | Of those shown, in mpstruc |", "|---|---|---|---|"]
         for b in r["bands"]:
             mark = " ← default" if abs(b["min_likelihood"] - threshold) < 1e-9 else ""
-            L.append(f"| {b['min_likelihood']:.1f}{mark} | {b['per_week']} | {b['recall_pct']}% | {b['precision_pct']}% |")
+            L.append(f"| {b['min_likelihood']:.2f}{mark} | {b['per_week']} | {b['recall_pct']}% | {b['precision_pct']}% |")
         L += ["",
-              f"- **Placement right (all): {r['placement_type']['pct']}%** of {r['placement_type']['n']}",
-              f"- **Placement right when the automation decides: {r['placement_auto']['pct']}%** "
-              f"of {r['placement_auto']['n']}; {r['sent_to_review_pct']}% sent to curators with no default",
-              f"- Subfamily right (first choice): {r['subgroup_top1']['pct']}%; in top 3: {r['subgroup_top3']['pct']}%",
-              "", "| Rule | Structures | Type right | Subfamily right | Parent/owner right |", "|---|---|---|---|---|"]
+              f"- Placement type right: {r['placement_type']['pct']}% of all {r['placement_type']['n']}; "
+              f"{r['placement_auto']['pct']}% of the {r['placement_auto']['n']} the automation decides "
+              f"({r['sent_to_review_pct']}% go to curators with no default)",
+              f"- Placement fully right (type + subfamily + parent/owner): {r['placement_full']['pct']}% of all; "
+              f"{r['placement_full_auto']['pct']}% of those it decides",
+              f"- Subfamily right first time: {r['subgroup_top1']['pct']}%; in top 3: {r['subgroup_top3']['pct']}%",
+              "", "| Rule | Structures | Type right | Fully right | Subfamily right | Parent/owner right |", "|---|---|---|---|---|---|"]
         for rule, x in r["by_rule"].items():
-            L.append(f"| {rule} | {x['kind']['n']} | {x['kind']['pct']}% | {x['subgroup']['pct']}% | "
-                     f"{x['owner']['pct'] if x['owner']['n'] else '—'}{'%' if x['owner']['n'] else ''} |")
+            L.append(f"| {rule} | {x['kind']['n']} | {x['kind']['pct']}% | {x['full']['pct']}% | {x['subgroup']['pct']}% | "
+                     f"{str(x['owner']['pct']) + '%' if x['owner']['n'] else '—'} |")
         L += ["", "Confusion (true → predicted): " + ", ".join(f"{k}: {v}" for k, v in r["confusion"].items()), ""]
         return L
+
     L = ["# Automation backtest", "",
-         "The automation is run as if it were the start of each period, knowing only the mpstruc entries "
-         "released before then, and its proposals are compared with what the curators actually did. "
-         "Rules, confidences, the likelihood model and the default cut-off are fitted on the tuning period only.", ""]
-    L += block(tune, "Tuning period")
-    L += block(test, "Test period (untouched by tuning)")
-    L += ["## Likelihood model (fitted on the tuning period)", "",
-          "| Signal | Weight |", "|---|---|"]
+         "Each week of a past period is replayed: the automation knows only the mpstruc entries released before that "
+         "week and is scored against what mpstruc's curators eventually did. The likelihood model, the default cut-off "
+         "and the per-rule confidences are fitted on Jan–Jun 2025 only (cut-off by cross-validation grouped by paper). "
+         "The placement rules themselves were designed from the full 2 Oct 2026 snapshot "
+         "(reports/placement_analysis.md), which includes the test period (about 4% of it).", "",
+         "## Summary: test period (Jul–Dec 2025, never used for fitting), at the default cut-off", "",
+         "| Data the automation has | Finds | Per week | Shown that mpstruc added | Subfamily 1st (top 3) | Type right* | Fully right* | No default |",
+         "|---|---|---|---|---|---|---|---|",
+         headline(test), headline(later), "",
+         "\\* of the structures the automation places itself. *Release week* is what curators see first. The weekly job "
+         "re-checks the last 26 weeks every Thursday, so as papers are linked to a structure its suggestion moves toward the "
+         "*once papers are linked* row. About half of new releases have no paper linked in their first weeks.", ""]
+    L += block(test, "Test period, release week")
+    L += block(later, "Test period, once papers are linked")
+    L += block(tune, "Tuning period, release week (in-sample: the model was fitted on these)")
+    L += ["## Likelihood model (fitted on the tuning period)", "", "| Signal | Weight |", "|---|---|"]
     named = {k: v for k, v in model["weights"].items() if not k.startswith("t:")}
     words = sorted(((k, v) for k, v in model["weights"].items() if k.startswith("t:")), key=lambda kv: -kv[1])
-    L += [f"| {_reasons({k: 1.0}, model)[0][0] if v else k} | {v:+.2f} |" for k, v in sorted(named.items(), key=lambda kv: -kv[1])]
+    L += [f"| {_reasons({k: 1.0}, model)[0][0]} | {v:+.2f} |" for k, v in sorted(named.items(), key=lambda kv: -kv[1])]
     L += ["", "Title words that raise the likelihood most: " + ", ".join(f"{k[2:]} ({v:+.2f})" for k, v in words[:15]),
-          "", "Title words that lower it most: " + ", ".join(f"{k[2:]} ({v:+.2f})" for k, v in words[::-1][:15])]
-    L += ["", "## Confidence used for each rule (from the tuning period)", ""]
+          "", "Title words that lower it most: " + ", ".join(f"{k[2:]} ({v:+.2f})" for k, v in words[::-1][:15]),
+          "", "## Confidence shown for each rule (fully right, tuning period)", ""]
     L += [f"- {k}: {round(100 * v)}%" for k, v in conf.items()]
     return "\n".join(L) + "\n"
 
@@ -584,7 +681,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
-    r.add_argument("--since")
+    r.add_argument("--since", help="first release date to consider (default: 26 weeks ago)")
     r.add_argument("--until")
     sub.add_parser("backtest")
     args = ap.parse_args()
@@ -593,46 +690,47 @@ def main() -> None:
 
     if args.cmd == "backtest":
         tune = evaluate(db, "2025-01-01", "2025-06-30", {})
-        X, y = zip(*tune["training"])
-        model = fit_model(list(X), list(y))
-        conf = confidences(tune)
-        threshold = pick_threshold(tune["training"], tune["discovery"]["in_mpstruc"], min_recall=0.95)
+        model = fit_model([x for x, _, _ in tune["training"]], [y for _, y, _ in tune["training"]])
+        threshold = pick_threshold(tune["training"], tune["discovery"]["in_mpstruc"], min_recall=0.9)
         model["threshold"] = threshold
-        tune = evaluate(db, "2025-01-01", "2025-06-30", conf, model)  # re-score with the fitted model
+        tune = evaluate(db, "2025-01-01", "2025-06-30", {}, model)
+        conf = confidences(tune)
         test = evaluate(db, "2025-07-01", "2025-12-31", conf, model)
+        later = evaluate(db, "2025-07-01", "2025-12-31", conf, model, release_time=False)
         settings = {"confidence": conf, "model": model, "threshold": threshold,
                     "fitted_on": tune["window"], "tested_on": test["window"]}
         (ROOT / "model.json").write_text(json.dumps(settings, indent=1))
-        for r in (tune, test):
-            r.pop("training", None)
-        (ROOT / "reports" / "backtest.json").write_text(json.dumps({"tune": tune, "test": test, **settings}, indent=1))
-        (ROOT / "reports" / "backtest.md").write_text(backtest_md(tune, test, conf, model, threshold))
-        summary = {k: test[k] for k in ("window", "released", "weeks", "discovery", "bands", "placement_type",
-                                        "placement_auto", "sent_to_review_pct", "subgroup_top1", "subgroup_top3",
-                                        "by_rule", "confusion")}
-        summary["errors"] = test["errors"][:150]
-        summary["misses"] = test["misses"][:100]
-        (SITE_DATA / "backtest.json").write_text(json.dumps({"test": summary, **settings}))
-        print(backtest_md(tune, test, conf, model, threshold))
+        for x in (tune, test, later):
+            x.pop("training", None)
+        (ROOT / "reports" / "backtest.json").write_text(json.dumps({"tune": tune, "test": test, "later": later, **settings}, indent=1))
+        (ROOT / "reports" / "backtest.md").write_text(backtest_md(tune, test, later, conf, model, threshold))
+        keep = ("window", "release_time", "released", "weeks", "discovery", "bands", "placement_type", "placement_auto",
+                "placement_full", "placement_full_auto", "sent_to_review_pct", "subgroup_top1", "subgroup_top3",
+                "by_rule", "confusion")
+        site = {"test": {k: test[k] for k in keep} | {"errors": test["errors"][:150], "misses": test["misses"][:100]},
+                "later": {k: later[k] for k in keep}, **settings}
+        (SITE_DATA / "backtest.json").write_text(json.dumps(site))
+        print(backtest_md(tune, test, later, conf, model, threshold))
         return
 
-    snap = db.meta.get("lastNewProteinDate", "")[:10]
-    since = args.since or snap
-    until = args.until or dt.date.today().isoformat()
+    today = dt.date.today()
+    since = args.since or (today - dt.timedelta(weeks=26)).isoformat()
+    until = args.until or today.isoformat()
     settings_path = ROOT / "model.json"
     settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
     conf, model = settings.get("confidence", {}), settings.get("model")
-    full_ids = sorted({e.pdbCode.upper() for e in db.entries()} | {r.pdb.upper() for e in db.entries() for r in e.related})
-    S = {k: summarise(v) for k, v in rcsb.entry_entities(full_ids).items()}
-    kb = build_kb(db, S)
+    kb = build_kb(db, _full_summaries(db))
     ids = released_between(since, until)
     props, stats = propose(kb, ids, conf, model)
     props.sort(key=lambda p: (-p["likelihood"], p["pdb"]))
+    snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
+    age = (today - dt.date.fromisoformat(snap)).days if snap else None
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
-           "window": [since, until], "snapshot": db.meta.get("timeStamp"), "stats": stats,
+           "window": [since, until], "snapshot": db.meta.get("timeStamp"), "snapshotAgeDays": age, "stats": stats,
            "threshold": settings.get("threshold", 0.0), "confidence": conf, "candidates": props}
-    (SITE_DATA / "candidates.json").write_text(json.dumps(out))
-    print(f"{stats}; wrote {SITE_DATA / 'candidates.json'}")
+    (SITE_DATA / "candidates.json").write_text(json.dumps(out, separators=(",", ":")))
+    print(f"{stats}; {sum(p['likelihood'] >= out['threshold'] for p in props)} at or above the cut-off; "
+          f"wrote {SITE_DATA / 'candidates.json'}")
 
 
 if __name__ == "__main__":

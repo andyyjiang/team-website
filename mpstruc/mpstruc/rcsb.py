@@ -1,6 +1,7 @@
 """Minimal cached RCSB PDB client (holdings only, for now)."""
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import time
@@ -28,7 +29,7 @@ def _get_json(url: str, cache_name: str, max_age_s: float) -> object | None:
                 break
             if attempt == 3:
                 raise
-        except urllib.error.URLError:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException):
             if attempt == 3:
                 raise
         time.sleep(2 ** (attempt + 1))
@@ -64,12 +65,12 @@ def _post_json(url: str, payload: dict) -> dict:
     body = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=body, headers={
         "Content-Type": "application/json", "User-Agent": "mpstruc-curation-tool"})
-    for attempt in range(4):
+    for attempt in range(6):
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 return json.load(r)
-        except (urllib.error.URLError, TimeoutError):
-            if attempt == 3:
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException):
+            if attempt == 5:
                 raise
             time.sleep(2 ** (attempt + 1))
     raise RuntimeError("unreachable")
@@ -106,13 +107,13 @@ _ENTITY_FIELDS = """rcsb_id
     rcsb_polymer_entity { pdbx_description }
     rcsb_polymer_entity_container_identifiers { uniprot_ids auth_asym_ids }
     rcsb_entity_source_organism { ncbi_taxonomy_id ncbi_scientific_name }
-    entity_poly { rcsb_entity_polymer_type pdbx_seq_one_letter_code_can }
+    entity_poly { rcsb_entity_polymer_type }
     rcsb_polymer_entity_annotation { type annotation_id name }
   }"""
 
 
 def entry_entities(pdb_ids: list[str], batch: int = 100, max_age_s: float = 30 * 86400) -> dict[str, dict | None]:
-    """Polymer entities per entry: UniProt IDs, organisms, sequences, Pfam/membrane annotations.
+    """Polymer entities per entry: UniProt IDs, organisms, polymer type, Pfam/membrane annotations.
 
     Cached as one JSON file (large; not committed). Unknown entries map to None.
     """
@@ -153,6 +154,48 @@ def entry_keywords(pdb_ids: list[str], batch: int = 200, max_age_s: float = 30 *
             kws = {k["id"] for pe in e.get("polymer_entities") or [] for u in pe.get("uniprots") or []
                    for k in u.get("rcsb_uniprot_keyword") or []}
             found[e["rcsb_id"]] = sorted(kws)
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_extras(pdb_ids: list[str], batch: int = 150, max_age_s: float = 30 * 86400) -> dict[str, dict | None]:
+    """Per entry: UniProt keywords per accession, and when its citation was added.
+
+    {"kw": {uniprot: [KW-...]}, "released": date, "db_ref_updates": [dates of
+    'Database references' revisions after release]} -- the PDB adds or updates
+    the primary citation in such revisions, so a citation that arrived later
+    was not known in the structure's release week.
+    """
+    path = CACHE_DIR / "entry_extras.json"
+    cache: dict[str, dict | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id "
+         "rcsb_accession_info { initial_release_date } "
+         "pdbx_audit_revision_history { ordinal revision_date } "
+         "pdbx_audit_revision_group { revision_ordinal group } "
+         "polymer_entities { uniprots { rcsb_id rcsb_uniprot_keyword { id } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e:
+                continue
+            rel = ((e.get("rcsb_accession_info") or {}).get("initial_release_date") or "")[:10]
+            dates = {h["ordinal"]: (h.get("revision_date") or "")[:10] for h in e.get("pdbx_audit_revision_history") or []}
+            refs = sorted({dates.get(g["revision_ordinal"], "") for g in e.get("pdbx_audit_revision_group") or []
+                           if g.get("group") == "Database references"} - {""})
+            kw = {}
+            for pe in e.get("polymer_entities") or []:
+                for u in pe.get("uniprots") or []:
+                    kw[u["rcsb_id"]] = sorted({k["id"] for k in u.get("rcsb_uniprot_keyword") or []})
+            found[e["rcsb_id"]] = {"released": rel, "db_ref_updates": [d for d in refs if d > rel], "kw": kw}
         for pid in chunk:
             cache[pid] = found.get(pid)
         if (i // batch) % 10 == 0 or i + batch >= len(todo):

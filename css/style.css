@@ -327,6 +327,9 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-edit select, .mp-edit input { font: inherit; color: var(--color-text); background: var(--color-bg);
   border: 1px solid var(--color-border); border-radius: 6px; padding: 5px 6px; max-width: 100%; }
 .mp-table tr.current td { font-weight: 700; }
+.mp-form-note { flex-basis: 100%; margin: 0; color: var(--color-error-text); font-weight: 600; }
+.mp-form-note:empty { display: none; }
+.mp-edit input:disabled { opacity: 0.5; }
 
 @media (max-width: 860px) {
   .mp-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
