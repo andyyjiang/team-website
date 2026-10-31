@@ -96,3 +96,39 @@ def entry_summaries(pdb_ids: list[str], batch: int = 200, max_age_s: float = 7 *
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+_ENTITY_FIELDS = """rcsb_id
+  rcsb_accession_info { initial_release_date deposit_date }
+  rcsb_primary_citation { pdbx_database_id_DOI pdbx_database_id_PubMed }
+  polymer_entities {
+    rcsb_id
+    rcsb_polymer_entity { pdbx_description }
+    rcsb_polymer_entity_container_identifiers { uniprot_ids auth_asym_ids }
+    rcsb_entity_source_organism { ncbi_taxonomy_id ncbi_scientific_name }
+    entity_poly { rcsb_entity_polymer_type pdbx_seq_one_letter_code_can }
+    rcsb_polymer_entity_annotation { type annotation_id name }
+  }"""
+
+
+def entry_entities(pdb_ids: list[str], batch: int = 100, max_age_s: float = 30 * 86400) -> dict[str, dict | None]:
+    """Polymer entities per entry: UniProt IDs, organisms, sequences, Pfam/membrane annotations.
+
+    Cached as one JSON file (large; not committed). Unknown entries map to None.
+    """
+    path = CACHE_DIR / "entry_entities.json"
+    cache: dict[str, dict | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        q = "query($ids: [String!]!) { entries(entry_ids: $ids) { %s } }" % _ENTITY_FIELDS
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {e["rcsb_id"]: e for e in (data.get("data") or {}).get("entries") or [] if e}
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}
