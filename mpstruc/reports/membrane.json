@@ -1,0 +1,562 @@
+{
+ "train": {
+  "window": [
+   "2023-07-01",
+   "2024-08-31"
+  ],
+  "n": 17605,
+  "membrane": 2092,
+  "auc": 0.9924,
+  "brier": 0.0143,
+  "at_50": {
+   "called_membrane": 2110,
+   "precision_pct": 92.6,
+   "recall_pct": 93.4
+  },
+  "calibration": [
+   {
+    "range": "0-10%",
+    "n": 15110,
+    "predicted": 0.4,
+    "actual": 0.3
+   },
+   {
+    "range": "10-20%",
+    "n": 163,
+    "predicted": 15.8,
+    "actual": 14.7
+   },
+   {
+    "range": "20-30%",
+    "n": 97,
+    "predicted": 24.1,
+    "actual": 28.9
+   },
+   {
+    "range": "30-40%",
+    "n": 65,
+    "predicted": 35.4,
+    "actual": 33.8
+   },
+   {
+    "range": "40-50%",
+    "n": 60,
+    "predicted": 44.9,
+    "actual": 25.0
+   },
+   {
+    "range": "50-60%",
+    "n": 44,
+    "predicted": 55.2,
+    "actual": 61.4
+   },
+   {
+    "range": "60-70%",
+    "n": 28,
+    "predicted": 65.7,
+    "actual": 60.7
+   },
+   {
+    "range": "70-80%",
+    "n": 77,
+    "predicted": 75.6,
+    "actual": 74.0
+   },
+   {
+    "range": "80-90%",
+    "n": 207,
+    "predicted": 86.1,
+    "actual": 91.3
+   },
+   {
+    "range": "90-100%",
+    "n": 1754,
+    "predicted": 94.4,
+    "actual": 94.8
+   }
+  ],
+  "top_50_precision": 96.0
+ },
+ "test": {
+  "window": [
+   "2024-09-01",
+   "2025-03-31"
+  ],
+  "n": 9583,
+  "membrane": 1187,
+  "auc": 0.9852,
+  "brier": 0.0254,
+  "at_50": {
+   "called_membrane": 1301,
+   "precision_pct": 84.1,
+   "recall_pct": 92.2
+  },
+  "calibration": [
+   {
+    "range": "0-10%",
+    "n": 8026,
+    "predicted": 0.4,
+    "actual": 0.3
+   },
+   {
+    "range": "10-20%",
+    "n": 106,
+    "predicted": 13.7,
+    "actual": 11.3
+   },
+   {
+    "range": "20-30%",
+    "n": 51,
+    "predicted": 24.7,
+    "actual": 25.5
+   },
+   {
+    "range": "30-40%",
+    "n": 62,
+    "predicted": 35.0,
+    "actual": 41.9
+   },
+   {
+    "range": "40-50%",
+    "n": 37,
+    "predicted": 44.8,
+    "actual": 51.4
+   },
+   {
+    "range": "50-60%",
+    "n": 27,
+    "predicted": 55.4,
+    "actual": 48.1
+   },
+   {
+    "range": "60-70%",
+    "n": 39,
+    "predicted": 67.2,
+    "actual": 74.4
+   },
+   {
+    "range": "70-80%",
+    "n": 61,
+    "predicted": 76.2,
+    "actual": 78.7
+   },
+   {
+    "range": "80-90%",
+    "n": 182,
+    "predicted": 85.6,
+    "actual": 75.8
+   },
+   {
+    "range": "90-100%",
+    "n": 992,
+    "predicted": 94.2,
+    "actual": 87.3
+   }
+  ],
+  "top_50_precision": 70.0
+ },
+ "mpstruc_later": {
+  "window": [
+   "2025-07-01",
+   "2025-12-31"
+  ],
+  "n": 447,
+  "at_least_50_pct": 91.5,
+  "at_least_10_pct": 98.0
+ },
+ "examples": [
+  {
+   "pdb": "8IRJ",
+   "membrane": 1,
+   "p": 0.949,
+   "why": [
+    "7 of its membrane-crossing segments are resolved in the structure",
+    "its protein family (IPR017978) is a membrane protein in 26 of 27 training structures",
+    "UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9CZK",
+   "membrane": 1,
+   "p": 0.949,
+   "why": [
+    "10 of its membrane-crossing segments are resolved in the structure",
+    "its protein family (IPR005821) is a membrane protein in 194 of 216 training structures",
+    "UniProt lists all its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9J4X",
+   "membrane": 1,
+   "p": 0.947,
+   "why": [
+    "11 of its membrane-crossing segments are resolved in the structure",
+    "UniProt lists a protein in it as crossing the membrane",
+    "its protein family (IPR004331) is a membrane protein in 6 of 8 training structures"
+   ]
+  },
+  {
+   "pdb": "8W8X",
+   "membrane": 1,
+   "p": 0.942,
+   "why": [
+    "7 of its membrane-crossing segments are resolved in the structure",
+    "its protein family (IPR000367) is a membrane protein in 166 of 170 training structures",
+    "UniProt lists a protein in it as crossing the membrane",
+    "but UniProt says a protein in it is secreted"
+   ]
+  },
+  {
+   "pdb": "8W7R",
+   "membrane": 1,
+   "p": 0.907,
+   "why": [
+    "7 of its membrane-crossing segments are resolved in the structure",
+    "the sample contains detergent (OLC)",
+    "UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9F5Z",
+   "membrane": 0,
+   "p": 0.772,
+   "why": [
+    "9 of its membrane-crossing segments are resolved in the structure",
+    "UniProt lists a protein in it as crossing the membrane",
+    "its protein family (IPR036909) is a membrane protein in 39 of 67 training structures"
+   ]
+  },
+  {
+   "pdb": "9B43",
+   "membrane": 1,
+   "p": 0.225,
+   "why": [
+    "but UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9FTI",
+   "membrane": 0,
+   "p": 0.04,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "but the title mentions 'channel'"
+   ]
+  },
+  {
+   "pdb": "9HBZ",
+   "membrane": 0,
+   "p": 0.016,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9B4V",
+   "membrane": 0,
+   "p": 0.014,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9FLX",
+   "membrane": 0,
+   "p": 0.013,
+   "why": [
+    "none of its proteins is linked to UniProt yet"
+   ]
+  },
+  {
+   "pdb": "9MML",
+   "membrane": 0,
+   "p": 0.008,
+   "why": [
+    "the title mentions 'fab'",
+    "none of its proteins is linked to UniProt yet"
+   ]
+  },
+  {
+   "pdb": "9MU6",
+   "membrane": 0,
+   "p": 0.005,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR023213) is a membrane protein in 0 of 26 training structures"
+   ]
+  },
+  {
+   "pdb": "8QYC",
+   "membrane": 0,
+   "p": 0.003,
+   "why": [
+    "its protein family (IPR014001) is a membrane protein in 1 of 304 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9IIA",
+   "membrane": 0,
+   "p": 0.002,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "8UL5",
+   "membrane": 0,
+   "p": 0.002,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9BFF",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR025110) is a membrane protein in 0 of 58 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "8WPJ",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "none of its proteins is linked to UniProt yet"
+   ]
+  },
+  {
+   "pdb": "9AUS",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "none of its proteins is linked to UniProt yet"
+   ]
+  },
+  {
+   "pdb": "8S3L",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR005103) is a membrane protein in 0 of 2 training structures",
+    "UniProt says a protein in it is secreted"
+   ]
+  },
+  {
+   "pdb": "8W3B",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR001245) is a membrane protein in 1 of 252 training structures",
+    "its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure",
+    "UniProt says a protein in it is secreted",
+    "but UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9B78",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR043129) is a membrane protein in 0 of 123 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  },
+  {
+   "pdb": "9H3N",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR009000) is a membrane protein in 0 of 340 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "8YO3",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR020568) is a membrane protein in 0 of 385 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "the title mentions 'domain'"
+   ]
+  },
+  {
+   "pdb": "8ZMK",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR014729) is a membrane protein in 0 of 89 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  },
+  {
+   "pdb": "8ZXC",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR001487) is a membrane protein in 0 of 90 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "the title mentions 'domain'",
+    "but UniProt says a protein in it is in the nucleus"
+   ]
+  },
+  {
+   "pdb": "9CGA",
+   "membrane": 0,
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR029062) is a membrane protein in 0 of 41 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm",
+    "but UniProt places a protein in it in a membrane"
+   ]
+  },
+  {
+   "pdb": "9GO5",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR043129) is a membrane protein in 0 of 123 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  },
+  {
+   "pdb": "7H6H",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR009003) is a membrane protein in 9 of 1443 training structures",
+    "UniProt says a protein in it is in the cytoplasm",
+    "but UniProt places a protein in it in a membrane"
+   ]
+  },
+  {
+   "pdb": "7G37",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR017850) is a membrane protein in 0 of 19 training structures",
+    "UniProt says a protein in it is secreted"
+   ]
+  },
+  {
+   "pdb": "7GVN",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR013087) is a membrane protein in 0 of 114 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "the title mentions 'domain'",
+    "but UniProt says a protein in it is in the nucleus"
+   ]
+  },
+  {
+   "pdb": "7HGC",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR000313) is a membrane protein in 0 of 19 training structures",
+    "UniProt says a protein in it is in the cytoplasm",
+    "but UniProt says a protein in it is in the nucleus"
+   ]
+  },
+  {
+   "pdb": "7HUP",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR001205) is a membrane protein in 0 of 1186 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure",
+    "but UniProt places a protein in it in a membrane"
+   ]
+  },
+  {
+   "pdb": "8Q2F",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR001128) is a membrane protein in 0 of 95 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  },
+  {
+   "pdb": "8S7T",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR006094) is a membrane protein in 0 of 29 training structures"
+   ]
+  },
+  {
+   "pdb": "8WWQ",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR029063) is a membrane protein in 1 of 1382 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "8Z29",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR046346) is a membrane protein in 0 of 37 training structures"
+   ]
+  },
+  {
+   "pdb": "9C4P",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR029035) is a membrane protein in 0 of 80 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane"
+   ]
+  },
+  {
+   "pdb": "9ETR",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "its protein family (IPR001357) is a membrane protein in 0 of 66 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm",
+    "but UniProt says a protein in it is in the nucleus"
+   ]
+  },
+  {
+   "pdb": "9GU5",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR047575) is a membrane protein in 0 of 34 training structures",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  },
+  {
+   "pdb": "9MTO",
+   "membrane": 0,
+   "p": 0.0,
+   "why": [
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "its protein family (IPR016181) is a membrane protein in 0 of 36 training structures",
+    "UniProt says a protein in it is in the cytoplasm"
+   ]
+  }
+ ]
+}

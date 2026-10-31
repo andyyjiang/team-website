@@ -1,0 +1,217 @@
+{
+ "xml_sha256": "4174f67bb5685afe0c0cf046f0c5bc5ceaa53162f8fd9568cf679f5187ea9f7a",
+ "xlsx_recorded_sha256": "1ce45f6a3176467bfec76000d594efa3a88196d0169c43460253a7e5cce2e58b",
+ "timestamp_match": true,
+ "totals": {
+  "Parent records": {
+   "ours": 2070,
+   "xlsx": 2070,
+   "match": true
+  },
+  "Daughter records": {
+   "ours": 2248,
+   "xlsx": 2248,
+   "match": true
+  },
+  "Related PDB listings": {
+   "ours": 6273,
+   "xlsx": 6273,
+   "match": true
+  },
+  "All PDB listings": {
+   "ours": 10591,
+   "xlsx": 10591,
+   "match": true
+  },
+  "Subfamilies": {
+   "ours": 206,
+   "xlsx": 206,
+   "match": true
+  },
+  "Distinct parent PDB IDs": {
+   "ours": 2064,
+   "xlsx": 2064,
+   "match": true
+  },
+  "Distinct PDB IDs in all listings": {
+   "ours": 10552,
+   "xlsx": 10552,
+   "match": true
+  },
+  "Bibliography records": {
+   "ours": 4331,
+   "xlsx": 4331,
+   "match": true
+  }
+ },
+ "structures": {
+  "ours": 10591,
+  "xlsx_populated": 10575,
+  "xlsx_blank_rows": 16,
+  "missing_from_xlsx": [
+   "G01-S001-P0001",
+   "G01-S001-P0001-D001",
+   "G01-S001-P0001-D002",
+   "G01-S001-P0001-D003",
+   "G01-S001-P0001-D003-R001",
+   "G01-S001-P0001-D003-R002",
+   "G01-S001-P0001-D003-R003",
+   "G01-S001-P0001-D004",
+   "G01-S001-P0001-D005",
+   "G01-S001-P0001-D006",
+   "G01-S001-P0001-D007",
+   "G01-S001-P0001-D007-R001",
+   "G01-S001-P0001-D007-R002",
+   "G01-S001-P0001-D007-R003",
+   "G01-S001-P0001-D007-R004",
+   "G01-S001-P0001-D008"
+  ],
+  "extra_in_xlsx": [],
+  "cells": [
+   {
+    "key": "G02-S003-P0029",
+    "column": "Description",
+    "ours": "NHis-native, 1.83 Å: 4V3H\nwild-type, 2.30 Å: 4D51\nα-cyclodextrin soak, 1.70 Å: 4D5B\nβ-cyclodextrin soak, 1.90 Å: 4D5D",
+    "xlsx": "NHis-native, 1.83 Å: 4V3H\nwild-type, 2.30 Å: 4D51\n&alfa;-cyclodextrin soak, 1.70 Å: 4D5B\nβ-cyclodextrin soak, 1.90 Å: 4D5D",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G02-S005-P0054-D003",
+    "column": "Resolution (Å)",
+    "ours": 1.77,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S033-P0001-D001",
+    "column": "Description",
+    "ours": "cryo-EM structure\nCa+2-bound intermediate state, 3.7 Å: 6QMA\nCa+2-bound closed state, 3.6 Å:6QMB\nCa+2-free state, 3.8 Å: 6QM4\nin DDM, Ca+2-bound state, 3.6 Å: 6QM5\nin DDM, Ca+2-free state, 3.7 Å: 6QM6",
+    "xlsx": "cryo-EM structure\nCa+2-bound intermediate state, 3.7 Å: 6QMA\nCa+2-bound closed state, 3.6 & Aring;:6QMB\nCa+2-free state, 3.8 Å: 6QM4\nin DDM, Ca+2-bound state, 3.6 Å: 6QM5\nin DDM, Ca+2-free state, 3.7 Å: 6QM6",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G03-S037-P0010-D001",
+    "column": "Description",
+    "ours": "x-ray structure\nin complex with an inhibitory Nb61, 3.50 Å: 8QZ2\nin complex with an activatory Nb67, 2.40 Å: 8QZ3\nin complex with an activatory Nb76, 3.20 Å: 8QZ4",
+    "xlsx": "x-ray structure\n​​in complex with an inhibitory Nb61, 3.50 Å: 8QZ2\nin complex with an activatory Nb67, 2.40 Å: 8QZ3\nin complex with an activatory Nb76, 3.20 Å: 8QZ4",
+    "class": "invisible_removed"
+   },
+   {
+    "key": "G03-S038-P0001-D001",
+    "column": "Description",
+    "ours": "[Ca2+] = 5mM\nW195Y mutant in complex with Br-dihydropyridine derivative UK-59811, 3.3 Å: 5KLG\nwild-type protein in complex with Br-dihydropyridine derivative UK-59811, 3.3 Å: 5KLS\nwild-type in complex with amlodipine, 3.2 Å: 5KMD\nwild-type in complex with nimodipine, 3.2 Å: 5KMF\nwild-type in complex with Br-verapamil, 3.2 Å: 5KMH",
+    "xlsx": "[Ca2+] = 5mM\nW195Y mutant in complex with Br-dihydropyridine derivative UK-59811, 3.3 Å: 5KLG\nwild-type protein in complex with Br-dihydropyridine derivative UK-59811, 3.3 &Ariing;: 5KLS\nwild-type in complex with amlodipine, 3.2 Å: 5KMD\nwild-type in complex with nimodipine, 3.2 Å: 5KMF\nwild-type in complex with Br-verapamil, 3.2 Å: 5KMH",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G03-S047-P0001-D001",
+    "column": "Resolution (Å)",
+    "ours": 1.8,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S051-P0035",
+    "column": "Resolution (Å)",
+    "ours": 3.4,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S051-P0165",
+    "column": "Resolution (Å)",
+    "ours": 2.91,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S054-P0014",
+    "column": "Resolution (Å)",
+    "ours": 3.4,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S070-P0003",
+    "column": "Resolution (Å)",
+    "ours": 2.8,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S094-P0001-D011",
+    "column": "Description",
+    "ours": "This and the additional structures below reveal two discrete multisite binding pockets.\nUnliganded AcrB, 3.35 Å: 3AOA\nWith bound erythromycin, 3.34 Å: 3AOC\nWith bound rifampicin & minocyline, 3.30 Å: 3AOD",
+    "xlsx": "This and the additional structures below reveal two discrete multisite binding pockets.\nUnliganded AcrB, 3.35 Å: 3AOA\nWith bound erythromycin, 3.34 Aring;: 3AOC\nWith bound rifampicin & minocyline, 3.30 Å: 3AOD",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G03-S133-P0021-D002",
+    "column": "Description",
+    "ours": "cryo-EM structure\nin the E2P transition state, 3.98 Å: 7KY5\nin the E2P state, 3.50 Å: 7KYA\nDnf1-Lem3 complex in the apo E1 state, 3.10 Å: 7KY6\nDnf1-Lem3 complex in the E1-ADP state, 3.20 Å: 7KYB\nDnf1-Lem3 complex in the E2P state, 2.80 Å: 7KYC\nDnf2-Lem3 complex in the apo E1 state, 3.08 Å: 7KY7\nDnf2-Lem3 complex in the E1-ATP state, 3.85 Å: 7KY8",
+    "xlsx": "cryo-EM structure\nin the E2P transition state, 3.98 Å: 7KY5\nin the E2P state, 3.50 &Ariing;: 7KYA\nDnf1-Lem3 complex in the apo E1 state, 3.10 Å: 7KY6\nDnf1-Lem3 complex in the E1-ADP state, 3.20 Å: 7KYB\nDnf1-Lem3 complex in the E2P state, 2.80 Å: 7KYC\nDnf2-Lem3 complex in the apo E1 state, 3.08 Å: 7KY7\nDnf2-Lem3 complex in the E1-ATP state, 3.85 Å: 7KY8",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G03-S140-P0019",
+    "column": "Description",
+    "ours": "cryo-EM structure\nin the dimer-of-dimer state, 2.70 Å: 6WXU\ncomplex in the presence of NADPH, 3.30 Å: 6WXV",
+    "xlsx": "cryo-EM structure\nin the dimer-of-dimer state, 2.70 Å: 6WXU\ncomplex in the presence of NADPH, 3.30 &Ariing;: 6WXV",
+    "class": "entity_repaired"
+   },
+   {
+    "key": "G03-S143-P0003",
+    "column": "Resolution (Å)",
+    "ours": 1.6,
+    "xlsx": null,
+    "class": "resolution_parsed"
+   },
+   {
+    "key": "G03-S157-P0002-D001",
+    "column": "Description",
+    "ours": "x-ray structure\nsoaked with CS2, 2.65 Å: 8STD",
+    "xlsx": "x-ray structure\n​​soaked with CS2, 2.65 Å: 8STD",
+    "class": "invisible_removed"
+   }
+  ],
+  "cell_classes": {
+   "entity_repaired": 6,
+   "resolution_parsed": 7,
+   "invisible_removed": 2
+  }
+ },
+ "structures_missing_by_parent": {
+  "G01-S001-P0001": [
+   "G01-S001-P0001",
+   "G01-S001-P0001-D001",
+   "G01-S001-P0001-D002",
+   "G01-S001-P0001-D003",
+   "G01-S001-P0001-D003-R001",
+   "G01-S001-P0001-D003-R002",
+   "G01-S001-P0001-D003-R003",
+   "G01-S001-P0001-D004",
+   "G01-S001-P0001-D005",
+   "G01-S001-P0001-D006",
+   "G01-S001-P0001-D007",
+   "G01-S001-P0001-D007-R001",
+   "G01-S001-P0001-D007-R002",
+   "G01-S001-P0001-D007-R003",
+   "G01-S001-P0001-D007-R004",
+   "G01-S001-P0001-D008"
+  ]
+ },
+ "references": {
+  "ours": 4331,
+  "xlsx_populated": 4331,
+  "xlsx_blank_rows": 0,
+  "missing_from_xlsx": [],
+  "extra_in_xlsx": [],
+  "cells": [],
+  "cell_classes": {}
+ },
+ "subfamilies": {
+  "ours": 206,
+  "xlsx": 206,
+  "cells": []
+ }
+}

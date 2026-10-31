@@ -1,0 +1,857 @@
+{
+ "note": "Independent review of a random sample of disagreements between the model (previous version) and the membrane databases, test period Sep 2024 - Mar 2025. Reviewers read each PDB entry and UniProt record and decided whether the deposited structure contains a membrane protein's membrane-embedded part.",
+ "high_score_not_in_databases": {
+  "population": 172,
+  "checked": 60,
+  "membrane": 45,
+  "not_membrane": 15,
+  "not_membrane_reason": "all contained only an outside part of a membrane protein (ectodomains, N-terminal domains, receptor tail peptides); the model now checks whether membrane-crossing segments are resolved"
+ },
+ "low_score_in_databases": {
+  "population": 80,
+  "checked": 40,
+  "membrane": 32,
+  "not_membrane": 7
+ },
+ "middle_scores": {
+  "checked": 40,
+  "membrane": 29,
+  "average_score_pct": 55.3
+ },
+ "verdicts": [
+  {
+   "pdb": "8ZP0",
+   "membrane": "yes",
+   "reason": "Full mitochondrial bc1 complex III including transmembrane cytochrome b.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VTI",
+   "membrane": "no",
+   "reason": "Only HormR/GAIN extracellular residues 497-852 modeled; 7TM not resolved.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9BFR",
+   "membrane": "no",
+   "reason": "Extracellular domain of Bride of Sevenless only.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9JEG",
+   "membrane": "yes",
+   "reason": "Full TRPV3 channel in nanodisc with TM domain.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RRX",
+   "membrane": "yes",
+   "reason": "Full RyR1 in nanodisc including pore TM region.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RWE",
+   "membrane": "yes",
+   "reason": "A2A GPCR 7TM crystal structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9F33",
+   "membrane": "yes",
+   "reason": "D3 receptor 7TM in G protein complex.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8TIN",
+   "membrane": "no",
+   "reason": "Arrestin/Fab with only 5 C-tail receptor residues; no TM modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9B1I",
+   "membrane": "yes",
+   "reason": "URAT1 SLC22 transporter, full TM structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IUK",
+   "membrane": "yes",
+   "reason": "Cdr1 full ABC transporter with TMDs.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RW4",
+   "membrane": "yes",
+   "reason": "A2A GPCR 7TM crystal structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9DXQ",
+   "membrane": "yes",
+   "reason": "GluK2 LBD plus transmembrane domain resolved.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XFG",
+   "membrane": "no",
+   "reason": "Integrin aVb3 ectodomain only; TM helices not modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RRT",
+   "membrane": "yes",
+   "reason": "Full RyR1 in liposomes including TM pore.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8TII",
+   "membrane": "yes",
+   "reason": "ACKR3 in nanodisc with arrestin; receptor 7TM included.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9BTU",
+   "membrane": "no",
+   "reason": "ENaC modeled residues exclude both TM helices (extracellular domain only).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9BLR",
+   "membrane": "no",
+   "reason": "ENaC modeled residues exclude TM helices (extracellular domain only).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RWD",
+   "membrane": "yes",
+   "reason": "A2A GPCR 7TM crystal structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8Y0H",
+   "membrane": "yes",
+   "reason": "CXCR3 7TM helices modeled in focused map.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8TIL",
+   "membrane": "no",
+   "reason": "Arrestin/Fab with only short receptor C-tail peptide; no TM.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9FTZ",
+   "membrane": "yes",
+   "reason": "Respiratory CIII2/CIV supercomplex with TM subunits.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9BPC",
+   "membrane": "yes",
+   "reason": "P2X3 receptor with TM helix region modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RW7",
+   "membrane": "yes",
+   "reason": "A2A GPCR 7TM crystal structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IJM",
+   "membrane": "yes",
+   "reason": "PomA/PomB stator complex with TM helices.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VOX",
+   "membrane": "yes",
+   "reason": "PCAT1 ABC transporter core including TMDs.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XQX",
+   "membrane": "yes",
+   "reason": "Ycf2-FtsHi complex with modeled TM helices (CrTam49, FADL, CrTam34).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9JDZ",
+   "membrane": "yes",
+   "reason": "URAT1 transporter full TM structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9MQJ",
+   "membrane": "yes",
+   "reason": "Mu-opioid receptor 7TM modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9JQT",
+   "membrane": "no",
+   "reason": "CD132 ectodomain (55-246) only; TM not modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XQW",
+   "membrane": "yes",
+   "reason": "Ycf2-FtsHi membrane complex, same composition as 8XQX with TM helices.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RRW",
+   "membrane": "yes",
+   "reason": "Full-length RyR1 channel in detergent including TM pore domain.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VP5",
+   "membrane": "yes",
+   "reason": "Full ABC transporter PCAT1 with TMDs.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8YNZ",
+   "membrane": "yes",
+   "reason": "MFS transporter EfpA, polytopic membrane protein.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IYX",
+   "membrane": "yes",
+   "reason": "HBV S domain (res 164-226 region of L protein) with TM helices modeled in subviral particle.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VP9",
+   "membrane": "yes",
+   "reason": "Full ABC transporter PCAT1 with TMDs.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VOW",
+   "membrane": "yes",
+   "reason": "PCAT1 core transporter with TMDs.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8ZDS",
+   "membrane": "no",
+   "reason": "FliF modeled only ~123-438, excluding both TM helices (26-46, 455-475).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8X4E",
+   "membrane": "yes",
+   "reason": "RyR1 structure focused on TM helix S0; TM domain present.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8TW4",
+   "membrane": "yes",
+   "reason": "Full TCR-CD3 complex in nanodisc including TM helices.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XEK",
+   "membrane": "no",
+   "reason": "Only integrin headpiece modeled (alphaV to 623, beta3 to 507); no TM.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9B9K",
+   "membrane": "no",
+   "reason": "Integrin a5b1 ectodomain construct truncated before TM helices.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9JE5",
+   "membrane": "yes",
+   "reason": "Full TRPV3 channel in nanodisc.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8RWC",
+   "membrane": "yes",
+   "reason": "A2A GPCR 7TM crystal structure.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IND",
+   "membrane": "no",
+   "reason": "Integrin avb8 headpiece fragments only (alphaV 31-440, beta8 112-352).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XEZ",
+   "membrane": "no",
+   "reason": "Modeled alphaV ends ~989 and beta3 ~627, TM helices not modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8Y1V",
+   "membrane": "yes",
+   "reason": "Full-length NMDA receptor with TMD modeled.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8ZYP",
+   "membrane": "yes",
+   "reason": "hERG channel including pore domain.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8YFS",
+   "membrane": "yes",
+   "reason": "MRGPRE GPCR 7TM in G-protein complex.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9J7I",
+   "membrane": "no",
+   "reason": "CaSR modeled only to ~549 (ECD); 7TM residues unobserved.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9BFK",
+   "membrane": "yes",
+   "reason": "Choline transporter CHT1, polytopic membrane protein.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8VUQ",
+   "membrane": "no",
+   "reason": "Local refinement of NMDA ATD only (constructs to ~369).",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XYI",
+   "membrane": "yes",
+   "reason": "CXCR3 GPCR 7TM receptor focused map.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9F60",
+   "membrane": "yes",
+   "reason": "Respiratory complex IV with membrane subunits.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9CL6",
+   "membrane": "yes",
+   "reason": "Ammonia monooxygenase integral membrane complex in native membranes.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8XTY",
+   "membrane": "yes",
+   "reason": "VAChT, polytopic vesicular transporter.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9EWA",
+   "membrane": "yes",
+   "reason": "Full pentameric ligand-gated ion channel with TMD.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9MQK",
+   "membrane": "yes",
+   "reason": "Kappa-opioid receptor 7TM GPCR.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9ITY",
+   "membrane": "yes",
+   "reason": "ATP synthase FO subunits a and c (membrane) refined.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IU0",
+   "membrane": "yes",
+   "reason": "ATP synthase FO subunits a and c (membrane) refined.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "9IVM",
+   "membrane": "yes",
+   "reason": "GLP-1R class B GPCR with 7TM in Gs complex.",
+   "group": "hi_no"
+  },
+  {
+   "pdb": "8Y9Z",
+   "membrane": "yes",
+   "reason": "SecYE translocon with a substrate TM protein; the membrane channel is resolved.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8U5Q",
+   "membrane": "yes",
+   "reason": "Full-length GPR155/LYCHOS, which has transporter-like and GPCR-like TM domains.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9ILT",
+   "membrane": "yes",
+   "reason": "Alternative complex III contains integral membrane subunits (ActC/ActF, NrfD-like).",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8ZI3",
+   "membrane": "no",
+   "reason": "Only the soluble F1 part (alpha, beta, gamma, epsilon); no Fo subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9FSM",
+   "membrane": "yes",
+   "reason": "Decameric TraT forms an alpha-helical barrel that spans the outer membrane.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9EOT",
+   "membrane": "yes",
+   "reason": "Ceramide synthase CerS6 is a multi-pass ER membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9BGH",
+   "membrane": "no",
+   "reason": "Soluble KRAS G-domain with cyclophilin A.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9DKY",
+   "membrane": "no",
+   "reason": "PfDHODH truncated to residues 158-382; the N-terminal membrane anchor was removed.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8ZI1",
+   "membrane": "no",
+   "reason": "Only the soluble F1-ATPase subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8U5N",
+   "membrane": "yes",
+   "reason": "Full-length GPR155 membrane protein.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8VI0",
+   "membrane": "yes",
+   "reason": "Cellulose synthase CesA trimer with TM helices.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9FP2",
+   "membrane": "yes",
+   "reason": "BcsF residues ~4-53 are modeled, which includes its single TM helix (residues 4-24).",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8WVU",
+   "membrane": "yes",
+   "reason": "LGR4 residues 24-809 cover the 7TM domain (cryo-EM of the receptor).",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9LSH",
+   "membrane": "yes",
+   "reason": "Contains the CitS citrate/sodium symporter, a TM transporter.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8WOE",
+   "membrane": "yes",
+   "reason": "Intact motor with FliPQR export gate and MS-ring FliF TM parts.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9DXA",
+   "membrane": "yes",
+   "reason": "LRRC8A:D VRAC channel with TM domains.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8XKV",
+   "membrane": "yes",
+   "reason": "Ycf2-FtsHi motor complex anchored in the chloroplast inner envelope by TM subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8KEV",
+   "membrane": "yes",
+   "reason": "HRD1 is a multi-pass ER membrane ligase; SEL1L has a TM helix.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9BET",
+   "membrane": "yes",
+   "reason": "Structure of the CD33 transmembrane domain.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8QZ6",
+   "membrane": "yes",
+   "reason": "CerS6, an integral membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9BVM",
+   "membrane": "yes",
+   "reason": "GGCX is a multi-pass ER membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8ZI0",
+   "membrane": "no",
+   "reason": "Only the soluble F1-ATPase subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9G9P",
+   "membrane": "yes",
+   "reason": "WzxE flippase, a multi-pass inner membrane protein.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9C3E",
+   "membrane": "yes",
+   "reason": "Full TCR-CD3 complex including its TM helices.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9D3G",
+   "membrane": "yes",
+   "reason": "CCR6, a GPCR, in a BRIL fusion.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8WR3",
+   "membrane": "yes",
+   "reason": "LYCHOS lysosomal membrane protein.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9FS5",
+   "membrane": "yes",
+   "reason": "Decameric TraT, an outer-membrane-spanning helical barrel.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9BUR",
+   "membrane": "yes",
+   "reason": "GGCX integral membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8XFP",
+   "membrane": "yes",
+   "reason": "Full-length LGR4 and ZNRF3 constructs, including the TM regions.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9J83",
+   "membrane": "yes",
+   "reason": "RseP intramembrane protease.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9LSJ",
+   "membrane": "yes",
+   "reason": "Contains the CitS membrane transporter.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8ZI2",
+   "membrane": "no",
+   "reason": "Only the soluble F1-ATPase subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8Y56",
+   "membrane": "yes",
+   "reason": "LYCHOS membrane protein.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9DLY",
+   "membrane": "no",
+   "reason": "Truncated soluble PfDHODH without its membrane anchor.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8QZ7",
+   "membrane": "yes",
+   "reason": "CerS6 integral membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8WM9",
+   "membrane": "yes",
+   "reason": "Full-length Frizzled-4 7TM receptor with the DVL2 DEP domain.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8Y69",
+   "membrane": "yes",
+   "reason": "LGR4 residues 33-788 include the 7TM domain.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9BUX",
+   "membrane": "yes",
+   "reason": "GGCX integral membrane enzyme.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "8QBY",
+   "membrane": "yes",
+   "reason": "Complex I in nanodiscs, including the membrane arm subunits.",
+   "group": "lo_yes"
+  },
+  {
+   "pdb": "9KNY",
+   "membrane": "yes",
+   "reason": "Mitochondrial pyruvate carrier MPC1/MPC2, inner-membrane multi-TM transporter.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9JK6",
+   "membrane": "yes",
+   "reason": "VANGL1 is a 4-TM planar cell polarity protein, full-length cryo-EM hexamer.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8YFC",
+   "membrane": "yes",
+   "reason": "PIEZO1 mechanosensitive channel with TM-containing MDFIC.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9GI0",
+   "membrane": "yes",
+   "reason": "MmpL4 RND transporter in detergent includes its TM domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9E1I",
+   "membrane": "yes",
+   "reason": "RyR1 cryo-EM includes the channel TM domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9ITL",
+   "membrane": "yes",
+   "reason": "Full ATP synthase including membrane subunits a and c ring.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9BHE",
+   "membrane": "yes",
+   "reason": "ArnC is an integral membrane polyprenyl-phosphate glycosyltransferase with TM helices.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8XRA",
+   "membrane": "no",
+   "reason": "Hemagglutinin ectodomain only (residues 16-497, TM absent).",
+   "group": "mid"
+  },
+  {
+   "pdb": "9JST",
+   "membrane": "no",
+   "reason": "PMEL amyloid fibril core from the luminal fragment, not the TM region.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9A4M",
+   "membrane": "yes",
+   "reason": "Full-length integrative model includes ATP synthase subunit b with its TM helix.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9GO9",
+   "membrane": "no",
+   "reason": "Alpha-latrotoxin prepore state is not membrane-inserted.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8Z4G",
+   "membrane": "no",
+   "reason": "Only the periplasmic S-ring region of FliF resolved.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8J1M",
+   "membrane": "yes",
+   "reason": "BbZIP is a multi-TM zinc transporter.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9BVO",
+   "membrane": "yes",
+   "reason": "Vitamin K-dependent gamma-carboxylase is an ER multi-TM enzyme.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8ZAP",
+   "membrane": "yes",
+   "reason": "Channelrhodopsin, 7-TM protein.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8VPP",
+   "membrane": "yes",
+   "reason": "NCC (SLC12A3) cotransporter with TM domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9F5Z",
+   "membrane": "yes",
+   "reason": "Respiratory complex III includes cytochrome b and other TM subunits.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8TML",
+   "membrane": "yes",
+   "reason": "Full CorA Mg channel including TM helices.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9CJK",
+   "membrane": "yes",
+   "reason": "Modeled residues 159-235 cover TMED9 TM helix 203-222.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8R98",
+   "membrane": "yes",
+   "reason": "Cryorhodopsin, 7-TM microbial rhodopsin.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8WKK",
+   "membrane": "yes",
+   "reason": "Includes the export apparatus (FliPQR) and MS-ring components, which contain TM helices.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8XRC",
+   "membrane": "no",
+   "reason": "Hemagglutinin ectodomain only.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8U5C",
+   "membrane": "yes",
+   "reason": "GPR155 integral membrane protein with TM domains.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9LSK",
+   "membrane": "yes",
+   "reason": "CitS sodium-citrate symporter, multi-TM.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8X8R",
+   "membrane": "no",
+   "reason": "Hemagglutinin ectodomain crystal structure.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9A7Q",
+   "membrane": "no",
+   "reason": "MetQ lipoprotein and TagH ABC ATPase: neither has TM segments.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9A65",
+   "membrane": "yes",
+   "reason": "Full-length chemoreceptors McpB/YvaQ modeled, including their TM helices.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9CO2",
+   "membrane": "yes",
+   "reason": "BamA outer membrane beta-barrel.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8RS0",
+   "membrane": "yes",
+   "reason": "RyR1 in detergent including TM channel domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8VPN",
+   "membrane": "yes",
+   "reason": "NCC cotransporter with TM domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9BIA",
+   "membrane": "yes",
+   "reason": "NINJ1 is a TM protein that forms membrane filaments.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9ARK",
+   "membrane": "no",
+   "reason": "Soluble botulinum neurotoxin progenitor complex.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9DYN",
+   "membrane": "yes",
+   "reason": "Bestrophin-2 chloride channel with TM helices.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8XR7",
+   "membrane": "no",
+   "reason": "Hemagglutinin ectodomain only.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8UKO",
+   "membrane": "no",
+   "reason": "Soluble PKA catalytic subunit bound to a short Cav peptide.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9B77",
+   "membrane": "yes",
+   "reason": "ArnC integral membrane glycosyltransferase.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9JK8",
+   "membrane": "yes",
+   "reason": "VANGL1 4-TM protein full-length.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9B3V",
+   "membrane": "yes",
+   "reason": "TRPV2 channel with TM domain.",
+   "group": "mid"
+  },
+  {
+   "pdb": "8ZDT",
+   "membrane": "no",
+   "reason": "Only the periplasmic RBM3 ring of FliF resolved.",
+   "group": "mid"
+  },
+  {
+   "pdb": "9ITS",
+   "membrane": "yes",
+   "reason": "Full ATP synthase including membrane a and c subunits.",
+   "group": "mid"
+  }
+ ]
+}

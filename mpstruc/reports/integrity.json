@@ -1,0 +1,3813 @@
+[
+ {
+  "check": "duplicate_subgroup_name",
+  "severity": "info",
+  "key": "G01-S005",
+  "pdb": null,
+  "message": "Subgroup name 'Hydrolases' is used by 2 subgroups; identify subgroups by key",
+  "data": {}
+ },
+ {
+  "check": "empty_subgroup",
+  "severity": "info",
+  "key": "G03-S050",
+  "pdb": null,
+  "message": "Subgroup 'G PROTEIN-COUPLED RECEPTORS (GPCRs)' has no entries (header subgroup?)",
+  "data": {}
+ },
+ {
+  "check": "duplicate_subgroup_name",
+  "severity": "info",
+  "key": "G03-S136",
+  "pdb": null,
+  "message": "Subgroup name 'Hydrolases' is used by 2 subgroups; identify subgroups by key",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G02-S008-P0001-D002",
+  "pdb": "6TIQ",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S027-P0024-D003",
+  "pdb": "4XTL",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S051-P0196",
+  "pdb": "8XFT",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S077-P0001",
+  "pdb": "6BML",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S082-P0003",
+  "pdb": "9L0I",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S102-P0060",
+  "pdb": "6XPD",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S106-P0001-D002",
+  "pdb": "8OMZ",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S109-P0016-D001",
+  "pdb": "9GIV",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S132-P0005-D004",
+  "pdb": "6B2Z",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "self_related",
+  "severity": "warning",
+  "key": "G03-S154-P0002",
+  "pdb": "7UEB",
+  "message": "Entry lists itself as related",
+  "data": {}
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S010-P0001",
+  "pdb": "3HYW",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S010-P0001",
+     "parent",
+     "G01-S010"
+    ],
+    [
+     "G03-S140-P0001",
+     "parent",
+     "G03-S140"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S010-P0001-R001",
+  "pdb": "3HYX",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S010-P0001-R001",
+     "related",
+     "G01-S010"
+    ],
+    [
+     "G03-S140-P0001-R002",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S010-P0001-R002",
+  "pdb": "3HYV",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S010-P0001-R002",
+     "related",
+     "G01-S010"
+    ],
+    [
+     "G03-S140-P0001-R001",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S010-P0003",
+  "pdb": "2GMH",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S010-P0003",
+     "parent",
+     "G01-S010"
+    ],
+    [
+     "G03-S140-P0002",
+     "parent",
+     "G03-S140"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S010-P0003-R001",
+  "pdb": "2GMJ",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S010-P0003-R001",
+     "related",
+     "G01-S010"
+    ],
+    [
+     "G03-S140-P0002-R001",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S011-P0001",
+  "pdb": "2QCU",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S011-P0001",
+     "parent",
+     "G01-S011"
+    ],
+    [
+     "G03-S140-P0003",
+     "parent",
+     "G03-S140"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S011-P0001-R001",
+  "pdb": "2R46",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S011-P0001-R001",
+     "related",
+     "G01-S011"
+    ],
+    [
+     "G03-S140-P0003-R003",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S011-P0001-R002",
+  "pdb": "2R45",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S011-P0001-R002",
+     "related",
+     "G01-S011"
+    ],
+    [
+     "G03-S140-P0003-R004",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S011-P0001-R003",
+  "pdb": "2R4J",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S011-P0001-R003",
+     "related",
+     "G01-S011"
+    ],
+    [
+     "G03-S140-P0003-R001",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S011-P0001-R004",
+  "pdb": "2R4E",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S011-P0001-R004",
+     "related",
+     "G01-S011"
+    ],
+    [
+     "G03-S140-P0003-R002",
+     "related",
+     "G03-S140"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S016-P0003",
+  "pdb": "3BF0",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S016-P0003",
+     "parent",
+     "G01-S016"
+    ],
+    [
+     "G03-S085-P0004",
+     "parent",
+     "G03-S085"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S016-P0003-R001",
+  "pdb": "3BEZ",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S016-P0003-R001",
+     "related",
+     "G01-S016"
+    ],
+    [
+     "G03-S085-P0004-R001",
+     "related",
+     "G03-S085"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S016-P0004",
+  "pdb": "3RST",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S016-P0004",
+     "parent",
+     "G01-S016"
+    ],
+    [
+     "G03-S085-P0005",
+     "parent",
+     "G03-S085"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G01-S016-P0004-D001",
+  "pdb": "4KWB",
+  "message": "Listed in 2 subgroups (noted in description)",
+  "data": {
+   "occurrences": [
+    [
+     "G01-S016-P0004-D001",
+     "daughter",
+     "G01-S016"
+    ],
+    [
+     "G03-S085-P0005-D001",
+     "daughter",
+     "G03-S085"
+    ]
+   ],
+   "documented": true
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G02-S008-P0008",
+  "pdb": "8W5J",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G02-S008-P0008",
+     "parent",
+     "G02-S008"
+    ],
+    [
+     "G03-S102-P0010-D001-R002",
+     "related",
+     "G03-S102"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S002-P0003-R004",
+  "pdb": "1ZLL",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S002-P0003-R004",
+     "related",
+     "G03-S002"
+    ],
+    [
+     "G03-S133-P0011",
+     "parent",
+     "G03-S133"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "repeated_in_subgroup",
+  "severity": "warning",
+  "key": "G03-S039-P0034-D003",
+  "pdb": "7D2K",
+  "message": "Listed 2 times within subgroup G03-S039: G03-S039-P0034-D003, G03-S039-P0035-D003-R003",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S039-P0034-D003",
+     "daughter",
+     "G03-S039"
+    ],
+    [
+     "G03-S039-P0035-D003-R003",
+     "related",
+     "G03-S039"
+    ]
+   ]
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S048-P0029",
+  "pdb": "8JM9",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S048-P0029",
+     "parent",
+     "G03-S048"
+    ],
+    [
+     "G03-S159-P0001",
+     "parent",
+     "G03-S159"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S048-P0029-R001",
+  "pdb": "8JMA",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S048-P0029-R001",
+     "related",
+     "G03-S048"
+    ],
+    [
+     "G03-S159-P0001-R001",
+     "related",
+     "G03-S159"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S048-P0029-R002",
+  "pdb": "8X82",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S048-P0029-R002",
+     "related",
+     "G03-S048"
+    ],
+    [
+     "G03-S159-P0001-R002",
+     "related",
+     "G03-S159"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S048-P0029-R003",
+  "pdb": "8X83",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S048-P0029-R003",
+     "related",
+     "G03-S048"
+    ],
+    [
+     "G03-S159-P0001-R003",
+     "related",
+     "G03-S159"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "cross_listing",
+  "severity": "info",
+  "key": "G03-S048-P0029-R004",
+  "pdb": "8X84",
+  "message": "Listed in 2 subgroups",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S048-P0029-R004",
+     "related",
+     "G03-S048"
+    ],
+    [
+     "G03-S159-P0001-R004",
+     "related",
+     "G03-S159"
+    ]
+   ],
+   "documented": false
+  }
+ },
+ {
+  "check": "repeated_in_subgroup",
+  "severity": "warning",
+  "key": "G03-S051-P0024-D001-R001",
+  "pdb": "22GL",
+  "message": "Listed 2 times within subgroup G03-S051: G03-S051-P0024-D001-R001, G03-S051-P0025-D004",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S051-P0024-D001-R001",
+     "related",
+     "G03-S051"
+    ],
+    [
+     "G03-S051-P0025-D004",
+     "daughter",
+     "G03-S051"
+    ]
+   ]
+  }
+ },
+ {
+  "check": "repeated_in_subgroup",
+  "severity": "warning",
+  "key": "G03-S051-P0146-D001-R002",
+  "pdb": "7F8V",
+  "message": "Listed 2 times within subgroup G03-S051: G03-S051-P0146-D001-R002, G03-S051-P0147",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S051-P0146-D001-R002",
+     "related",
+     "G03-S051"
+    ],
+    [
+     "G03-S051-P0147",
+     "parent",
+     "G03-S051"
+    ]
+   ]
+  }
+ },
+ {
+  "check": "repeated_in_subgroup",
+  "severity": "warning",
+  "key": "G03-S132-P0001",
+  "pdb": "1BMF",
+  "message": "Listed 2 times within subgroup G03-S132: G03-S132-P0001, G03-S132-P0005-R002",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S132-P0001",
+     "parent",
+     "G03-S132"
+    ],
+    [
+     "G03-S132-P0005-R002",
+     "related",
+     "G03-S132"
+    ]
+   ]
+  }
+ },
+ {
+  "check": "repeated_in_subgroup",
+  "severity": "warning",
+  "key": "G03-S132-P0003",
+  "pdb": "1A91",
+  "message": "Listed 2 times within subgroup G03-S132: G03-S132-P0003, G03-S132-P0005-R003",
+  "data": {
+   "occurrences": [
+    [
+     "G03-S132-P0003",
+     "parent",
+     "G03-S132"
+    ],
+    [
+     "G03-S132-P0005-R003",
+     "related",
+     "G03-S132"
+    ]
+   ]
+  }
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G01-S005-P0002",
+  "pdb": "5B49",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G01-S013-P0006",
+  "pdb": "6EJI",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G01-S030-P0003",
+  "pdb": "6Z7A",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "unterminated_entity",
+  "severity": "warning",
+  "key": "G02-S001-P0001-D003",
+  "pdb": "6U49",
+  "message": "description: '&Aring' is missing its ';'",
+  "data": {}
+ },
+ {
+  "check": "unknown_entity",
+  "severity": "warning",
+  "key": "G02-S003-P0029",
+  "pdb": "4V3G",
+  "message": "description: &alfa; is not an HTML entity (displayed as 'α')",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G02-S007-P0005",
+  "pdb": "4K3C",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G02-S008-P0007",
+  "pdb": "6WUH",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G02-S008-P0007-D001",
+  "pdb": "9NK6",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G02-S011-P0003",
+  "pdb": "6HCG",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S006-P0001-D001",
+  "pdb": "9NM2",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "unterminated_entity",
+  "severity": "warning",
+  "key": "G03-S027-P0001-D018",
+  "pdb": "6G7H",
+  "message": "description: '&Aring' is missing its ';'",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S027-P0014-D002",
+  "pdb": "7C86",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "broken_entity",
+  "severity": "warning",
+  "key": "G03-S033-P0001-D001",
+  "pdb": "6QM9",
+  "message": "description: malformed '& Aring;' (displayed as 'Å')",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0001-D001",
+  "pdb": "6QM9",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0002-D005",
+  "pdb": "8QZC",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0004",
+  "pdb": "6QPC",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0004-D001",
+  "pdb": "6P46",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0004-D002",
+  "pdb": "8B8G",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0004-D003",
+  "pdb": "8TAG",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S033-P0005",
+  "pdb": "6R7X",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0001-D003",
+  "pdb": "2BOB",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0001-D013",
+  "pdb": "2JK5",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0001-D017",
+  "pdb": "6W0A",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "broken_entity",
+  "severity": "warning",
+  "key": "G03-S037-P0005",
+  "pdb": "6RV2",
+  "message": "bibliography[0].authors: malformed '&uml;' (left as '¨'; probably ü)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0009",
+  "pdb": "6CQ6",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "invisible_characters",
+  "severity": "info",
+  "key": "G03-S037-P0010-D001",
+  "pdb": "8QZ1",
+  "message": "description: contains zero-width characters (removed for display)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0011-D003",
+  "pdb": "6E1M",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0022",
+  "pdb": "7W3Y",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0107",
+  "pdb": "8JET",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S037-P0107-D001",
+  "pdb": "8WTZ",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "unknown_entity",
+  "severity": "warning",
+  "key": "G03-S038-P0001-D001",
+  "pdb": "5KLB",
+  "message": "description: &Ariing; is not an HTML entity (displayed as 'Å')",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S038-P0013-D003",
+  "pdb": "6FOO",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S038-P0015-D001",
+  "pdb": "7VML",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S038-P0016-D001",
+  "pdb": "7LHE",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "malformed_markup",
+  "severity": "warning",
+  "key": "G03-S038-P0017-D003",
+  "pdb": "8TK8",
+  "message": "description: unexpected tag(s) <ahref>",
+  "data": {}
+ },
+ {
+  "check": "malformed_markup",
+  "severity": "warning",
+  "key": "G03-S038-P0017-D004",
+  "pdb": "9YKK",
+  "message": "description: unexpected tag(s) <super>",
+  "data": {}
+ },
+ {
+  "check": "unclosed_link",
+  "severity": "warning",
+  "key": "G03-S039-P0004-D001",
+  "pdb": "7B0S",
+  "message": "description: 1 <a> vs 0 </a>",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0016",
+  "pdb": "6BPQ",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0016-D001",
+  "pdb": "6NR3",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0016-D002",
+  "pdb": "6O6A",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0016-D003",
+  "pdb": "8E4Q",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0017",
+  "pdb": "8E4P",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0017-D001",
+  "pdb": "9B6D",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0018",
+  "pdb": "8BDC",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0039",
+  "pdb": "5TJA",
+  "message": "bibliography[0].authors: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S039-P0041",
+  "pdb": "9B6I",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S041-P0001-D006",
+  "pdb": "5KBS",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S041-P0001-D017",
+  "pdb": "7TNJ",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S041-P0006-D002",
+  "pdb": "5UOW",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S041-P0071",
+  "pdb": "7LZH",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S048-P0014-D005",
+  "pdb": "6HUG",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0001-D022",
+  "pdb": "7MT9",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0033-D005",
+  "pdb": "6H7J",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0033-D005",
+  "pdb": "6H7J",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0035-D010",
+  "pdb": "6E67",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0037",
+  "pdb": "5UEN",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0049",
+  "pdb": "7XBW",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0050",
+  "pdb": "4MBS",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0050-D002",
+  "pdb": "7F1Q",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0072-D001",
+  "pdb": "6OIJ",
+  "message": "expressedInSpecies: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0073-D002",
+  "pdb": "6OIK",
+  "message": "expressedInSpecies: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0073-D003",
+  "pdb": "6U1N",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0083-D005",
+  "pdb": "5XRA",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S051-P0145",
+  "pdb": "7JHJ",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "unterminated_entity",
+  "severity": "warning",
+  "key": "G03-S054-P0007-D003",
+  "pdb": "6FFI",
+  "message": "bibliography[0].authors: '&eacute' is missing its ';'",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S054-P0010-D005",
+  "pdb": "7M3F",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S054-P0011",
+  "pdb": "7DD5",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S059-P0002-D001",
+  "pdb": "6NT9",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S062-P0001",
+  "pdb": "7VHP",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S074-P0001-D001",
+  "pdb": "5XHQ",
+  "message": "bibliography[0].authors: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S088-P0003",
+  "pdb": "5N77",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "broken_entity",
+  "severity": "warning",
+  "key": "G03-S094-P0001-D011",
+  "pdb": "3AOB",
+  "message": "description: malformed 'Aring;' (displayed as 'Å')",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S094-P0026-D001",
+  "pdb": "6OEU",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S094-P0026-D003",
+  "pdb": "6RVD",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S094-P0027-D002",
+  "pdb": "7V6Y",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S101-P0001-D006",
+  "pdb": "3QS4",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S101-P0003-D008",
+  "pdb": "6UWF",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S102-P0019",
+  "pdb": "6YUP",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S102-P0066-D002",
+  "pdb": "6VRH",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S111-P0010",
+  "pdb": "7D3U",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S111-P0011",
+  "pdb": "7QRU",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0007-D004",
+  "pdb": "8DMO",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0007-D006",
+  "pdb": "8TSO",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0007-D006",
+  "pdb": "8TSO",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0011",
+  "pdb": "6FN1",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0044-D003",
+  "pdb": "7SVD",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0044-D003",
+  "pdb": "7SVD",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S114-P0044-D009",
+  "pdb": "9DW5",
+  "message": "description: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S130-P0001-D008",
+  "pdb": "6PE4",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S130-P0002",
+  "pdb": "6VQ6",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S130-P0002",
+  "pdb": "6VQ6",
+  "message": "species: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "empty_tag",
+  "severity": "info",
+  "key": "G03-S133-P0002-D001",
+  "pdb": "7MPA",
+  "message": "bibliography[0].title: empty formatting tag",
+  "data": {}
+ },
+ {
+  "check": "unknown_entity",
+  "severity": "warning",
+  "key": "G03-S133-P0021-D002",
+  "pdb": "7KY9",
+  "message": "description: &Ariing; is not an HTML entity (displayed as 'Å')",
+  "data": {}
+ },
+ {
+  "check": "unknown_entity",
+  "severity": "warning",
+  "key": "G03-S140-P0019",
+  "pdb": "6WXR",
+  "message": "description: &Ariing; is not an HTML entity (displayed as 'Å')",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S141-P0003",
+  "pdb": "7S9Y",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "unterminated_entity",
+  "severity": "warning",
+  "key": "G03-S142-P0017",
+  "pdb": "7ARB",
+  "message": "bibliography[0].authors: '&Ouml' is missing its ';'",
+  "data": {}
+ },
+ {
+  "check": "unterminated_entity",
+  "severity": "warning",
+  "key": "G03-S142-P0018",
+  "pdb": "7ARD",
+  "message": "bibliography[0].authors: '&Ouml' is missing its ';'",
+  "data": {}
+ },
+ {
+  "check": "bare_ampersand",
+  "severity": "info",
+  "key": "G03-S151-P0002",
+  "pdb": "5ZJI",
+  "message": "name: unescaped '&' (invalid XML)",
+  "data": {}
+ },
+ {
+  "check": "invisible_characters",
+  "severity": "info",
+  "key": "G03-S157-P0002-D001",
+  "pdb": "8SOQ",
+  "message": "description: contains zero-width characters (removed for display)",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G02-S002-P0001",
+  "pdb": "6X1K",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G02-S003-P0032",
+  "pdb": "5LDV",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G02-S005-P0042",
+  "pdb": "6BPN",
+  "message": "species is empty",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G03-S002-P0001",
+  "pdb": "4P6J",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G03-S002-P0002",
+  "pdb": "6B87",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G03-S002-P0003",
+  "pdb": "6MQU",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G03-S002-P0004",
+  "pdb": "6TJ1",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "unknown_domain",
+  "severity": "warning",
+  "key": "G03-S027-P0015",
+  "pdb": "6CSN",
+  "message": "taxonomicDomain 'Unclassified'",
+  "data": {}
+ },
+ {
+  "check": "bad_doi",
+  "severity": "warning",
+  "key": "G03-S029-P0006-D001",
+  "pdb": "6XYN",
+  "message": "primary DOI '103390/cryst10030149'",
+  "data": {}
+ },
+ {
+  "check": "resolution_unparseable",
+  "severity": "warning",
+  "key": "G03-S030-P0011",
+  "pdb": "8J3V",
+  "message": "resolution '-' is neither a number nor a method",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S037-P0001-D017",
+  "pdb": "6W0A",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "resolution_unparseable",
+  "severity": "warning",
+  "key": "G03-S037-P0018-D004",
+  "pdb": "8SD3",
+  "message": "resolution 'HEK293 cells' is neither a number nor a method",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S045-P0004-D002",
+  "pdb": "9W4L",
+  "message": "species is empty",
+  "data": {}
+ },
+ {
+  "check": "resolution_multiple",
+  "severity": "info",
+  "key": "G03-S051-P0035",
+  "pdb": "2R4R",
+  "message": "resolution '3.4/3.7 Å' has several values; using 3.4",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S051-P0062-D001",
+  "pdb": "6IQL",
+  "message": "species is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S051-P0095-D004",
+  "pdb": "9PJK",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S051-P0183",
+  "pdb": "8XOG",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S051-P0209",
+  "pdb": "8W1Z",
+  "message": "species is empty",
+  "data": {}
+ },
+ {
+  "check": "bad_doi",
+  "severity": "warning",
+  "key": "G03-S085-P0011",
+  "pdb": "4AW6",
+  "message": "primary DOI 'doi:10.1126/science.1231513'",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S102-P0077",
+  "pdb": "8J74",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S106-P0001-D001",
+  "pdb": "5XLS",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S112-P0003-D004",
+  "pdb": "9QZQ",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S115-P0003",
+  "pdb": "9PYM",
+  "message": "species is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S115-P0003",
+  "pdb": "9PYM",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "missing_field",
+  "severity": "warning",
+  "key": "G03-S130-P0007",
+  "pdb": "5I1M",
+  "message": "taxonomicDomain is empty",
+  "data": {}
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G02-S003-P0026",
+  "pdb": "3VZT",
+  "message": "Description cites 3ZVU but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "3ZVU"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G02-S003-P0026",
+  "pdb": "3VZT",
+  "message": "Related 3VZU not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "3VZU"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G02-S007-P0016-D008",
+  "pdb": "7RI7",
+  "message": "Related 7RJ5 not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7RJ5"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G02-S010-P0001-D001",
+  "pdb": "6ZAZ",
+  "message": "Related 6ZLT not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "6ZLT"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G02-S012-P0001-D002",
+  "pdb": "6XFJ",
+  "message": "Related 6XFL not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "6XFL"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S002-P0001",
+  "pdb": "4P6J",
+  "message": "Related 2MUZ not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "2MUZ"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S002-P0003",
+  "pdb": "6MQU",
+  "message": "Related 1ZLL not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "1ZLL"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S035-P0018",
+  "pdb": "3AQP",
+  "message": "Related 2RRN not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "2RRN"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S036-P0019-D002",
+  "pdb": "9E62",
+  "message": "Related 9E63 not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "9E63"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S037-P0001-D019",
+  "pdb": "7MHR",
+  "message": "Related 7MJT not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7MJT"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S037-P0046",
+  "pdb": "2WLJ",
+  "message": "Related 1XL6, 1XL4 not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "1XL6",
+    "1XL4"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S037-P0052-D002",
+  "pdb": "7Y1L",
+  "message": "Related 7Y1N not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7Y1N"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S037-P0112",
+  "pdb": "8ON8",
+  "message": "Description cites 8ON7 but its related list does not include it (listed elsewhere: 8ON7 at G03-S039-P0024-D001-R001)",
+  "data": {
+   "pdb_ids": [
+    "8ON7"
+   ],
+   "elsewhere": {
+    "8ON7": [
+     "G03-S039-P0024-D001-R001"
+    ]
+   }
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S041-P0001-D020",
+  "pdb": "9B5Z",
+  "message": "Description cites 8QOJ, 8R7Q, 8R7R but its related list does not include them (listed elsewhere: 8QOJ at G03-S040-P0002-D002-R001; 8R7Q at G03-S040-P0002-D002-R003; 8R7R at G03-S040-P0002-D002-R002)",
+  "data": {
+   "pdb_ids": [
+    "8QOJ",
+    "8R7Q",
+    "8R7R"
+   ],
+   "elsewhere": {
+    "8QOJ": [
+     "G03-S040-P0002-D002-R001"
+    ],
+    "8R7Q": [
+     "G03-S040-P0002-D002-R003"
+    ],
+    "8R7R": [
+     "G03-S040-P0002-D002-R002"
+    ]
+   }
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S041-P0047-D002",
+  "pdb": "9EGT",
+  "message": "Description cites 9EGS but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "9EGS"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S041-P0048",
+  "pdb": "8D1E",
+  "message": "Related 8D1N not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "8D1N"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S041-P0073-D002",
+  "pdb": "8TS2",
+  "message": "Related 8TS1 not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "8TS1"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S049-P0002",
+  "pdb": "6SGW",
+  "message": "Related 6SGZ not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "6SGZ"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S051-P0023",
+  "pdb": "8I97",
+  "message": "Description cites 8J6D but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "8J6D"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S051-P0027",
+  "pdb": "9WDI",
+  "message": "Description cites 25IF but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "25IF"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S051-P0038-D031",
+  "pdb": "7IO0",
+  "message": "Related 7INB not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7INB"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S051-P0055-D002",
+  "pdb": "7RKM",
+  "message": "Related 7RKX not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7RKX"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S051-P0094-D002",
+  "pdb": "7W0L",
+  "message": "Description cites 7W0N but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "7W0N"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S051-P0116",
+  "pdb": "6RZ6",
+  "message": "Description cites 6R7Z but its related list does not include it (listed elsewhere: 6R7Z at G03-S033-P0005-R003)",
+  "data": {
+   "pdb_ids": [
+    "6R7Z"
+   ],
+   "elsewhere": {
+    "6R7Z": [
+     "G03-S033-P0005-R003"
+    ]
+   }
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S051-P0133-D002",
+  "pdb": "7RMG",
+  "message": "Related 7RMI not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7RMI"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S051-P0146-D001",
+  "pdb": "7F8U",
+  "message": "Description cites 7F8W but its related list does not include it (listed elsewhere: 7F8W at G03-S051-P0147-R001)",
+  "data": {
+   "pdb_ids": [
+    "7F8W"
+   ],
+   "elsewhere": {
+    "7F8W": [
+     "G03-S051-P0147-R001"
+    ]
+   }
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S051-P0192-D003",
+  "pdb": "9M88",
+  "message": "Related 9M8V not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "9M8V"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S061-P0001-D002",
+  "pdb": "9GS2",
+  "message": "Description cites 9GSN but its related list does not include it (listed elsewhere: 9GSN at G03-S061-P0001-D001-R001)",
+  "data": {
+   "pdb_ids": [
+    "9GSN"
+   ],
+   "elsewhere": {
+    "9GSN": [
+     "G03-S061-P0001-D001-R001"
+    ]
+   }
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S102-P0042-D001",
+  "pdb": "6LZ0",
+  "message": "Description cites 7CKR, 7CKO, 7DA5 but its related list does not include them (listed elsewhere: 7CKR at G03-S102-P0042-R001; 7CKO at G03-S102-P0042-R003; 7DA5 at G03-S102-P0042-R002)",
+  "data": {
+   "pdb_ids": [
+    "7CKR",
+    "7CKO",
+    "7DA5"
+   ],
+   "elsewhere": {
+    "7CKR": [
+     "G03-S102-P0042-R001"
+    ],
+    "7CKO": [
+     "G03-S102-P0042-R003"
+    ],
+    "7DA5": [
+     "G03-S102-P0042-R002"
+    ]
+   }
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S102-P0077",
+  "pdb": "8J74",
+  "message": "Description cites 8J77 but its related list does not include it",
+  "data": {
+   "pdb_ids": [
+    "8J77"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S114-P0044-D003",
+  "pdb": "7SVD",
+  "message": "Related 7SVR not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7SVR"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S131-P0008",
+  "pdb": "9SIE",
+  "message": "Description cites 9XB9 but its related list does not include it (listed elsewhere: 9XB9 at G03-S037-P0098-D003-R003)",
+  "data": {
+   "pdb_ids": [
+    "9XB9"
+   ],
+   "elsewhere": {
+    "9XB9": [
+     "G03-S037-P0098-D003-R003"
+    ]
+   }
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S133-P0001-D020",
+  "pdb": "5XA7",
+  "message": "Related 5XAA not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "5XAA"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S133-P0006-D006",
+  "pdb": "7D91",
+  "message": "Related 7D94 not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7D94"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S133-P0022-D005",
+  "pdb": "7VGI",
+  "message": "Related 7VGJ not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7VGJ"
+   ]
+  }
+ },
+ {
+  "check": "described_not_related",
+  "severity": "warning",
+  "key": "G03-S139-P0001",
+  "pdb": "2VPZ",
+  "message": "Description cites 2PVY, 2PVW, 2PVX but its related list does not include them",
+  "data": {
+   "pdb_ids": [
+    "2PVY",
+    "2PVW",
+    "2PVX"
+   ],
+   "elsewhere": {}
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S139-P0001",
+  "pdb": "2VPZ",
+  "message": "Related 2VPY, 2VPW, 2VPX not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "2VPY",
+    "2VPW",
+    "2VPX"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S142-P0016",
+  "pdb": "6ZKO",
+  "message": "Related 6ZKA, 6ZKB not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "6ZKA",
+    "6ZKB"
+   ]
+  }
+ },
+ {
+  "check": "related_not_described",
+  "severity": "info",
+  "key": "G03-S151-P0013",
+  "pdb": "7Y5E",
+  "message": "Related 7Y7A not cited in the description",
+  "data": {
+   "pdb_ids": [
+    "7Y7A"
+   ]
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G01-S004-P0001-D001-R003",
+  "pdb": "1OJB",
+  "message": "superseded: 1OJB → 2XFU",
+  "data": {
+   "replaced_by": [
+    "2XFU"
+   ],
+   "removed": "2010-06-09T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G01-S005-P0003-R001",
+  "pdb": "4GGI",
+  "message": "superseded: 4GGI → 4J6E",
+  "data": {
+   "replaced_by": [
+    "4J6E"
+   ],
+   "removed": "2013-05-08T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G01-S015-P0001",
+  "pdb": "5W7L",
+  "message": "superseded: 5W7L → 8G1N",
+  "data": {
+   "replaced_by": [
+    "8G1N"
+   ],
+   "removed": "2023-05-31T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_id_case",
+  "severity": "warning",
+  "key": "G02-S007-P0016-D010-R001",
+  "pdb": "8ADi",
+  "message": "'8ADi' should be '8ADI' (PDB IDs are upper case)",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S003-P0001",
+  "pdb": "5G1J",
+  "message": "obsolete: 5G1J (no replacement)",
+  "data": {
+   "replaced_by": [],
+   "removed": "2021-08-25T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S023-P0001",
+  "pdb": "3WXV",
+  "message": "superseded: 3WXV → 6KS0",
+  "data": {
+   "replaced_by": [
+    "6KS0"
+   ],
+   "removed": "2020-08-19T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S023-P0001-R001",
+  "pdb": "3WXW",
+  "message": "superseded: 3WXW → 6KS1",
+  "data": {
+   "replaced_by": [
+    "6KS1"
+   ],
+   "removed": "2020-08-19T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S027-P0024-D001-R009",
+  "pdb": "6REW",
+  "message": "superseded: 6REW → 6YC3",
+  "data": {
+   "replaced_by": [
+    "6YC3"
+   ],
+   "removed": "2023-02-15T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S031-P0001-R001",
+  "pdb": "3HD9",
+  "message": "superseded: 3HD9 → 3IPD",
+  "data": {
+   "replaced_by": [
+    "3IPD"
+   ],
+   "removed": "2009-09-01T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S038-P0013-D001",
+  "pdb": "3J8E",
+  "message": "superseded: 3J8E → 5TB0",
+  "data": {
+   "replaced_by": [
+    "5TB0"
+   ],
+   "removed": "2016-10-12T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_id_case",
+  "severity": "warning",
+  "key": "G03-S038-P0015-D001-R001",
+  "pdb": "7vMS",
+  "message": "'7vMS' should be '7VMS' (PDB IDs are upper case)",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_case",
+  "severity": "warning",
+  "key": "G03-S039-P0014-D001-R001",
+  "pdb": "8Si4",
+  "message": "'8Si4' should be '8SI4' (PDB IDs are upper case)",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_case",
+  "severity": "warning",
+  "key": "G03-S039-P0014-D001-R004",
+  "pdb": "8Si3",
+  "message": "'8Si3' should be '8SI3' (PDB IDs are upper case)",
+  "data": {}
+ },
+ {
+  "check": "pdb_unknown",
+  "severity": "error",
+  "key": "G03-S039-P0022-D004-R023",
+  "pdb": "72LR",
+  "message": "Not a current, unreleased or removed PDB entry",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S041-P0025-D001",
+  "pdb": "3HGC",
+  "message": "superseded: 3HGC → 4NYK",
+  "data": {
+   "replaced_by": [
+    "4NYK"
+   ],
+   "removed": "2014-02-12T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S042-P0001-R002",
+  "pdb": "5A41",
+  "message": "superseded: 5A41 → 5FXB",
+  "data": {
+   "replaced_by": [
+    "5FXB"
+   ],
+   "removed": "2016-03-09T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S051-P0080-D002-R003",
+  "pdb": "9PX2",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S051-P0080-D002-R004",
+  "pdb": "9PX3",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S051-P0080-D002-R005",
+  "pdb": "9PX4",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S051-P0095-D004",
+  "pdb": "9PJK",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S051-P0147-D001-R001",
+  "pdb": "7XOX",
+  "message": "superseded: 7XOX → 8IA7",
+  "data": {
+   "replaced_by": [
+    "8IA7"
+   ],
+   "removed": "2023-12-06T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S060-P0002-D002-R001",
+  "pdb": "4FTP",
+  "message": "superseded: 4FTP → 6LSC",
+  "data": {
+   "replaced_by": [
+    "6LSC"
+   ],
+   "removed": "2022-04-27T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S085-P0013-D002",
+  "pdb": "4UPC",
+  "message": "superseded: 4UPC → 5A63",
+  "data": {
+   "replaced_by": [
+    "5A63"
+   ],
+   "removed": "2016-12-28T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S094-P0010-R003",
+  "pdb": "3VVQ",
+  "message": "superseded: 3VVQ → 3WBN",
+  "data": {
+   "replaced_by": [
+    "3WBN"
+   ],
+   "removed": "2013-06-12T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_id_case",
+  "severity": "warning",
+  "key": "G03-S094-P0030-R002",
+  "pdb": "7RPj",
+  "message": "'7RPj' should be '7RPJ' (PDB IDs are upper case)",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S101-P0003-D003-R003",
+  "pdb": "4OYG",
+  "message": "superseded: 4OYG → 5CFY",
+  "data": {
+   "replaced_by": [
+    "5CFY"
+   ],
+   "removed": "2016-04-20T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S102-P0015",
+  "pdb": "7UUV",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S105-P0001-R001",
+  "pdb": "2JLO",
+  "message": "superseded: 2JLO → 4D1B",
+  "data": {
+   "replaced_by": [
+    "4D1B"
+   ],
+   "removed": "2014-07-02T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S113-P0008",
+  "pdb": "6FFV",
+  "message": "superseded: 6FFV → 8C7P",
+  "data": {
+   "replaced_by": [
+    "8C7P"
+   ],
+   "removed": "2024-01-31T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S114-P0036",
+  "pdb": "6AN7",
+  "message": "superseded: 6AN7 → 6OIH",
+  "data": {
+   "replaced_by": [
+    "6OIH"
+   ],
+   "removed": "2019-04-17T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S114-P0043",
+  "pdb": "5TSI",
+  "message": "superseded: 5TSI → 5UAR",
+  "data": {
+   "replaced_by": [
+    "5UAR"
+   ],
+   "removed": "2017-03-01T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S116-P0015",
+  "pdb": "4J05",
+  "message": "superseded: 4J05 → 7SP5",
+  "data": {
+   "replaced_by": [
+    "7SP5"
+   ],
+   "removed": "2021-11-17T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_unknown",
+  "severity": "error",
+  "key": "G03-S132-P0005-D008-R001",
+  "pdb": "8L39",
+  "message": "Not a current, unreleased or removed PDB entry",
+  "data": {}
+ },
+ {
+  "check": "pdb_unknown",
+  "severity": "error",
+  "key": "G03-S132-P0005-D008-R002",
+  "pdb": "8L29",
+  "message": "Not a current, unreleased or removed PDB entry",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S133-P0001-D003-R001",
+  "pdb": "2ZDB",
+  "message": "superseded: 2ZDB → 3B02",
+  "data": {
+   "replaced_by": [
+    "3B02"
+   ],
+   "removed": "2011-06-15T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S133-P0001-D016-R001",
+  "pdb": "2EAS",
+  "message": "superseded: 2EAS → 4YCL",
+  "data": {
+   "replaced_by": [
+    "4YCL"
+   ],
+   "removed": "2015-04-01T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S133-P0006-D006-R001",
+  "pdb": "7DDG",
+  "message": "superseded: 7DDG → 7EVX",
+  "data": {
+   "replaced_by": [
+    "7EVX"
+   ],
+   "removed": "2021-07-07T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S133-P0006-D006-R005",
+  "pdb": "7DDJ",
+  "message": "superseded: 7DDJ → 7WYT",
+  "data": {
+   "replaced_by": [
+    "7WYT"
+   ],
+   "removed": "2022-05-04T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S133-P0013",
+  "pdb": "3B8C",
+  "message": "superseded: 3B8C → 5KSD",
+  "data": {
+   "replaced_by": [
+    "5KSD"
+   ],
+   "removed": "2016-08-10T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S140-P0015",
+  "pdb": "4P6V",
+  "message": "superseded: 4P6V → 8ACY",
+  "data": {
+   "replaced_by": [
+    "8ACY"
+   ],
+   "removed": "2023-07-12T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S143-P0001",
+  "pdb": "1FUM",
+  "message": "superseded: 1FUM → 1L0V",
+  "data": {
+   "replaced_by": [
+    "1L0V"
+   ],
+   "removed": "2002-03-13T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S145-P0001-R001",
+  "pdb": "1UM3",
+  "message": "superseded: 1UM3 → 1VF5",
+  "data": {
+   "replaced_by": [
+    "1VF5"
+   ],
+   "removed": "2004-04-20T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_unreleased",
+  "severity": "info",
+  "key": "G03-S145-P0005",
+  "pdb": "7ROW",
+  "message": "Not yet released by the PDB",
+  "data": {}
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S149-P0014-D003",
+  "pdb": "3BZ1",
+  "message": "superseded: 3BZ1 → 4V62",
+  "data": {
+   "replaced_by": [
+    "4V62"
+   ],
+   "removed": "2014-12-10T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S149-P0014-D003-R001",
+  "pdb": "3BZ2",
+  "message": "superseded: 3BZ2 → 4V62",
+  "data": {
+   "replaced_by": [
+    "4V62"
+   ],
+   "removed": "2014-12-10T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S149-P0014-D004-R001",
+  "pdb": "4Q54",
+  "message": "superseded: 4Q54 → 4RVY",
+  "data": {
+   "replaced_by": [
+    "4RVY"
+   ],
+   "removed": "2015-11-04T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S149-P0015-D002",
+  "pdb": "3ARC",
+  "message": "superseded: 3ARC → 3WU2",
+  "data": {
+   "replaced_by": [
+    "3WU2"
+   ],
+   "removed": "2014-09-03T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "pdb_obsolete",
+  "severity": "warning",
+  "key": "G03-S151-P0010",
+  "pdb": "3CJU",
+  "message": "superseded: 3CJU → 3EGV",
+  "data": {
+   "replaced_by": [
+    "3EGV"
+   ],
+   "removed": "2008-09-23T00:00:00.000+00:00"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G01-S001-P0001",
+  "pdb": "1PRH",
+  "message": "Primary citation 'Crystal structure of an integral membrane light-harvesting complex from photosynthetic bacteria.' differs from the PDB's 'The X-ray crystal structure of the membrane protein prostaglandin H2 synthase-1.' (1994)",
+  "data": {
+   "pdb_doi": "10.1038/367243a0",
+   "pdb_pubmed": "8121489",
+   "mpstruc_doi": "10.1038/374517a0",
+   "mpstruc_pubmed": ""
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G01-S001-P0001-D002",
+  "pdb": "1CQE",
+  "message": "Primary citation 'The 3.1 A X-ray crystal structure of the integral membrane enzyme prostaglandin H2 synthase-1.' differs from the PDB's 'The X-ray crystal structure of the membrane protein prostaglandin H2 synthase-1.' (1994)",
+  "data": {
+   "pdb_doi": "10.1038/367243a0",
+   "pdb_pubmed": "8121489",
+   "mpstruc_doi": "",
+   "mpstruc_pubmed": "7732912"
+  }
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "warning",
+  "key": "G01-S002-P0003",
+  "pdb": "1LNH",
+  "message": "PubMed ID matches the PDB, but DOI '10.1002/(sici)1097-0134(199709)29:1' differs from the PDB's '10.1002/(sici)1097-0134(199709)29:1<15::aid-prot2>3.3.co;2-f' (truncated?)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G01-S002-P0004-D001",
+  "pdb": "3FG4",
+  "message": "mpstruc resolution 1.85 Å, PDB reports 2.31 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S001-P0015",
+  "pdb": "5FMW",
+  "message": "mpstruc resolution 8.0 Å, PDB reports 6.7 Å",
+  "data": {}
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "warning",
+  "key": "G02-S003-P0006-D003",
+  "pdb": "1GFM",
+  "message": "PubMed ID matches the PDB, but DOI '10.1074/jbc.271.34.20669' differs from the PDB's '10.1074/jbc.271.34.20676'",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S003-P0006-D013",
+  "pdb": "6WTZ",
+  "message": "mpstruc resolution 2.54 Å, PDB reports 3.15 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S003-P0028",
+  "pdb": "4FQE",
+  "message": "mpstruc resolution 2.1 Å, PDB reports 1.93 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S004-P0007",
+  "pdb": "3T0S",
+  "message": "mpstruc resolution 2.1 Å, PDB reports 2.2 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S005-P0006",
+  "pdb": "5AZO",
+  "message": "mpstruc resolution 1.69 Å, PDB reports 2.7 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S005-P0063",
+  "pdb": "6GIE",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 2.1 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S005-P0074",
+  "pdb": "8YPU",
+  "message": "Primary citation 'Gastric mucous neck cell and intestinal goblet cell phenotypes in gastric adenocarcinoma.' differs from the PDB's 'A highly conserved SusCD transporter determines the import and species-specific antagonism of Bacteroides ubiquitin homologues.' (2024)",
+  "data": {
+   "pdb_doi": "10.1038/s41467-024-53149-w",
+   "pdb_pubmed": "39389974",
+   "mpstruc_doi": "",
+   "mpstruc_pubmed": "9389974"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S007-P0001",
+  "pdb": "4QKY",
+  "message": "Primary citation 'Structure of the membrane protein FhaC: a member of the Omp85-TpsB transporter superfamily.' differs from the PDB's 'Conserved Omp85 lid-lock structure and substrate recognition in FhaC' (2015)",
+  "data": {
+   "pdb_doi": "10.1038/ncomms8452",
+   "pdb_pubmed": "26058369",
+   "mpstruc_doi": "",
+   "mpstruc_pubmed": "17702945"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S007-P0001",
+  "pdb": "4QKY",
+  "message": "mpstruc resolution 3.15 Å, PDB reports 2.9 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S007-P0006",
+  "pdb": "2QCZ",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 2.7 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S007-P0006-D006",
+  "pdb": "6FSU",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 2.6 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G02-S007-P0016-D002",
+  "pdb": "5LGO",
+  "message": "PDB 5LGO is 'Trypsin inhibitors for the treatment of pancreatitis - cpd 15' (X-RAY DIFFRACTION), which does not match 'BamABCDE complex of the Bam β-barrel assembly machine'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "Trypsin inhibitors for the treatment of pancreatitis - cpd 15"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S007-P0016-D002",
+  "pdb": "5LGO",
+  "message": "mpstruc resolution 4.9 Å, PDB reports 1.12 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G02-S008-P0001-D001",
+  "pdb": "2JK4",
+  "message": "mpstruc resolution 4.0 Å, PDB reports 4.1 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S025-P0002-D001",
+  "pdb": "8AT1",
+  "message": "PDB 8AT1 is 'CRYSTAL STRUCTURES OF ASPARTATE CARBAMOYLTRANSFERASE LIGATED WITH PHOSPHONOACETAMIDE, MALONATE, AND CTP OR ATP AT 2.8-ANGSTROMS RESOLUTION AND NEUTRAL P*H' (X-RAY DIFFRACTION), which does not match 'Toll-like receptor TLR3, transmembrane and cytoplasmic juxtamembrane regions'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "CRYSTAL STRUCTURES OF ASPARTATE CARBAMOYLTRANSFERASE LIGATED WITH PHOSPHONOACETAMIDE, MALONATE, AND CTP OR ATP AT 2.8-ANGSTROMS RESOLUTION AND NEUTRAL P*H"
+  }
+ },
+ {
+  "check": "resolution_vs_method",
+  "severity": "warning",
+  "key": "G03-S025-P0002-D001",
+  "pdb": "8AT1",
+  "message": "mpstruc says 'NMR structure', but the PDB entry is X-RAY DIFFRACTION at 2.8 Å",
+  "data": {}
+ },
+ {
+  "check": "pubmed_title_mismatch",
+  "severity": "warning",
+  "key": "G03-S027-P0001-D001",
+  "pdb": "1AT9",
+  "message": "Primary PubMed ID 8676377 is 'Electron-crystallographic refinement of the structure of bacteriorhodopsin.' (J Mol Biol 1996), but the citation title is 'Surface of bacteriorhodopsin revealed by high-resolution electron crystallography.'",
+  "data": {
+   "pubmed": "8676377",
+   "pubmed_title": "Electron-crystallographic refinement of the structure of bacteriorhodopsin."
+  }
+ },
+ {
+  "check": "citation_ids_wrong",
+  "severity": "warning",
+  "key": "G03-S027-P0001-D001",
+  "pdb": "1AT9",
+  "message": "Same title as the PDB's citation, but the PubMed ID/DOI differ (mpstruc 8676377 / —, PDB 9296502 / 10.1038/38323)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S027-P0001-D001",
+  "pdb": "1AT9",
+  "message": "mpstruc resolution 3.0 Å, PDB reports 2.8, 2.8 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S027-P0017",
+  "pdb": "6CSM",
+  "message": "Primary citation 'Crystal structure of the natural anion-conducting channelrhodopsin GtACR1.' differs from the PDB's 'Structural mechanisms of selectivity and gating in anion channelrhodopsins.' (2018)",
+  "data": {
+   "pdb_doi": "10.1038/s41586-018-0504-5",
+   "pdb_pubmed": "30158697",
+   "mpstruc_doi": "10.1038/s41586-018-0511-6",
+   "mpstruc_pubmed": "30158696"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S030-P0001-D004",
+  "pdb": "9CQ4",
+  "message": "mpstruc resolution 3.7 Å, PDB reports 3.27 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S032-P0003",
+  "pdb": "4P79",
+  "message": "mpstruc resolution 2.61 Å, PDB reports 2.4 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S033-P0002-D006",
+  "pdb": "8XLR",
+  "message": "Primary citation 'Structural mechanism of voltage-gated sodium channel slow inactivation.' differs from the PDB's 'Tamsulosin ameliorates bone loss by inhibiting the release of Cl - through wedging into an allosteric site of TMEM16A.' (2025)",
+  "data": {
+   "pdb_doi": "10.1073/pnas.2407493121",
+   "pdb_pubmed": "39739807",
+   "mpstruc_doi": "10.1038/s41467-024-48125-3",
+   "mpstruc_pubmed": "38693179"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S035-P0002",
+  "pdb": "3MP7",
+  "message": "mpstruc resolution 3.1 Å, PDB reports 2.9 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S036-P0014",
+  "pdb": "8GRO",
+  "message": "Primary citation 'Mechanism underlying delayed rectifying in human voltage-mediated activation Eag2 channel.' differs from the PDB's 'A mechanical-coupling mechanism in OSCA/TMEM63 channel mechanosensitivity.' (2023)",
+  "data": {
+   "pdb_doi": "10.1038/s41467-023-39688-8",
+   "pdb_pubmed": "37402734",
+   "mpstruc_doi": "10.1038/s41467-023-37204-6",
+   "mpstruc_pubmed": "36928654"
+  }
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "warning",
+  "key": "G03-S037-P0003",
+  "pdb": "3UKM",
+  "message": "PubMed ID matches the PDB, but DOI '10.1126/science.121327' differs from the PDB's '10.1126/science.1213274' (truncated?); PubMed has '10.1126/science.1213274'",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S037-P0007",
+  "pdb": "3UM7",
+  "message": "mpstruc resolution 3.8 Å, PDB reports 3.31 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S037-P0016-D001",
+  "pdb": "8TEO",
+  "message": "mpstruc resolution 3.0 Å, PDB reports 2.39 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S037-P0044",
+  "pdb": "3SYO",
+  "message": "mpstruc resolution 3.6 Å, PDB reports 3.54 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S037-P0055-D003",
+  "pdb": "6C1E",
+  "message": "mpstruc resolution 2.52 Å, PDB reports 2.86 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S037-P0094",
+  "pdb": "8INZ",
+  "message": "mpstruc resolution 3.19 Å, PDB reports 2.72 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S038-P0014-D002",
+  "pdb": "6JG3",
+  "message": "mpstruc resolution 6.3 Å, PDB reports 6.1 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S038-P0017-D003",
+  "pdb": "8TK8",
+  "message": "mpstruc resolution 3.49 Å, PDB reports 2.7 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S039-P0012-D004",
+  "pdb": "9Y2A",
+  "message": "Primary citation 'Shape-shifting conotoxins reveal divergent pore-targeting mechanisms in nicotinic receptors.' differs from the PDB's 'Noncanonical calcium-independent TRPM4 activation governs intestinal fluid homeostasis.' (2026)",
+  "data": {
+   "pdb_doi": "10.1038/s41467-025-68014-7",
+   "pdb_pubmed": "41507162",
+   "mpstruc_doi": "10.1016/j.str.2025.12.003",
+   "mpstruc_pubmed": "41468893"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S039-P0024-D001",
+  "pdb": "9P6B",
+  "message": "Primary citation 'Structural basis for excitatory neuropeptide signaling.' differs from the PDB's 'Structural basis of the inhibition of TRPV1 by analgesic sesquiterpenes.' (2025)",
+  "data": {
+   "pdb_doi": "10.1073/pnas.2506560122",
+   "pdb_pubmed": "40663614",
+   "mpstruc_doi": "10.1038/s41594-023-01198-y",
+   "mpstruc_pubmed": "38337033"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S039-P0025",
+  "pdb": "5AN8",
+  "message": "mpstruc resolution 4.0 Å, PDB reports 3.8 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S039-P0034-D002",
+  "pdb": "6DO7",
+  "message": "Primary citation 'Structural bases of TRP channel TRPV6 allosteric modulation by 2-APB.' differs from the PDB's 'A ligand-induced structural change in fatty acid-binding protein 1 is associated with potentiation of peroxisome proliferator-activated receptor alpha agonists.' (2019)",
+  "data": {
+   "pdb_doi": "10.1074/jbc.ra118.006848",
+   "pdb_pubmed": "30598509",
+   "mpstruc_doi": "10.1038/s41467-018-04828-y",
+   "mpstruc_pubmed": "29941865"
+  }
+ },
+ {
+  "check": "resolution_vs_method",
+  "severity": "warning",
+  "key": "G03-S039-P0034-D002",
+  "pdb": "6DO7",
+  "message": "mpstruc gives 3.45 Å, but the PDB entry is SOLUTION NMR (no resolution)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S040-P0002",
+  "pdb": "7XKK",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 3.2 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S041-P0001-D020",
+  "pdb": "9B5Z",
+  "message": "mpstruc resolution 2.53 Å, PDB reports 2.71 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S045-P0006",
+  "pdb": "8XDG",
+  "message": "mpstruc resolution 2.4 Å, PDB reports 3.1 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S045-P0007",
+  "pdb": "9J7D",
+  "message": "Primary citation 'Molecular basis of pyruvate transport and inhibition of the human mitochondrial pyruvate carrier.' differs from the PDB's 'Structural basis of urea transport by Arabidopsis thaliana DUR3.' (2025)",
+  "data": {
+   "pdb_doi": "10.1038/s41467-025-56943-2",
+   "pdb_pubmed": "39972035",
+   "mpstruc_doi": "10.1126/sciadv.adw1489",
+   "mpstruc_pubmed": "40249800"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S048-P0002-D005",
+  "pdb": "8QQM",
+  "message": "mpstruc resolution 2.9 Å, PDB reports 4.7 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S048-P0013",
+  "pdb": "2MAW",
+  "message": "Primary citation 'NMR structures of the human α7 nAChR transmembrane domain and associated anesthetic binding sites.' differs from the PDB's 'Insights into distinct modulation of alpha 7 and alpha 7 beta 2 nicotinic acetylcholine receptors by the volatile anesthetic isoflurane.' (2013)",
+  "data": {
+   "pdb_doi": "10.1074/jbc.m113.508333",
+   "pdb_pubmed": "24194515",
+   "mpstruc_doi": "10.1016/j.bbamem.2013.12.018",
+   "mpstruc_pubmed": "24384062"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S048-P0018",
+  "pdb": "8EIS",
+  "message": "Primary citation 'Sensory specializations drive octopus and squid behaviour.' differs from the PDB's 'Structural basis of sensory receptor evolution in octopus.' (2023)",
+  "data": {
+   "pdb_doi": "10.1038/s41586-023-05822-1",
+   "pdb_pubmed": "37045920",
+   "mpstruc_doi": "10.1038/s41586-023-05808-z",
+   "mpstruc_pubmed": "37045917"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S048-P0022-D008",
+  "pdb": "43SN",
+  "message": "Primary citation 'Cryo-EM structure of the bicarbonate receptor GPR30.' differs from the PDB's 'Screening, synthesis and structural characterization of a novel bicyclic peptide inhibiting alpha 7 nicotinic acetylcholine receptor.' (2026)",
+  "data": {
+   "pdb_doi": "10.1039/d6cc03853k",
+   "pdb_pubmed": "42574057",
+   "mpstruc_doi": "10.7554/elife.99874",
+   "mpstruc_pubmed": "42599157"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S048-P0022-D008",
+  "pdb": "43SN",
+  "message": "mpstruc resolution 3.15 Å, PDB reports 2.71 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0024-D001",
+  "pdb": "22GK",
+  "message": "Primary citation 'Molecular mechanisms of naturally encoded signaling bias at the complement anaphylatoxin receptors.' differs from the PDB's 'Atypical signaling, ligand recognition and selective agonist discovery of complement receptor C5aR2.' (2026)",
+  "data": {
+   "pdb_doi": "10.1038/s41422-026-01273-1",
+   "pdb_pubmed": "42399467",
+   "mpstruc_doi": "10.1016/j.molcel.2026.06.002",
+   "mpstruc_pubmed": "42330960"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0025-D004",
+  "pdb": "22GL",
+  "message": "Primary citation 'Molecular mechanisms of naturally encoded signaling bias at the complement anaphylatoxin receptors.' differs from the PDB's 'Atypical signaling, ligand recognition and selective agonist discovery of complement receptor C5aR2.' (2026)",
+  "data": {
+   "pdb_doi": "10.1038/s41422-026-01273-1",
+   "pdb_pubmed": "42399467",
+   "mpstruc_doi": "10.1016/j.molcel.2026.06.002",
+   "mpstruc_pubmed": "42330960"
+  }
+ },
+ {
+  "check": "pubmed_title_mismatch",
+  "severity": "warning",
+  "key": "G03-S051-P0035-D005",
+  "pdb": "3P0G",
+  "message": "Primary PubMed ID 21228869 is 'Structure of a nanobody-stabilized active state of the β(2) adrenoceptor.' (Nature 2011), but the citation title is 'Crystal structure of the human β2adrenergic G-protein-coupled receptor.'",
+  "data": {
+   "pubmed": "21228869",
+   "pubmed_title": "Structure of a nanobody-stabilized active state of the β(2) adrenoceptor."
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0038-D030",
+  "pdb": "9T9P",
+  "message": "mpstruc resolution 2.6 Å, PDB reports 3.0 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0058-D003",
+  "pdb": "7T6V",
+  "message": "mpstruc resolution 2.9 Å, PDB reports 3.1 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0058-D004",
+  "pdb": "8ZBW",
+  "message": "mpstruc resolution 3.17 Å, PDB reports 2.58 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_preprint",
+  "severity": "warning",
+  "key": "G03-S051-P0098-D001",
+  "pdb": "8UGY",
+  "message": "mpstruc cites the preprint; the published version is Sci Adv 2024 (DOI 10.1126/sciadv.adk4855, PMID 38630816)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0121-D002",
+  "pdb": "9XFI",
+  "message": "mpstruc resolution 2.64 Å, PDB reports 2.99 Å",
+  "data": {}
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "info",
+  "key": "G03-S051-P0138",
+  "pdb": "8IOC",
+  "message": "The PDB's DOI '10.1107/s0907444909042073' looks wrong; mpstruc's '10.1038/s41421-023-00586-4' agrees with PubMed",
+  "data": {}
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "info",
+  "key": "G03-S051-P0140",
+  "pdb": "8INR",
+  "message": "The PDB's DOI '10.1107/s0907444909042073' looks wrong; mpstruc's '10.1038/s41421-023-00586-4' agrees with PubMed",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S051-P0168",
+  "pdb": "8HCD",
+  "message": "PDB 8HCD is 'Crystal structure of mTREX1-DNA product complex (dNMP)' (X-RAY DIFFRACTION), which does not match 'endothelin ETB receptor - Gi complex, with bound IRL1620'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "Crystal structure of mTREX1-DNA product complex (dNMP)"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0168",
+  "pdb": "8HCD",
+  "message": "mpstruc resolution 2.99 Å, PDB reports 2.0 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0191-D001",
+  "pdb": "8ZX4",
+  "message": "mpstruc resolution 3.03 Å, PDB reports 2.85 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S051-P0192-D003",
+  "pdb": "9M88",
+  "message": "mpstruc resolution 3.83 Å, PDB reports 3.1 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S053-P0005-D002",
+  "pdb": "8JMT",
+  "message": "mpstruc resolution 3.3 Å, PDB reports 3.36 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_preprint",
+  "severity": "warning",
+  "key": "G03-S054-P0007-D005",
+  "pdb": "8T7H",
+  "message": "mpstruc cites the preprint; the published version is Nature 2024 (DOI 10.1038/s41586-024-07327-x, PMID 38632403)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S055-P0001",
+  "pdb": "7AD3",
+  "message": "mpstruc resolution 3.5 Å, PDB reports 3.3 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S060-P0002-D002",
+  "pdb": "4ENE",
+  "message": "mpstruc resolution 2.5 Å, PDB reports 2.4 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S062-P0002",
+  "pdb": "9WE7",
+  "message": "mpstruc resolution 3.27 Å, PDB reports 3.05 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S067-P0002",
+  "pdb": "9I5L",
+  "message": "mpstruc resolution 3.2 Å, PDB reports 3.4 Å",
+  "data": {}
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "info",
+  "key": "G03-S069-P0002",
+  "pdb": "8RF0",
+  "message": "The PDB's DOI '10.1038/s41467-020-17921-y' looks wrong; mpstruc's '10.1038/s41467-024-45415-8' agrees with PubMed",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S085-P0001-D010",
+  "pdb": "2LEP",
+  "message": "Primary citation 'Insights into the effect of detergents on the full-length rhomboid protease from Pseudomonas aeruginosa and its cytosolic domain.' differs from the PDB's 'Activity-Based Protein Profiling of the Escherichia coli GlpG Rhomboid Protein Delineates the Catalytic Core.' (2012)",
+  "data": {
+   "pdb_doi": "10.1021/bi301087c",
+   "pdb_pubmed": "22963263",
+   "mpstruc_doi": "10.1016/j.bbamem.2009.09.003",
+   "mpstruc_pubmed": "19761755"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S085-P0013",
+  "pdb": "4UIS",
+  "message": "mpstruc resolution 4.32 Å, PDB reports 4.4 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S094-P0001-D020",
+  "pdb": "5OO6",
+  "message": "PDB 5OO6 is 'Complex of human nuclear cap-binding complex with ARS2 C-terminal peptide' (X-RAY DIFFRACTION), which does not match 'AcrABZ-TolC tripartite multi drug efflux pump with bound puromycin (asymmetric structure)'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "Complex of human nuclear cap-binding complex with ARS2 C-terminal peptide"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S094-P0001-D020",
+  "pdb": "5OO6",
+  "message": "mpstruc resolution 5.9 Å, PDB reports 2.8 Å",
+  "data": {}
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "info",
+  "key": "G03-S094-P0001-D030",
+  "pdb": "9BFH",
+  "message": "The PDB's DOI '10.1073/pnas.1901346116' looks wrong; mpstruc's '10.1128/mbio.02492-23' agrees with PubMed",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S094-P0019",
+  "pdb": "4MT1",
+  "message": "Primary citation 'Crystal structure of the Neisseria gonorrhoeae MtrD inner membrane multidrug efflux pump.' differs from the PDB's 'Crystal structure of the open state of the Neisseria gonorrhoeae MtrE outer membrane channel.' (2014)",
+  "data": {
+   "pdb_doi": "10.1371/journal.pone.0097475",
+   "pdb_pubmed": "24901251",
+   "mpstruc_doi": "10.1371/journal.pone.0097903",
+   "mpstruc_pubmed": "24901477"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S097-P0004",
+  "pdb": "2Q7M",
+  "message": "mpstruc resolution 4.0 Å, PDB reports 4.25 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S098-P0007",
+  "pdb": "6IJ6",
+  "message": "PDB 6IJ6 is 'Crystal structure of PETase S121E, D186H, R280A mutant from Ideonella sakaiensis' (X-RAY DIFFRACTION), which does not match 'KDEL receptor with bound nanobody'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "Crystal structure of PETase S121E, D186H, R280A mutant from Ideonella sakaiensis"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S098-P0007",
+  "pdb": "6IJ6",
+  "message": "mpstruc resolution 2.23 Å, PDB reports 1.95 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S101-P0004-D003",
+  "pdb": "8AFA",
+  "message": "mpstruc resolution 3.16 Å, PDB reports 3.25 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S102-P0060",
+  "pdb": "6XPD",
+  "message": "mpstruc resolution 4.1 Å, PDB reports 3.8 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S102-P0077-D001",
+  "pdb": "8ZQR",
+  "message": "mpstruc resolution 2.6 Å, PDB reports 3.6 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S102-P0091-D001",
+  "pdb": "9IJZ",
+  "message": "mpstruc resolution 3.79 Å, PDB reports 2.91 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S113-P0005-D001",
+  "pdb": "7NNU",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 2.7 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S114-P0012-D001",
+  "pdb": "6QEX",
+  "message": "mpstruc resolution 3.5 Å, PDB reports 3.6 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S114-P0024-D001",
+  "pdb": "7Y48",
+  "message": "mpstruc resolution 2.58 Å, PDB reports 2.85 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S114-P0037",
+  "pdb": "6SP7",
+  "message": "PDB 6SP7 is 'Crystal Structure of the VIM-2 Acquired Metallo-beta-Lactamase in Complex with Taniborbactam (VNRX-5133)' (X-RAY DIFFRACTION), which does not match 'ABCB4 phosphatidylcholine transporter'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "Crystal Structure of the VIM-2 Acquired Metallo-beta-Lactamase in Complex with Taniborbactam (VNRX-5133)"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S114-P0037",
+  "pdb": "6SP7",
+  "message": "mpstruc resolution 3.2 Å, PDB reports 1.8 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S119-P0003",
+  "pdb": "5D91",
+  "message": "mpstruc resolution 3.6 Å, PDB reports 2.501 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S124-P0001",
+  "pdb": "5U73",
+  "message": "Primary citation 'Structure of human Niemann-Pick C1 protein.' differs from the PDB's '3.3 angstrom structure of Niemann-Pick C1 protein reveals insights into the function of the C-terminal luminal domain in cholesterol transport.' (2017)",
+  "data": {
+   "pdb_doi": "10.1073/pnas.1711716114",
+   "pdb_pubmed": "28784760",
+   "mpstruc_doi": "10.1073/pnas.1607795113",
+   "mpstruc_pubmed": "27307437"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S132-P0012-D001",
+  "pdb": "8AP8",
+  "message": "mpstruc resolution 3.2 Å, PDB reports 3.7 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S133-P0001-D006",
+  "pdb": "2AGV",
+  "message": "mpstruc resolution 3.0 Å, PDB reports 2.4 Å",
+  "data": {}
+ },
+ {
+  "check": "pubmed_title_mismatch",
+  "severity": "warning",
+  "key": "G03-S133-P0001-D007",
+  "pdb": "2BY4",
+  "message": "Primary PubMed ID 16150713 is 'Structural role of countertransport revealed in Ca(2+) pump crystal structure in the absence of Ca(2+).' (Proc Natl Acad Sci U S A 2005), but the citation title is 'Natural products as starting materials for development of second-generation SERCA inhibitors targeted towards prostate cancer cells.'",
+  "data": {
+   "pubmed": "16150713",
+   "pubmed_title": "Structural role of countertransport revealed in Ca(2+) pump crystal structure in the absence of Ca(2+)."
+  }
+ },
+ {
+  "check": "citation_ids_wrong",
+  "severity": "warning",
+  "key": "G03-S133-P0001-D007",
+  "pdb": "2BY4",
+  "message": "Same title as the PDB's citation, but the PubMed ID/DOI differ (mpstruc 16150713 / —, PDB 16412648 / 10.1016/j.bmc.2005.12.001)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S133-P0004-D002",
+  "pdb": "7W7T",
+  "message": "mpstruc resolution 2.9 Å, PDB reports 3.4 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S140-P0006-D001",
+  "pdb": "2ZUQ",
+  "message": "mpstruc resolution 3.4 Å, PDB reports 3.3 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_vs_method",
+  "severity": "warning",
+  "key": "G03-S140-P0006-D004",
+  "pdb": "2LTQ",
+  "message": "mpstruc gives 1.35 Å, but the PDB entry is SOLID-STATE NMR (no resolution)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S140-P0017-D001",
+  "pdb": "8UCD",
+  "message": "mpstruc resolution 2.0 Å, PDB reports 3.0 Å",
+  "data": {}
+ },
+ {
+  "check": "pubmed_title_mismatch",
+  "severity": "warning",
+  "key": "G03-S142-P0001-D001",
+  "pdb": "3RKO",
+  "message": "Primary PubMed ID 21831629 is 'Respiratory complex I: 'steam engine' of the cell?' (Curr Opin Struct Biol 2011), but the citation title is 'Structure of the membrane domain of respiratory complex I.'",
+  "data": {
+   "pubmed": "21831629",
+   "pubmed_title": "Respiratory complex I: 'steam engine' of the cell?"
+  }
+ },
+ {
+  "check": "pubmed_id_conflict",
+  "severity": "warning",
+  "key": "G03-S142-P0001-D001",
+  "pdb": "3RKO",
+  "message": "DOI matches the PDB, but PubMed ID 21831629 differs from the PDB's 21822288 (Respiratory complex I: 'steam engine' of the cell?)",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S142-P0007-D004",
+  "pdb": "7PSA",
+  "message": "mpstruc resolution 3.04 Å, PDB reports 3.4 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S142-P0009",
+  "pdb": "4WZ7",
+  "message": "mpstruc resolution 3.8 Å, PDB reports 3.6 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S146-P0001-D007",
+  "pdb": "6NMP",
+  "message": "mpstruc resolution 1.75 Å, PDB reports 2.9 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "info",
+  "key": "G03-S146-P0002",
+  "pdb": "1AR1",
+  "message": "PDB primary citation is listed here as a secondary reference",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S146-P0005-D001",
+  "pdb": "9VDJ",
+  "message": "mpstruc resolution 2.36 Å, PDB reports 2.3 Å",
+  "data": {}
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S146-P0007-D001",
+  "pdb": "6WTI",
+  "message": "mpstruc resolution 2.2 Å, PDB reports 2.38 Å",
+  "data": {}
+ },
+ {
+  "check": "pdb_id_points_elsewhere",
+  "severity": "error",
+  "key": "G03-S146-P0011",
+  "pdb": "7NK2",
+  "message": "PDB 7NK2 is '1918 H1N1 Viral influenza polymerase heterotrimer with Nb8202 core' (ELECTRON MICROSCOPY), which does not match 'Cytochrome bd-type oxidase'; its citation differs too. Wrong PDB ID?",
+  "data": {
+   "pdb_title": "1918 H1N1 Viral influenza polymerase heterotrimer with Nb8202 core"
+  }
+ },
+ {
+  "check": "resolution_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S146-P0011",
+  "pdb": "7NK2",
+  "message": "mpstruc resolution 2.5 Å, PDB reports 4.84 Å",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S149-P0001",
+  "pdb": "2PPS",
+  "message": "Primary citation 'Photosystem I of Synechococcus elongatus at 4 Å resolution: Comprehensive structure analysis.' differs from the PDB's 'Photosystem I at 4 A resolution represents the first structural model of a joint photosynthetic reaction centre and core antenna system.' (1996)",
+  "data": {
+   "pdb_doi": "10.1038/nsb1196-965",
+   "pdb_pubmed": "8901876",
+   "mpstruc_doi": "",
+   "mpstruc_pubmed": "9368655"
+  }
+ },
+ {
+  "check": "doi_conflict",
+  "severity": "info",
+  "key": "G03-S149-P0014-D011",
+  "pdb": "11YO",
+  "message": "The PDB's DOI '10.1073/pnas.202398211' looks wrong; mpstruc's '10.1073/pnas.2023982118' agrees with PubMed",
+  "data": {}
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S153-P0001",
+  "pdb": "1PRC",
+  "message": "Primary citation 'Structure of the protein subunits in the photosynthetic reaction centre of Rhodospeudomonas viridis at 3 Å resolution.' differs from the PDB's 'Crystallographic refinement at 2.3 A resolution and refined model of the photosynthetic reaction centre from Rhodopseudomonas viridis.' (1995)",
+  "data": {
+   "pdb_doi": "10.1006/jmbi.1994.0097",
+   "pdb_pubmed": "7877166",
+   "mpstruc_doi": "",
+   "mpstruc_pubmed": "22439175"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "warning",
+  "key": "G03-S153-P0001-D003",
+  "pdb": "5O4C",
+  "message": "Primary citation 'Ultrafast structural changes within a photosynthetic reaction centre.' differs from the PDB's 'From Macrocrystals to Microcrystals: A Strategy for Membrane Protein Serial Crystallography.' (2017)",
+  "data": {
+   "pdb_doi": "10.1016/j.str.2017.07.002",
+   "pdb_pubmed": "28781082",
+   "mpstruc_doi": "10.1038/s41586-020-3000-7",
+   "mpstruc_pubmed": "33268896"
+  }
+ },
+ {
+  "check": "citation_differs_from_pdb",
+  "severity": "info",
+  "key": "G03-S153-P0002",
+  "pdb": "4RCR",
+  "message": "PDB primary citation is listed here as a secondary reference",
+  "data": {}
+ }
+]
