@@ -755,6 +755,10 @@ def main() -> None:
     kb = build_kb(db, _full_summaries(db))
     ids = released_between(since, until)
     props, stats = propose(kb, ids, conf, model)
+    # Below 10% likelihood the backtest finds under 1% of mpstruc's additions; leave those out of the page.
+    floor = 0.1
+    stats["below 10% likelihood (not shown)"] = sum(p["likelihood"] < floor for p in props)
+    props = [{k: v for k, v in p.items() if k not in ("sig", "taxa")} for p in props if p["likelihood"] >= floor]
     props.sort(key=lambda p: (-p["likelihood"], p["pdb"]))
     snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
     age = (today - dt.date.fromisoformat(snap)).days if snap else None

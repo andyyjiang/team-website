@@ -438,7 +438,7 @@ links.addEventListener("click", (event) => {
   // Curator decisions are kept in this browser (localStorage) and leave it
   // only as downloaded files for the mpstruc maintainers.
   const auto = { cands: null, backtest: null, error: null, loading: false,
-                 view: { min: null, placement: "", status: "undecided", q: "" }, editing: null, rejecting: null };
+                 view: { min: null, placement: "", status: "undecided", q: "", age: "" }, editing: null, rejecting: null };
   const REJECT_REASONS = ["Not a membrane protein", "Peripheral, not integral", "Only a soluble domain resolved",
                           "Not notable enough for mpstruc", "Already listed under another ID", "Other"];
   const DECISIONS_KEY = "mpstruc-decisions-v1";
@@ -567,6 +567,12 @@ links.addEventListener("click", (event) => {
       if (v.status === "rejected" && d?.status !== "rejected") return false;
       if (v.placement && c.placement !== v.placement) return false;
       if (c.likelihood < Number(v.min || 0)) return false;
+      if (v.age) {
+        const days = (Date.parse(auto.cands.window[1]) - Date.parse(c.released)) / 864e5;
+        if (v.age === "new" && days > 28) return false;
+        if (v.age === "mid" && (days <= 28 || days > 91)) return false;
+        if (v.age === "old" && days <= 91) return false;
+      }
       if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -603,13 +609,14 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <h2>New structures to review</h2>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
-        ${c.stats.released.toLocaleString()} released, ${c.candidates.length} with a membrane signal</p>
+        ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to belong</p>
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
         <label>Show<select name="status">${opt("undecided", "Not yet decided", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Likely to belong at least<select name="min">${[...new Set([0, 0.1, 0.2, c.threshold, 0.4, 0.5, 0.6])].sort((a, b) => a - b).map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
+        <label>Released<select name="age">${opt("", "Any time (last 26 weeks)", v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>

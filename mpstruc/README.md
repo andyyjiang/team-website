@@ -84,19 +84,35 @@ that file with `python3 -m mpstruc.web` whenever the XML snapshot changes. Previ
 
 ## How the automation decides
 
-Measured on the snapshot (`reports/placement_analysis.md`), then tested on PDB releases from
-July to December 2025 that the model never saw (`reports/backtest.md`):
+Rules come from `reports/placement_analysis.md`. They were tested by replaying July to December 2025
+week by week, with each structure as it looked in its release week (no paper linked yet if the PDB
+linked it later, no PDB annotations added later), against what curators did (`reports/backtest.md`):
 
-| A new structure that… | is suggested as | right in testing |
+| A new structure that… | is suggested as | fully right* |
 |---|---|---|
-| comes from the same paper as an mpstruc entry, same protein | related entry of that entry | ~71% |
-| comes from the same paper as other new structures, same protein | related to the lowest PDB ID among them | ~84% |
-| is the same protein(s) as an mpstruc entry, new paper | daughter of the parent holding most of that protein | ~69% |
+| comes from the same paper as an mpstruc entry, same protein | related entry of that entry | 67% |
+| comes from the same paper as other new structures, same protein | related to the lowest PDB ID among them | 66% |
+| is the same protein(s) as an mpstruc entry, new paper | daughter of the parent holding most of that protein | 69% |
 | shares only some proteins (complex or fusion differs) | curator decides (no default) | — |
-| is a protein mpstruc does not have | new parent in the best-matching subfamily | ~69% |
+| is a protein mpstruc does not have | new parent in the best-matching subfamily | 46% |
 
-The likelihood that mpstruc lists a structure at all comes from a small logistic model over
-membrane signals (OPM, PDBTM, MemProtMD, UniProt keywords), links to mpstruc (same protein,
-family, paper), the experimental method and words in the PDB title. RCSB's own copy of the
-mpstruc classification is never used. Curator decisions are saved in the browser and leave it
-only as downloaded CSV or mpstruc XML blocks.
+\* type, subfamily and parent/owner all match the curators' choice. Overall, at the default cut-off,
+the automation finds 92% of what mpstruc adds, shows about 50 structures a week (about 1 in 3 of
+them are added), picks the right subfamily first 93% of the time, and gets the whole placement right
+64% of the time (type alone: 81%).
+
+- **Membrane proteins in a structure** are the UniProt accessions with a transmembrane keyword, not
+  the PDB's OPM/PDBTM/MemProtMD tags, which new releases no longer receive.
+- **"Same paper"** uses the PDB's citation, or, until a paper is linked (about half of new releases
+  in their first weeks), the first and last depositing author.
+- **Families** come from UniProt's InterPro entries, which exist on release day.
+- **The likelihood that mpstruc lists a structure** comes from a small logistic model over these
+  signals, the experimental method and words in the PDB title. Its cut-off is chosen by
+  cross-validation grouped by paper. RCSB's own copy of the mpstruc classification is never used.
+- **Limitations:**
+  - Curation lag is not modelled; shifting the cut-off date by 30–90 days moved the results by
+    1 point or less.
+  - UniProt families and keywords are today's versions.
+  - The rules were designed on the full snapshot, which includes the test period.
+- **Curator decisions** are saved in the browser and leave it only as downloaded CSV or mpstruc XML
+  blocks. The weekly job re-checks the last 26 weeks, so suggestions improve as papers are linked.
