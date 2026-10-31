@@ -175,7 +175,7 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
 
 # ---------------------------------------------------------------- model
 
-def fit(X: list[dict], y: list[int], l2: float = 3.0, steps: int = 3000, min_count: int = 20) -> dict:
+def fit(X: list[dict], y: list[int], l2: float = 10.0, steps: int = 3000, min_count: int = 40) -> dict:
     """Plain (unweighted) logistic regression, so the output is a probability."""
     import numpy as np
     counts = Counter(k for x in X for k, v in x.items() if v)
@@ -194,6 +194,8 @@ def fit(X: list[dict], y: list[int], l2: float = 3.0, steps: int = 3000, min_cou
 def predict(x: dict[str, float], model: dict) -> float:
     z = model["bias"] + sum(model["weights"].get(k, 0.0) * v for k, v in x.items())
     p = 1 / (1 + math.exp(-z))
+    if model.get("isotonic"):  # observed frequencies on held-out training structures
+        return _apply_isotonic(model["isotonic"], p)
     cal = model.get("calibration")
     if cal:  # Platt scaling fitted on held-out weeks
         z2 = cal["a"] * math.log(max(p, 1e-6) / max(1 - p, 1e-6)) + cal["b"]
@@ -274,7 +276,10 @@ def _rows(ids, pos, ctx, prior, training: bool):
 
 
 def evaluate(rows, model) -> dict:
-    preds = [(predict(x, model), y) for _, x, y, _, _ in rows]
+    return evaluate_preds([(predict(x, model), y) for _, x, y, _, _ in rows])
+
+
+def evaluate_preds(preds: list[tuple[float, int]]) -> dict:
     n = len(preds)
     bins = []
     for lo in [i / 10 for i in range(10)]:
@@ -313,36 +318,96 @@ def _platt(preds: list[tuple[float, int]]) -> dict:
     return {"a": a, "b": b}
 
 
-def train_and_test() -> dict:
+def _isotonic(preds: list[tuple[float, int]], bins: int = 40) -> list[list[float]]:
+    """Pool-adjacent-violators fit of P(membrane | raw score) on held-out
+    predictions. Returns [[raw score, calibrated probability], ...] knots."""
+    pts = sorted(preds)
+    size = max(1, len(pts) // bins)
+    prior = sum(y for _, y in preds) / len(preds)
+    blocks = []  # [sum_y, n, mean_x]; one pseudo-observation at the base rate keeps rates inside (0, 1)
+    for i in range(0, len(pts), size):
+        chunk = pts[i:i + size]
+        if blocks and len(chunk) < size // 2:  # fold a small remainder into the last block
+            y0, n0, x0 = blocks.pop()
+            chunk_y, chunk_n = sum(y for _, y in chunk), len(chunk)
+            blocks.append([y0 + chunk_y, n0 + chunk_n, (x0 * (n0 - 1) + sum(p for p, _ in chunk)) / (n0 - 1 + chunk_n)])
+            continue
+        blocks.append([sum(y for _, y in chunk) + prior, len(chunk) + 1, sum(p for p, _ in chunk) / len(chunk)])
+    merged: list[list[float]] = []
+    for b in blocks:
+        merged.append(b[:])
+        while len(merged) > 1 and merged[-2][0] / merged[-2][1] > merged[-1][0] / merged[-1][1]:
+            y2, n2, x2 = merged.pop()
+            y1, n1, x1 = merged.pop()
+            merged.append([y1 + y2, n1 + n2, (x1 * n1 + x2 * n2) / (n1 + n2)])
+    return [[x, y / n] for y, n, x in merged]
+
+
+def _apply_isotonic(knots: list[list[float]], p: float) -> float:
+    if p <= knots[0][0]:
+        return knots[0][1]
+    for (x0, y0), (x1, y1) in zip(knots, knots[1:]):
+        if p <= x1:
+            return y0 + (y1 - y0) * (p - x0) / (x1 - x0) if x1 > x0 else y1
+    return knots[-1][1]
+
+
+def _family_stats(rows) -> dict[str, list[int]]:
+    stats: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for f, y in rows:
+        for i in set(f["ipr"]):
+            stats[i][0 if y else 1] += 1
+    return dict(stats)
+
+
+def train_and_test(folds: int = 5) -> dict:
+    """Train on TRAIN, calibrate on held-out folds of it, report on TEST.
+
+    Family statistics are computed without the structure being scored (from
+    the other time blocks of the training period), and the calibration maps
+    out-of-fold predictions to observed frequencies, so the percentage shown
+    is what was actually seen on structures the model had not learnt from.
+    """
     db = load(source_xml())
     ctx = Context(db)
     ids_tr, pos_tr = _labels(*TRAIN, ctx.mpstruc_ids)
-    prior = len(pos_tr & set(ids_tr)) / len(ids_tr)
-    # Family statistics from the training period only.
-    fam = rcsb.entry_families(ids_tr)
-    stats: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    ext, fam, det = rcsb.entry_extras(ids_tr), rcsb.entry_families(ids_tr), rcsb.entry_details(ids_tr)
+    facts = []
     for pdb in ids_tr:
-        iprs = {x for v in ((fam.get(pdb) or {}).get("ipr") or {}).values() for x in v}
-        for i in iprs:
-            stats[i][0 if pdb in pos_tr else 1] += 1
-    ctx.fam_stats = dict(stats)
-    rows_tr = _rows(ids_tr, pos_tr, ctx, prior, training=True)
-    # Fit on all but the last two training months, calibrate on those, then refit on everything.
-    cut = "2024-07-01"
-    early = [r for r in rows_tr if r[3]["released"] < cut]
-    late = [r for r in rows_tr if r[3]["released"] >= cut]
-    m0 = fit([r[1] for r in early], [r[2] for r in early])
-    cal = _platt([(predict(r[1], m0), r[2]) for r in late])
-    model = fit([r[1] for r in rows_tr], [r[2] for r in rows_tr])
-    model["calibration"] = cal
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
+        if f:
+            facts.append((f, int(pdb in pos_tr)))
+    facts.sort(key=lambda r: (r[0]["released"], r[0]["pdb"]))
+    prior = sum(y for _, y in facts) / len(facts)
+    block = [min(folds - 1, i * folds // len(facts)) for i in range(len(facts))]
+    # Features for each training structure use family statistics from the other blocks only.
+    rows = []
+    for k in range(folds):
+        ctx.fam_stats = _family_stats([r for r, b in zip(facts, block) if b != k])
+        rows += [(f["pdb"], *features(f, ctx, prior), y, f, k) for (f, y), b in zip(facts, block) if b == k]
+    # rows: (pdb, x, why, y, facts, block)
+    oof = []
+    for k in range(folds):
+        m = fit([r[1] for r in rows if r[5] != k], [r[3] for r in rows if r[5] != k])
+        oof += [(predict(r[1], m), r[3]) for r in rows if r[5] == k]
+    model = fit([r[1] for r in rows], [r[3] for r in rows])
+    model["isotonic"] = _isotonic(oof)
     model["prior"] = prior
+    model["fam_stats"] = {k: v for k, v in _family_stats(facts).items() if sum(v) >= 2}
+    ctx.fam_stats = model["fam_stats"]
+
     ids_te, pos_te = _labels(*TEST, ctx.mpstruc_ids)
-    rows_te = _rows(ids_te, pos_te, ctx, prior, training=False)
-    result = {"train": {"window": TRAIN, **evaluate(rows_tr, model)},
+    ext, fam, det = rcsb.entry_extras(ids_te), rcsb.entry_families(ids_te), rcsb.entry_details(ids_te)
+    rows_te = []
+    for pdb in ids_te:
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
+        if f:
+            x, why = features(f, ctx, prior)
+            rows_te.append((pdb, x, int(pdb in pos_te), f, why))
+    oof_eval = [(_apply_isotonic(model["isotonic"], p), y) for p, y in oof]
+    result = {"train": {"window": TRAIN, **evaluate_preds(oof_eval)},
               "test": {"window": TEST, **evaluate(rows_te, model)}}
-    model["fam_stats"] = {k: v for k, v in stats.items() if sum(v) >= 2}
     MODEL_PATH.write_text(json.dumps(model))
-    # How the score treats what mpstruc actually added later (Jul-Dec 2025, after the PDBTM period).
     later = sorted(set(released_between("2025-07-01", "2025-12-31")) & ctx.mpstruc_ids)
     sc = score_structures(later, db, model)
     ps = [v["p"] for v in sc.values()]
@@ -386,7 +451,8 @@ def report_md(r: dict, model: dict) -> str:
          "PDB entry for transmembrane proteins) do, or if OPM classes it as transmembrane. Structures OPM classes only as "
          "monotopic/peripheral or peptide, with no other source, are left out. Signals include UniProt keywords and "
          "families and TCDB transporter classes. The model uses only facts known on the day a structure is released. "
-         f"It was trained on PDB releases {TRAIN[0]} to {TRAIN[1]} and tested on {TEST[0]} to {TEST[1]}.", "",
+         f"It was trained on PDB releases {TRAIN[0]} to {TRAIN[1]} (calibrated on structures each fold had not seen) and "
+         f"tested on {TEST[0]} to {TEST[1]}.", "",
          "## Test period", "",
          f"- Structures: {t['n']:,}, of which membrane proteins: {t['membrane']:,}",
          f"- Ranking quality (AUC): {t['auc']}; Brier score: {t['brier']}",

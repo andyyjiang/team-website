@@ -263,6 +263,7 @@ def entry_details(pdb_ids: list[str], batch: int = 100, max_age_s: float = 7 * 8
         found = {e["rcsb_id"]: e for e in (data.get("data") or {}).get("entries") or [] if e}
         for pid in chunk:
             cache[pid] = found.get(pid)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(cache))
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
