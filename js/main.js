@@ -432,18 +432,323 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
-  function viewAutomation() {
+  // ---- automation tab ------------------------------------------------------
+  // Suggestions come from data/candidates.json (written weekly by
+  // `python -m mpstruc.automation run`) and accuracy from data/backtest.json.
+  // Curator decisions are kept in this browser (localStorage) and leave it
+  // only as downloaded files for the mpstruc maintainers.
+  const auto = { cands: null, backtest: null, error: null, loading: false,
+                 view: { min: null, placement: "", status: "undecided", q: "" }, editing: null, rejecting: null };
+  const REJECT_REASONS = ["Not a membrane protein", "Peripheral, not integral", "Only a soluble domain resolved",
+                          "Not notable enough for mpstruc", "Already listed under another ID", "Other"];
+  const DECISIONS_KEY = "mpstruc-decisions-v1";
+  let decisions = {};
+  try { decisions = JSON.parse(localStorage.getItem(DECISIONS_KEY) || "{}") || {}; } catch { decisions = {}; }
+  function saveDecisions() {
+    try { localStorage.setItem(DECISIONS_KEY, JSON.stringify(decisions)); } catch { /* storage unavailable: keep in memory */ }
+  }
+
+  function loadAutomation() {
+    if (auto.cands || auto.loading) return;
+    auto.loading = true;
+    Promise.all([fetch("data/candidates.json").then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))),
+                 fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
+      .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0; })
+      .catch((err) => { auto.error = err.message; })
+      .finally(() => { auto.loading = false; if (lastRoute.startsWith("automation")) render(); });
+  }
+
+  const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
+  const pct = (v) => `${Math.round(v * 100)}%`;
+  const sgName = (k) => (state.sgOf.get(k) ? strip(state.sgOf.get(k).name) : k || "");
+  const groupOf = (k) => (state.sgOf.get(k) ? state.sgOf.get(k).group.topology : "");
+
+  function suggestion(c) {
+    const where = c.subgroup ? `${esc(sgName(c.subgroup))} <span class="mp-of">(${esc(groupOf(c.subgroup))})</span>` : "no subfamily found";
+    if (c.placement === "parent") return `New parent in ${where}`;
+    if (c.placement === "daughter") return `Daughter of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}`;
+    if (c.placement === "related") return `Related entry of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a>${c.ownerKey ? ` in ${where}` : " (new this week)"}`;
+    return c.ownerPdb ? `Shares a protein with <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}, but not exactly: choose parent, daughter or related.`
+                      : "No strong link to any subfamily: choose where it belongs.";
+  }
+
+  function decisionOf(c) { return decisions[c.pdb] || null; }
+
+  function candidateCard(c) {
+    const d = decisionOf(c);
+    const editing = auto.editing === c.pdb;
+    const status = d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>` : `<span class="mp-badge related">Rejected</span>`) : "";
+    const finalText = d && d.status === "approved"
+      ? `<p class="mp-final"><b>Decision:</b> ${esc(PLACEMENT_LABEL[d.placement] || d.placement)}${d.owner ? ` of ${esc(d.owner)}` : ""} in ${esc(sgName(d.subgroup))}${d.edited ? " (changed by curator)" : ""}</p>`
+      : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || "")}</p>` : "";
+    const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
+      `<option value="${sg.k}"${sg.k === (d?.subgroup || c.subgroup) ? " selected" : ""}>${esc(strip(sg.name))}</option>`).join("")}</optgroup>`).join("");
+    const editForm = editing ? `<form class="mp-edit" data-pdb="${esc(c.pdb)}">
+        <label>Placement<select name="placement">${["parent", "daughter", "related"].map((p) =>
+          `<option value="${p}"${p === (d?.placement || (c.placement === "review" ? "daughter" : c.placement)) ? " selected" : ""}>${PLACEMENT_LABEL[p]}</option>`).join("")}</select></label>
+        <label>Subfamily<select name="subgroup">${sgOptions}</select></label>
+        <label>Parent or owner PDB ID (for daughters and related entries)<input name="owner" value="${esc(d?.owner || c.ownerPdb || "")}" maxlength="4" pattern="[0-9A-Za-z]{4}"></label>
+        <div class="mp-actions"><button class="mp-btn" type="submit">Save decision</button>
+          <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
+      </form>` : "";
+    const rejectForm = auto.rejecting === c.pdb ? `<form class="mp-edit mp-reject" data-pdb="${esc(c.pdb)}">
+        <label>Why reject?<select name="reason">${REJECT_REASONS.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label>
+        <div class="mp-actions"><button class="mp-btn" type="submit">Reject</button>
+          <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
+      </form>` : "";
+    const lowConf = c.confidence < 0.7;
+    const alts = (c.alternatives || []).map((a) => `<li>${esc(a.name)} <span class="mp-count">${pct(a.score)}</span></li>`).join("");
+    return `<article class="mp-entry mp-cand${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">
+      <div class="mp-entry-head">
+        <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
+        <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
+        ${status}
+        <span class="mp-of">released ${esc(c.released || "")} · ${esc((c.method || "").toLowerCase())}${c.res ? ` · ${fmtRes(c.res)}` : ""}</span>
+        <h3>${esc(c.title || c.pdb)}</h3>
+      </div>
+      <div class="mp-like" title="How likely mpstruc is to list this structure, learned from past curator decisions">
+        <span>Likely to belong in mpstruc</span><meter min="0" max="1" low="0.3" high="0.6" optimum="1" value="${c.likelihood}"></meter><b>${pct(c.likelihood)}</b>
+      </div>
+      <p class="mp-suggest"><b>Suggestion:</b> ${suggestion(c)}
+        ${c.placement !== "review" ? `<span class="mp-conf${lowConf ? " low" : ""}">right ${pct(c.confidence)} of the time in testing</span>` : ""}</p>
+      <dl class="mp-meta">
+        <dt>Organism</dt><dd>${esc((c.organisms || []).join(", ") || "—")}</dd>
+        <dt>Chains</dt><dd>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</dd>
+        <dt>Paper</dt><dd>${c.doi ? `<a href="https://doi.org/${esc(c.doi)}" rel="noopener">DOI</a>` : ""}${c.doi && c.pmid ? " · " : ""}${c.pmid ? `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(c.pmid)}/" rel="noopener">PubMed</a>` : ""}${!c.doi && !c.pmid ? "Not yet published" : ""}</dd>
+      </dl>
+      <details class="mp-why"><summary>Why</summary>
+        <ul>${(c.evidence || []).map((e) => `<li>${esc(e)}</li>`).join("")}
+          ${(c.reasons || []).map(([label, w]) => `<li>${esc(label)} ${w > 0 ? "raises" : "lowers"} the likelihood</li>`).join("")}</ul>
+        ${alts ? `<p class="mp-summary">Subfamily candidates:</p><ol>${alts}</ol>` : ""}
+      </details>
+      ${finalText}
+      ${editForm}${rejectForm}
+      ${editing || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
+        <button class="mp-btn" type="button" data-act="approve" data-pdb="${esc(c.pdb)}"${c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Change'" : ""}>Approve</button>
+        <button class="mp-btn secondary" type="button" data-act="edit" data-pdb="${esc(c.pdb)}">${c.placement === "review" ? "Decide" : "Change"}</button>
+        <button class="mp-btn secondary" type="button" data-act="reject" data-pdb="${esc(c.pdb)}">Reject</button>
+        ${d ? `<button class="mp-btn secondary" type="button" data-act="undo" data-pdb="${esc(c.pdb)}">Undo</button>` : ""}
+      </div>`}
+    </article>`;
+  }
+
+  function filteredCands() {
+    const v = auto.view;
+    const q = v.q.toLowerCase();
+    return auto.cands.candidates.filter((c) => {
+      const d = decisionOf(c);
+      if (v.status === "undecided" && d) return false;
+      if (v.status === "approved" && d?.status !== "approved") return false;
+      if (v.status === "rejected" && d?.status !== "rejected") return false;
+      if (v.placement && c.placement !== v.placement) return false;
+      if (c.likelihood < Number(v.min || 0)) return false;
+      if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function accuracySummary() {
+    const b = auto.backtest && auto.backtest.test;
+    if (!b) return "";
+    const band = (b.bands || []).find((x) => Math.abs(x.min_likelihood - (auto.backtest.threshold ?? 0)) < 1e-9);
+    return `<div class="mp-stats">
+      <div class="mp-stat"><b>${band ? `${Math.round(band.recall_pct)}%` : "—"}</b><span>of structures mpstruc added were found (at the default cut-off)</span></div>
+      <div class="mp-stat"><b>${b.subgroup_top1.pct}%</b><span>right subfamily as first choice (${b.subgroup_top3.pct}% in top 3)</span></div>
+      <div class="mp-stat"><b>${b.placement_auto.pct}%</b><span>right parent / daughter / related call when suggested</span></div>
+      <div class="mp-stat"><b>${band ? Math.round(band.per_week) : "—"}</b><span>suggestions per week to review</span></div>
+    </div>
+    <p class="mp-summary">Measured by replaying ${esc(b.window[0])} to ${esc(b.window[1])} against what mpstruc curators actually did.
+      <a href="#/automation/accuracy">How accurate is this?</a></p>`;
+  }
+
+  function viewAutomation(sub) {
+    if (auto.error) return `<div class="mp-view"><h2>Automation</h2><p class="mp-empty">Could not load this week's suggestions (${esc(auto.error)}).</p></div>`;
+    if (!auto.cands) { loadAutomation(); return '<div class="mp-view"><h2>Automation</h2><p class="mp-loading">Loading suggestions…</p></div>'; }
+    if (sub === "accuracy") return viewAccuracy();
+    const c = auto.cands, v = auto.view;
+    const list = filteredCands();
+    const shown = list.slice(0, state.limit);
+    const counts = { approved: 0, rejected: 0 };
+    c.candidates.forEach((x) => { const d = decisionOf(x); if (d) counts[d.status]++; });
+    const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
-      <h2>Automation</h2>
-      <p>Coming next. Each week, after the PDB's Wednesday release, this tab will show:</p>
-      <ul>
-        <li><b>New candidate structures</b>: newly released PDB entries that look like membrane proteins, with the evidence for each.</li>
-        <li><b>A suggested placement</b> for each candidate (group, subfamily, and new parent, daughter or related entry), with a confidence score.</li>
-        <li><b>A review queue</b> where curators approve, edit, reassign or reject every suggestion. Nothing enters the database without approval.</li>
-        <li><b>Accuracy</b> measured against mpstruc's own past decisions before any suggestion is trusted.</li>
-      </ul>
-      <p class="mp-summary">Until then, the <a href="#/">Database</a> tab shows the current snapshot and its data-quality notes.</p>
+      <h2>New structures to review</h2>
+      <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} · checked ${esc(c.generated.slice(0, 10))} ·
+        ${c.stats.released.toLocaleString()} released, ${c.candidates.length} with a membrane signal</p>
+      ${accuracySummary()}
+      <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
+        <label>Show<select name="status">${opt("undecided", "Not yet decided", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
+        <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
+        <label>Likely to belong at least<select name="min">${[...new Set([0, 0.1, 0.2, c.threshold, 0.4, 0.5, 0.6])].sort((a, b) => a - b).map((t) =>
+          opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
+        <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
+      </form>
+      <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
+        <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
+        <button type="button" class="mp-btn secondary" id="mp-dl-xml"${counts.approved ? "" : " disabled"}>Download approved as mpstruc XML</button></span></div>
+      <p class="mp-summary">Decisions are saved in this browser only. Download them to send to the mpstruc maintainers.</p>
+      ${shown.map(candidateCard).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
+      ${more(shown.length, list.length)}
     </div>`;
+  }
+
+  function viewAccuracy() {
+    const b = auto.backtest && auto.backtest.test;
+    if (!b) return '<div class="mp-view"><h2>Accuracy</h2><p class="mp-empty">No accuracy report yet.</p></div>';
+    const th = auto.backtest.threshold;
+    const bands = b.bands.map((x) => `<tr${Math.abs(x.min_likelihood - th) < 1e-9 ? ' class="current"' : ""}><td>${pct(x.min_likelihood)}${Math.abs(x.min_likelihood - th) < 1e-9 ? " (default)" : ""}</td>
+      <td>${x.per_week}</td><td>${x.recall_pct}%</td><td>${x.precision_pct ?? "—"}%</td></tr>`).join("");
+    const names = { "same-paper": "Same paper as an mpstruc entry → related", "same-paper-batch": "Same paper as another new structure → related",
+                    "same-protein": "Same protein as an mpstruc entry → daughter", "partial-protein": "Shares only some proteins → curator decides",
+                    "new-protein": "Protein not in mpstruc → new parent", "no-evidence": "No link to any subfamily → curator decides" };
+    const rules = Object.entries(b.by_rule).map(([r, x]) => `<tr><td>${esc(names[r] || r)}</td><td>${x.kind.n}</td>
+      <td>${r.includes("partial") || r === "no-evidence" ? "—" : `${x.kind.pct}%`}</td><td>${x.subgroup.pct ?? "—"}${x.subgroup.pct != null ? "%" : ""}</td>
+      <td>${x.owner.n ? `${x.owner.pct}%` : "—"}</td></tr>`).join("");
+    const errs = (b.errors || []).slice(0, 40).map((e) => `<tr><td><a href="https://www.rcsb.org/structure/${esc(e.pdb)}" rel="noopener">${esc(e.pdb)}</a></td>
+      <td>${esc(PLACEMENT_LABEL[e.pred_kind] || e.pred_kind)}${e.pred_owner ? ` of ${esc(e.pred_owner)}` : ""}<br><span class="mp-of">${esc(sgName(e.pred_sg))}</span></td>
+      <td>${esc(e.true_kind)}${e.true_owner ? ` of ${esc(e.true_owner)}` : ""}<br><span class="mp-of">${esc(e.true_sg.map(sgName).join(", "))}</span></td></tr>`).join("");
+    return `<div class="mp-view">
+      <p class="mp-crumbs"><a href="#/automation">Automation</a> › Accuracy</p>
+      <h2>How accurate are the suggestions?</h2>
+      <p>The automation was run as if it were ${esc(b.window[0])}, knowing only what mpstruc contained then, on the
+        ${b.released.toLocaleString()} structures the PDB released up to ${esc(b.window[1])}. Its suggestions were compared with
+        what mpstruc's curators actually did with the ${b.discovery.in_mpstruc} of them they added. The rules, the likelihood model and the
+        default cut-off were all fitted on the half-year before, so this is a fair test.</p>
+      <h3>Finding new structures</h3>
+      <p class="mp-summary">A lower cut-off finds more of what curators add, but means more suggestions to look through.</p>
+      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Show if likely at least</th><th>Suggestions per week</th>
+        <th>Share of mpstruc's additions found</th><th>Share of suggestions that mpstruc added</th></tr></thead><tbody>${bands}</tbody></table></div>
+      <h3>Placing them</h3>
+      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Rule</th><th>Structures</th><th>Type right</th><th>Subfamily right</th><th>Parent / owner right</th></tr></thead>
+        <tbody>${rules}</tbody></table></div>
+      <h3>Examples it got wrong</h3>
+      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>PDB</th><th>Suggested</th><th>Curators chose</th></tr></thead><tbody>${errs}</tbody></table></div>
+    </div>`;
+  }
+
+  function download(name, text, type) {
+    const blob = new Blob([text], { type });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  const xmlEsc = (v) => String(v ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+
+  function approvedXml() {
+    const today = new Date().toISOString().slice(0, 10);
+    const out = [`<!-- mpstruc entries approved ${today}. Each block says where it goes. Names and descriptions are`,
+                 `     drafts from the PDB title: please edit before adding. -->`];
+    for (const c of auto.cands.candidates) {
+      const d = decisionOf(c);
+      if (!d || d.status !== "approved") continue;
+      const sgRec = state.sgOf.get(d.subgroup);
+      const where = `${sgRec ? sgRec.group.name : ""} : ${sgName(d.subgroup)} (${d.subgroup})`;
+      const bib = ["<bibliography>", `<pubMedId>${xmlEsc(c.pmid || "")}</pubMedId>`, "<authors/>", "<year/>", "<title/>", "<journal/>",
+                   "<volume/>", "<issue/>", "<pages/>", c.doi ? `<doi>${xmlEsc(c.doi)}</doi>` : "<doi/>", "<notes/>", "</bibliography>"];
+      const fields = [`<pdbCode>${xmlEsc(c.pdb)}</pdbCode>`];
+      if (d.placement === "daughter") fields.push(`<masterProteinPdbCode>${xmlEsc(d.owner)}</masterProteinPdbCode>`);
+      fields.push(`<name>${xmlEsc(c.title)}</name>`, `<species>${xmlEsc((c.organisms || [])[0] || "")}</species>`, "<taxonomicDomain/>",
+                  "<expressedInSpecies/>", c.res ? `<resolution>${c.res}</resolution>` : "<resolution/>", "<description/>", ...bib,
+                  "<secondaryBibliographies/>", "<relatedPdbEntries/>");
+      if (d.placement === "parent") {
+        out.push(`<!-- New parent in ${xmlEsc(where)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
+      } else if (d.placement === "daughter") {
+        out.push(`<!-- Daughter: add to <memberProteins> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
+      } else {
+        out.push(`<!-- Related: add to <relatedPdbEntries> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, `<pdbCode>${xmlEsc(c.pdb)}</pdbCode>`);
+      }
+    }
+    return out.join("\n") + "\n";
+  }
+
+  function decisionsCsv() {
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const cols = ["PDB ID", "Title", "Released", "Decision", "Placement", "Subfamily", "Group", "Parent or owner", "Changed from suggestion",
+                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Likelihood", "Decided at"];
+    const rows = auto.cands.candidates.filter(decisionOf).map((c) => {
+      const d = decisionOf(c);
+      return [c.pdb, c.title, c.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "", d.edited ? "yes" : "",
+              d.reason || "", c.placement, c.subgroupName || "", c.ownerPdb || "", c.likelihood, d.at].map(q).join(",");
+    });
+    return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+  }
+
+  function wireAutomation() {
+    const form = document.getElementById("mp-auto-filters");
+    if (form) {
+      const update = () => {
+        let changed = false;
+        for (const el of form.elements) {
+          if (el.name && auto.view[el.name] !== el.value) { auto.view[el.name] = el.value; changed = true; }
+        }
+        if (changed) { state.limit = PAGE; render(); }
+      };
+      form.addEventListener("change", update);
+      form.addEventListener("submit", (ev) => { ev.preventDefault(); update(); });
+    }
+    const csvBtn = document.getElementById("mp-dl-csv");
+    if (csvBtn) csvBtn.addEventListener("click", () => download("mpstruc_decisions.csv", decisionsCsv(), "text/csv"));
+    const xmlBtn = document.getElementById("mp-dl-xml");
+    if (xmlBtn) xmlBtn.addEventListener("click", () => download("mpstruc_approved.xml", approvedXml(), "application/xml"));
+    app.querySelectorAll(".mp-cand [data-act]").forEach((btn) => btn.addEventListener("click", () => {
+      const pdb = btn.dataset.pdb || btn.closest("form")?.dataset.pdb;
+      const c = auto.cands.candidates.find((x) => x.pdb === pdb);
+      const act = btn.dataset.act;
+      if (act === "approve" && c) {
+        decisions[pdb] = { status: "approved", placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "", at: new Date().toISOString() };
+      } else if (act === "reject" && c) {
+        auto.rejecting = pdb;
+      } else if (act === "undo") {
+        delete decisions[pdb];
+      } else if (act === "edit") {
+        auto.editing = pdb;
+      } else if (act === "cancel") {
+        auto.editing = null;
+        auto.rejecting = null;
+      }
+      saveDecisions();
+      if (act !== "edit") auto.editing = null;
+      if (act !== "reject") auto.rejecting = null;
+      const y = window.scrollY;
+      render();
+      window.scrollTo(0, y);
+      const card = document.getElementById(`c-${pdb}`);
+      const target = card && (card.querySelector(act === "edit" || act === "reject" ? "select" : "[data-act]") || card);
+      if (target) target.focus({ preventScroll: true });
+    }));
+    app.querySelectorAll("form.mp-reject").forEach((f) => f.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      decisions[f.dataset.pdb] = { status: "rejected", reason: f.elements.reason.value, at: new Date().toISOString() };
+      saveDecisions();
+      auto.rejecting = null;
+      const y = window.scrollY;
+      render();
+      window.scrollTo(0, y);
+    }));
+    app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => f.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const pdb = f.dataset.pdb;
+      const c = auto.cands.candidates.find((x) => x.pdb === pdb);
+      const placement = f.elements.placement.value, subgroup = f.elements.subgroup.value;
+      const owner = f.elements.owner.value.trim().toUpperCase();
+      if (placement !== "parent" && !/^[0-9][A-Z0-9]{3}$/.test(owner)) {
+        f.elements.owner.setCustomValidity("Enter the 4-character PDB ID of the parent (for a daughter) or of the entry it is listed under (for a related entry).");
+        f.elements.owner.reportValidity();
+        return;
+      }
+      decisions[pdb] = { status: "approved", placement, subgroup, owner: placement === "parent" ? "" : owner, at: new Date().toISOString(),
+                         edited: placement !== c.placement || subgroup !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")) };
+      saveDecisions();
+      auto.editing = null;
+      const y = window.scrollY;
+      render();
+      window.scrollTo(0, y);
+    }));
+    app.querySelectorAll("form.mp-edit input[name=owner]").forEach((i) => i.addEventListener("input", () => i.setCustomValidity("")));
   }
 
   // ---- router -------------------------------------------------------------
@@ -475,7 +780,13 @@ links.addEventListener("click", (event) => {
     const focusName = active && app.contains(active) ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
     document.querySelectorAll(".mp-tabs a").forEach((a) =>
       a.classList.toggle("active", a.dataset.tab === (kind === "automation" ? "automation" : "database")));
-    if (kind === "automation") { app.innerHTML = viewAutomation(); return; }
+    if (kind === "automation") {
+      app.innerHTML = viewAutomation(arg);
+      wireAutomation();
+      const moreA = document.getElementById("mp-more");
+      if (moreA) moreA.addEventListener("click", () => { state.limit += PAGE; const y = window.scrollY; setTimeout(() => { render(); window.scrollTo(0, y); }, 0); });
+      return;
+    }
 
     let main, currentSg = null, csv = null;
     if (kind === "sg" && state.sgOf.has(arg)) {

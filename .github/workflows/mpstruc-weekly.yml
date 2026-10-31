@@ -1,0 +1,54 @@
+# Weekly mpstruc update: refresh the database page and this week's suggestions.
+# Runs every Thursday (the PDB releases on Wednesdays) and can be started by hand
+# from the Actions tab. It commits only data/*.json; nothing in mpstruc changes.
+name: mpstruc weekly update
+
+on:
+  schedule:
+    - cron: "17 6 * * 4"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install numpy openpyxl
+
+      - name: Download the latest mpstruc XML (keeps the saved snapshot if this fails)
+        working-directory: mpstruc
+        run: |
+          if curl -fsSL --retry 3 --max-time 300 -o latest.xml https://blanco.biomol.uci.edu/mpstruc/listAll/mpstrucTblXml \
+             && python -c "from mpstruc.model import load; load('latest.xml')"; then
+            echo "MPSTRUC_XML=$PWD/latest.xml" >> "$GITHUB_ENV"
+            echo "Using the latest mpstruc XML"
+          else
+            echo "::warning::Could not download or parse the latest mpstruc XML; using the saved snapshot"
+          fi
+
+      - name: Find and place new structures
+        working-directory: mpstruc
+        run: python -m mpstruc.automation run
+
+      - name: Rebuild the database page data
+        working-directory: mpstruc
+        run: python -m mpstruc.web
+
+      - name: Commit updated data
+        run: |
+          git config user.name "mpstruc-bot"
+          git config user.email "mpstruc-bot@users.noreply.github.com"
+          git add data/candidates.json data/mpstruc.json
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Weekly mpstruc update ($(date -u +%F))"
+          git push

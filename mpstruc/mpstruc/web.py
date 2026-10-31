@@ -17,7 +17,7 @@ from pathlib import Path
 
 from . import integrity
 from .model import Database, Entry, load
-from .report import FIXTURE
+from .report import source_xml
 from .resolution import parse_resolution
 from .text import BR_RE, INVISIBLE_RE, decode_entities, to_text
 
@@ -213,7 +213,7 @@ def main() -> None:
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--out", default=str(OUT))
     args = ap.parse_args()
-    data = build(load(FIXTURE), online=not args.offline)
+    data = build(load(source_xml()), online=not args.offline)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")))

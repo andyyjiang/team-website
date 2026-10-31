@@ -31,7 +31,7 @@ from pathlib import Path
 from . import rcsb
 from .model import Database, load
 from .placement import MEMBRANE_SOURCES, entity_summary
-from .report import FIXTURE, ROOT
+from .report import ROOT, source_xml
 from .text import to_text
 
 SEARCH = "https://search.rcsb.org/rcsbsearch/v2/query"
@@ -375,6 +375,15 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
         s["res"] = min(res) if res else None
         s["title"] = (info.get("struct") or {}).get("title")
         s["method"] = ", ".join(m.get("method", "") for m in info.get("exptl") or [])
+        raw = ents.get(pdb) or {}
+        cit = raw.get("rcsb_primary_citation") or {}
+        s["doi"] = cit.get("pdbx_database_id_DOI")
+        pm = cit.get("pdbx_database_id_PubMed")
+        s["pmid"] = str(pm) if pm and int(pm) > 0 else None
+        s["organisms"] = sorted({o.get("ncbi_scientific_name") for e in raw.get("polymer_entities") or []
+                                 for o in e.get("rcsb_entity_source_organism") or [] if o.get("ncbi_scientific_name")})
+        s["entities"] = [((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "")
+                         for e in raw.get("polymer_entities") or []][:8]
         S[pdb] = s
     stats = Counter()
     pool = {}
@@ -402,7 +411,8 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
             p.subgroup = lead.subgroup
         out.append({
             "pdb": pdb, "title": s["title"], "method": s["method"], "res": s["res"], "released": s["released"],
-            "uniprot": sorted(s["uniprot"]), "taxa": sorted(s["taxa"]),
+            "uniprot": sorted(s["uniprot"]), "taxa": sorted(s["taxa"]), "organisms": s.get("organisms", []),
+            "entities": s.get("entities", []), "doi": s.get("doi"), "pmid": s.get("pmid"),
             "signals": [SIGNALS[k] for k, v in sigs[pdb].items() if v and k in SIGNALS],
             "sig": sigs[pdb], "reasons": _reasons(sigs[pdb], model),
             "likelihood": round(scores[pdb], 3),
@@ -578,7 +588,7 @@ def main() -> None:
     r.add_argument("--until")
     sub.add_parser("backtest")
     args = ap.parse_args()
-    db = load(FIXTURE)
+    db = load(source_xml())
     SITE_DATA.mkdir(exist_ok=True)
 
     if args.cmd == "backtest":
