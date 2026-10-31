@@ -98,6 +98,7 @@ class KB:
     by_key: dict[str, Known] = field(default_factory=dict)
     by_uniprot: dict[str, list[Known]] = field(default_factory=dict)
     by_citation: dict[str, list[Known]] = field(default_factory=dict)
+    by_authors: dict[str, list[Known]] = field(default_factory=dict)
     feat_sg: dict[str, Counter] = field(default_factory=dict)  # feature -> subgroup counts
     sg_count: Counter = field(default_factory=Counter)
     sg_names: dict[str, str] = field(default_factory=dict)
@@ -108,13 +109,21 @@ def _features(s: dict | None) -> set[str]:
     if not s:
         return set()
     return {f"pfam:{x}" for x in s["pfam"]} | {f"ipr:{x}" for x in s.get("interpro", ())} | \
-           {f"opm:{x}" for x in s.get("opm", ())} | {f"up:{x}" for x in s["core"]}
+           {f"opm:{x}" for x in s.get("opm", ())} | {f"up:{x}" for x in s["core"]} | \
+           {f"uipr:{x}" for x in s.get("uipr", ())}
 
 
 TM_KEYWORDS = {"KW-0812", "KW-1133", "KW-1134"}  # Transmembrane, TM helix, TM beta strand
 
 
-def summarise(entry: dict | None, extra: dict | None = None) -> dict | None:
+def _authors_key(authors: list[str] | None) -> str | None:
+    """First and last depositing author, e.g. 'auth:ahmed|lee': a stand-in for
+    'same paper' when the PDB has not linked the paper yet."""
+    names = [a.split(",")[0].strip().lower() for a in authors or [] if a.strip()]
+    return f"auth:{names[0]}|{names[-1]}" if names else None
+
+
+def summarise(entry: dict | None, extra: dict | None = None, fam: dict | None = None) -> dict | None:
     """What the automation knows about a structure.
 
     `core` is the structure's membrane protein(s): the UniProt accessions
@@ -135,6 +144,9 @@ def summarise(entry: dict | None, extra: dict | None = None) -> dict | None:
     s["core"] = (tm or s["all_uniprot"]) - FUSION_UNIPROT
     s["uniprot"] = s["core"] | (s["all_uniprot"] & FUSION_UNIPROT)
     s["keywords"] = {k for ks in kw.values() for k in ks}
+    ipr = (fam or {}).get("ipr") or {}
+    s["uipr"] = {x for u in s["core"] for x in ipr.get(u, ())}
+    s["authors_key"] = _authors_key((fam or {}).get("authors"))
     rel = s.get("released") or ""
     late = [d for d in (extra or {}).get("db_ref_updates", []) if rel and d <= _plus_days(rel, 365)]
     s["citation_late"] = bool(late)
@@ -181,6 +193,8 @@ def build_kb(db: Database, S: dict[str, dict | None], cutoff: str | None = None)
             kb.by_uniprot.setdefault(u, []).append(k)
         for c in k.s["citation"]:
             kb.by_citation.setdefault(c, []).append(k)
+        if k.s.get("authors_key"):
+            kb.by_authors.setdefault(k.s["authors_key"], []).append(k)
         for f in _features(k.s):
             kb.feat_sg.setdefault(f, Counter())[k.sg] += 1
         kb.sg_count[k.sg] += 1
@@ -196,7 +210,7 @@ def subgroup_scores(kb: KB, s: dict) -> list[tuple[str, float, list[str]]]:
     specific it is (a feature seen in one subgroup counts more than one
     seen in twenty). Returns [(subgroup, share of the vote, evidence)].
     """
-    weights = {"up": 4.0, "opm": 2.0, "pfam": 1.5, "ipr": 1.0}
+    weights = {"up": 4.0, "opm": 2.0, "pfam": 1.5, "uipr": 1.5, "ipr": 1.0}
     votes: Counter = Counter()
     why: dict[str, list[str]] = defaultdict(list)
     for f in _features(s):
@@ -242,6 +256,12 @@ def classify(kb: KB, pdb: str, s: dict, batch_leads: dict[str, str], conf: dict[
     #    later structures join the entry its earlier ones are listed under.
     same_paper = [k for c in s["citation"] for k in kb.by_citation.get(c, [])]
     same_paper = [k for k in same_paper if k.s and (k.s["core"] & core)]
+    if not s["citation"] and s.get("authors_key") and s.get("released"):
+        # Paper not linked yet: same depositing authors and protein, released
+        # within six months, is most likely the same study.
+        soon = _plus_days(s["released"], -183)
+        same_paper = [k for k in kb.by_authors.get(s["authors_key"], [])
+                      if k.s and (k.s["core"] & core) and k.released >= soon]
     if same_paper:
         owners = Counter(_owner(kb, k).key for k in same_paper)
         o = kb.by_key[sorted(owners, key=lambda key: (-owners[key], key))[0]]
@@ -251,7 +271,7 @@ def classify(kb: KB, pdb: str, s: dict, batch_leads: dict[str, str], conf: dict[
 
     # 1b. Same paper and a shared protein with other new structures this week:
     #     related to the lowest ID among them (the batch lead).
-    for c in s["citation"]:
+    for c in paper_keys(s):
         members = [p for p, cr in batch_leads.get(c, []) if cr & core]
         lead = min(members) if len(members) > 1 else None
         if lead and lead != pdb:
@@ -332,8 +352,10 @@ def signals(kb: KB, s: dict, batch_papers: set[str] = frozenset()) -> dict[str, 
         "kw_membrane": float("KW-0472" in kw),
         "same_protein": float(any(u in kb.by_uniprot for u in s["core"])),
         "family": float(bool(fam)),
-        "same_paper": float(any(c in kb.by_citation for c in s["citation"])),
-        "batch_paper": float(bool(s["citation"] & batch_papers)),
+        "same_paper": float(any(c in kb.by_citation for c in s["citation"]) or
+                            (not s["citation"] and bool(s.get("authors_key")) and
+                             any(k.s and k.s["core"] & s["core"] for k in kb.by_authors.get(s["authors_key"], [])))),
+        "batch_paper": float(bool(paper_keys(s) & batch_papers)),
     }
 
 
@@ -371,6 +393,12 @@ def fit_model(X: list[dict[str, float]], y: list[int], l2: float = 6.0, steps: i
             "weights": {k: round(float(v), 4) for k, v in zip(keys, w) if abs(v) >= 0.01}}
 
 
+def paper_keys(s: dict) -> set[str]:
+    """The paper a structure belongs to: its citation, or, until the PDB links
+    one, its first and last depositing author."""
+    return set(s["citation"]) or ({s["authors_key"]} if s.get("authors_key") else set())
+
+
 def batch_leads(cands: dict[str, dict]) -> dict[str, list[tuple[str, set]]]:
     """New structures grouped by paper: {citation: [(pdb, proteins), ...]}.
 
@@ -380,7 +408,7 @@ def batch_leads(cands: dict[str, dict]) -> dict[str, list[tuple[str, set]]]:
     """
     by_cit: dict[str, list[tuple[str, set]]] = defaultdict(list)
     for pdb, s in cands.items():
-        for c in s["citation"]:
+        for c in paper_keys(s):
             by_cit[c].append((pdb, s["core"]))
     return {c: v for c, v in by_cit.items() if len(v) > 1}
 
@@ -403,9 +431,10 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
     ents = rcsb.entry_entities(ids)
     summ = rcsb.entry_summaries(ids)
     extras = rcsb.entry_extras(ids)
+    fams = rcsb.entry_families(ids)
     S = {}
     for pdb in ids:
-        s = summarise(ents.get(pdb), extras.get(pdb))
+        s = summarise(ents.get(pdb), extras.get(pdb), fams.get(pdb))
         if s is None:
             continue
         info = summ.get(pdb) or {}
@@ -435,7 +464,7 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
         pool[pdb] = s
     # Papers with several new structures this batch (only among membrane-flagged ones).
     first = {pdb: signals(kb, s) for pdb, s in pool.items()}
-    papers = Counter(c for pdb, s in pool.items() if in_pool(first[pdb]) for c in s["citation"])
+    papers = Counter(c for pdb, s in pool.items() if in_pool(first[pdb]) for c in paper_keys(s))
     batch_papers = {c for c, n in papers.items() if n > 1}
     cands, sigs, scores = {}, {}, {}
     for pdb, s in pool.items():
@@ -473,8 +502,8 @@ def _truth(kb_full: KB, pdb: str) -> list[Known]:
 
 def _full_summaries(db: Database) -> dict[str, dict | None]:
     ids = sorted({e.pdbCode.upper() for e in db.entries()} | {r.pdb.upper() for e in db.entries() for r in e.related})
-    ents, extras = rcsb.entry_entities(ids), rcsb.entry_extras(ids)
-    return {k: summarise(v, extras.get(k)) for k, v in ents.items()}
+    ents, extras, fams = rcsb.entry_entities(ids), rcsb.entry_extras(ids), rcsb.entry_families(ids)
+    return {k: summarise(v, extras.get(k), fams.get(k)) for k, v in ents.items()}
 
 
 def _weeks(start: str, end: str) -> list[tuple[str, str]]:
@@ -574,8 +603,10 @@ def evaluate(db: Database, start: str, end: str, conf: dict[str, float], model: 
         "placement_full": acc(both, full_ok),
         "placement_full_auto": acc(auto, full_ok),
         "sent_to_review_pct": round(100 * (len(both) - len(auto)) / len(both), 1) if both else None,
-        "subgroup_top1": acc([r for r in both if r["pred_sg"]], sg_ok),
-        "subgroup_top3": acc([r for r in both if r["sg_top3"]], lambda r: bool(set(r["sg_top3"]) & set(r["true_sg"]))),
+        # Over every structure mpstruc added, including those given no subfamily at all.
+        "subgroup_top1": acc(both, sg_ok),
+        "subgroup_top3": acc(both, lambda r: bool(set(r["sg_top3"]) & set(r["true_sg"]))),
+        "subgroup_suggested_pct": round(100 * sum(1 for r in both if r["pred_sg"]) / len(both), 1) if both else None,
         "by_rule": by_rule,
         "confusion": {f"{a}→{b}": n for (a, b), n in sorted(confusion.items())},
         "training": [(r["sig"], int(r["in_mpstruc"]), r["group"]) for r in rows if r["proposed"]],
@@ -642,7 +673,8 @@ def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, th
               f"({r['sent_to_review_pct']}% go to curators with no default)",
               f"- Placement fully right (type + subfamily + parent/owner): {r['placement_full']['pct']}% of all; "
               f"{r['placement_full_auto']['pct']}% of those it decides",
-              f"- Subfamily right first time: {r['subgroup_top1']['pct']}%; in top 3: {r['subgroup_top3']['pct']}%",
+              f"- Subfamily right first time: {r['subgroup_top1']['pct']}%; in top 3: {r['subgroup_top3']['pct']}% "
+              f"(of all {r['subgroup_top1']['n']}; a subfamily was suggested for {r['subgroup_suggested_pct']}%)",
               "", "| Rule | Structures | Type right | Fully right | Subfamily right | Parent/owner right |", "|---|---|---|---|---|---|"]
         for rule, x in r["by_rule"].items():
             L.append(f"| {rule} | {x['kind']['n']} | {x['kind']['pct']}% | {x['full']['pct']}% | {x['subgroup']['pct']}% | "
@@ -706,6 +738,7 @@ def main() -> None:
         (ROOT / "reports" / "backtest.md").write_text(backtest_md(tune, test, later, conf, model, threshold))
         keep = ("window", "release_time", "released", "weeks", "discovery", "bands", "placement_type", "placement_auto",
                 "placement_full", "placement_full_auto", "sent_to_review_pct", "subgroup_top1", "subgroup_top3",
+                "subgroup_suggested_pct",
                 "by_rule", "confusion")
         site = {"test": {k: test[k] for k in keep} | {"errors": test["errors"][:150], "misses": test["misses"][:100]},
                 "later": {k: later[k] for k in keep}, **settings}

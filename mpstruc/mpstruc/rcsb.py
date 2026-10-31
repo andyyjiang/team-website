@@ -202,3 +202,38 @@ def entry_extras(pdb_ids: list[str], batch: int = 150, max_age_s: float = 30 * 8
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_families(pdb_ids: list[str], batch: int = 150, max_age_s: float = 30 * 86400) -> dict[str, dict | None]:
+    """Depositing authors and UniProt's InterPro families per accession.
+
+    Both exist on release day (unlike the PDB's own Pfam/InterPro labels, which
+    arrive later), so new and old structures can be compared the same way.
+    {"authors": [...], "ipr": {uniprot: [IPR...]}}
+    """
+    path = CACHE_DIR / "entry_families.json"
+    cache: dict[str, dict | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id audit_author { name } "
+         "polymer_entities { uniprots { rcsb_id rcsb_uniprot_annotation { type annotation_id } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e:
+                continue
+            ipr = {}
+            for pe in e.get("polymer_entities") or []:
+                for u in pe.get("uniprots") or []:
+                    ipr[u["rcsb_id"]] = sorted({a["annotation_id"] for a in u.get("rcsb_uniprot_annotation") or []
+                                                if a.get("type") == "InterPro"})
+            found[e["rcsb_id"]] = {"authors": [a["name"] for a in e.get("audit_author") or [] if a.get("name")], "ipr": ipr}
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}

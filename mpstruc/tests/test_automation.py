@@ -104,3 +104,25 @@ def test_model_learns_direction():
     y = [1] * 18 + [0] * 2 + [0] * 18 + [1] * 2
     m = fit_model(X, y, min_count=1)
     assert score({"a": 1.0}, m) > 0.5 > score({"b": 1.0}, m)
+
+
+def test_unlinked_paper_uses_depositing_authors():
+    kb = _kb()
+    lead = kb.by_key["G01-S001-P0001-D001"]
+    lead.s["authors_key"] = "auth:smith|jones"
+    lead.released = "2025-01-10"
+    kb.by_authors = {"auth:smith|jones": [lead]}
+    s = _s(["P1"], [])
+    s.update(authors_key="auth:smith|jones", released="2025-03-01")
+    p = classify(kb, "9NEW", s, {}, {})
+    assert (p.placement, p.owner_key) == ("related", "G01-S001-P0001-D001")
+    # Same lab, same protein, but years later: a new study, so a daughter.
+    s["released"] = "2027-01-01"
+    assert classify(kb, "9NEW", s, {}, {}).placement == "daughter"
+
+
+def test_unlinked_batch_groups_by_authors():
+    a = _s(["P9"], []); a["authors_key"] = "auth:lee|kim"
+    b = _s(["P9"], []); b["authors_key"] = "auth:lee|kim"
+    leads = batch_leads({"9AAB": a, "9AAA": b})
+    assert classify(_kb(), "9AAB", a, leads, {}).owner_pdb == "9AAA"
