@@ -10,7 +10,7 @@
 <body>
   <header class="site-header">
     <div class="container nav">
-      <a class="logo" href="#top">Our Group</a>
+      <a class="logo" href="index.html">Our Group</a>
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
       <ul class="nav-links" id="nav-links">
         <li><a href="index.html#about">About</a></li>
@@ -34,7 +34,8 @@
           <a href="#/" data-tab="database">Database</a>
           <a href="#/automation" data-tab="automation">Automation</a>
         </nav>
-        <div id="mpstruc-app" class="mp-app" aria-live="polite">
+        <p id="mp-status" class="mp-visually-hidden" aria-live="polite"></p>
+        <div id="mpstruc-app" class="mp-app">
           <p class="mp-loading">Loading the database…</p>
         </div>
         <noscript><p>This page needs JavaScript to browse the database.</p></noscript>

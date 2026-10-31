@@ -70,7 +70,7 @@ def safe_html(raw: str | None, link_pdb: bool = False) -> str | None:
     if link_pdb:  # after joining, so a dropped tag between 'Å:' and the ID doesn't block the link
         s = PDB_LINK_RE.sub(lambda m: m[1] + re.sub(
             r"\b([0-9][A-Za-z0-9]{3})\b",
-            lambda n: f'<a class="pdb-link" href="#/pdb/{n[1].upper()}">{n[1].upper()}</a>', m[2]), s)
+            lambda n: f'<a class="pdb-link" href="#/pdb/{n[1].upper()}">{n[1]}</a>', m[2]), s)
     return s or None
 
 

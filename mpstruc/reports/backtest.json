@@ -1,0 +1,6821 @@
+{
+ "tune": {
+  "window": [
+   "2025-01-01",
+   "2025-06-30"
+  ],
+  "released": 8622,
+  "stats": {
+   "released": 8622,
+   "candidates": 1873
+  },
+  "discovery": {
+   "in_mpstruc": 367,
+   "found": 328,
+   "recall_pct": 89.4,
+   "proposed": 1873,
+   "proposed_not_in_mpstruc": 1545
+  },
+  "placement_type": {
+   "n": 328,
+   "correct": 215,
+   "pct": 65.5
+  },
+  "subgroup_top1": {
+   "n": 316,
+   "correct": 274,
+   "pct": 86.7
+  },
+  "subgroup_top3": {
+   "n": 316,
+   "correct": 305,
+   "pct": 96.5
+  },
+  "by_rule": {
+   "new-protein": {
+    "kind": {
+     "n": 23,
+     "correct": 10,
+     "pct": 43.5
+    },
+    "subgroup": {
+     "n": 23,
+     "correct": 18,
+     "pct": 78.3
+    },
+    "owner": {
+     "n": 0,
+     "correct": 0,
+     "pct": null
+    }
+   },
+   "no-evidence": {
+    "kind": {
+     "n": 2,
+     "correct": 0,
+     "pct": 0.0
+    },
+    "subgroup": {
+     "n": 0,
+     "correct": 0,
+     "pct": null
+    },
+    "owner": {
+     "n": 2,
+     "correct": 0,
+     "pct": 0.0
+    }
+   },
+   "partial-protein": {
+    "kind": {
+     "n": 19,
+     "correct": 0,
+     "pct": 0.0
+    },
+    "subgroup": {
+     "n": 19,
+     "correct": 12,
+     "pct": 63.2
+    },
+    "owner": {
+     "n": 14,
+     "correct": 3,
+     "pct": 21.4
+    }
+   },
+   "same-paper": {
+    "kind": {
+     "n": 5,
+     "correct": 4,
+     "pct": 80.0
+    },
+    "subgroup": {
+     "n": 5,
+     "correct": 5,
+     "pct": 100.0
+    },
+    "owner": {
+     "n": 5,
+     "correct": 4,
+     "pct": 80.0
+    }
+   },
+   "same-paper-batch": {
+    "kind": {
+     "n": 229,
+     "correct": 174,
+     "pct": 76.0
+    },
+    "subgroup": {
+     "n": 219,
+     "correct": 189,
+     "pct": 86.3
+    },
+    "owner": {
+     "n": 209,
+     "correct": 44,
+     "pct": 21.1
+    }
+   },
+   "same-protein": {
+    "kind": {
+     "n": 50,
+     "correct": 27,
+     "pct": 54.0
+    },
+    "subgroup": {
+     "n": 50,
+     "correct": 50,
+     "pct": 100.0
+    },
+    "owner": {
+     "n": 50,
+     "correct": 26,
+     "pct": 52.0
+    }
+   }
+  },
+  "confusion": {
+   "daughter\u2192daughter": 27,
+   "daughter\u2192parent": 3,
+   "daughter\u2192related": 36,
+   "daughter\u2192review": 6,
+   "parent\u2192parent": 10,
+   "parent\u2192related": 20,
+   "parent\u2192review": 5,
+   "related\u2192daughter": 23,
+   "related\u2192parent": 10,
+   "related\u2192related": 178,
+   "related\u2192review": 10
+  },
+  "misses": [
+   {
+    "pdb": "8ZBB",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "8ZGZ",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "8ZKE",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "8ZTJ",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BUX",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BVK",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BVL",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BVP",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BVR",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9CP4",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9CP5",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9DML",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9EYS",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9F25",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9F2B",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9F2Y",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9G9T",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HDD",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IUF",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IUG",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IVC",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9J5X",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9J5Z",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9J7C",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9J7D",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JD6",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JFU",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JJK",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JJN",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JJO",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JK3",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JK4",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9JK5",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KR7",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KRH",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KRI",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9NOR",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9NOS",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9NOT",
+    "in_mpstruc": true,
+    "proposed": false
+   }
+  ],
+  "errors": [
+   {
+    "pdb": "8IXN",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "3JAC",
+    "pred_owner": "8IXO",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8IXO",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "8IXN",
+    "pred_owner": "3JAC",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "8QV5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S116",
+    "sg_top3": [
+     "G03-S116",
+     "G03-S102",
+     "G03-S094"
+    ],
+    "true_owner": "8EX4",
+    "pred_owner": "8QV6",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8QV6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S116",
+    "sg_top3": [
+     "G03-S116",
+     "G03-S102",
+     "G03-S094"
+    ],
+    "true_owner": "8QV5",
+    "pred_owner": "8EX4",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "8UTD",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "7XK2",
+    "pred_owner": "8UUJ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8UUJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8V2G",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S003"
+    ],
+    "true_owner": null,
+    "pred_owner": "8V2H",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8V2H",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "8V2G",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "8VHV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S038",
+     "G03-S032"
+    ],
+    "true_owner": "3KG2",
+    "pred_owner": "3KG2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8X9S",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "7WU2",
+    "pred_owner": "8X9T",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8X9T",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "8X9S",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8X9U",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S053",
+     "G03-S052"
+    ],
+    "true_owner": "8X9S",
+    "pred_owner": "8X9T",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8XLK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S114"
+    ],
+    "true_owner": null,
+    "pred_owner": "6E7R",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8XO1",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "9L8W",
+    "pred_owner": "7CR3",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8XQI",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G02-S001",
+     "G03-S114"
+    ],
+    "true_owner": "2LOU",
+    "pred_owner": "8XQJ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8XQJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G02-S001",
+     "G03-S114"
+    ],
+    "true_owner": "8XQI",
+    "pred_owner": "2LOU",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "8Y5U",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102"
+    ],
+    "true_owner": "8W6O",
+    "pred_owner": "8Y5W",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8Y5W",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102"
+    ],
+    "true_owner": "8Y5U",
+    "pred_owner": "8W6O",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "8YEZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": null,
+    "pred_owner": "8ZU3",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YJP",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S054"
+    ],
+    "true_owner": "8IEQ",
+    "pred_owner": "8YK0",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YK0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "8YJP",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8YW6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": null,
+    "pred_owner": "8YW9",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YW8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "8YW6",
+    "pred_owner": "8YW9",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YW9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "8YW6",
+    "pred_owner": null,
+    "rule": "no-evidence",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "8YX7",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "8YX8",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "8YX8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": null,
+    "pred_owner": "8YX7",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YYW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S056"
+    ],
+    "true_owner": null,
+    "pred_owner": "8YYX",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8YYX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8YYW",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8Z7R",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "8XV2",
+    "pred_owner": "8Z7Y",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8Z7Y",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "8Z7R",
+    "pred_owner": "8XV2",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "8Z7Z",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": null,
+    "pred_owner": "8Z7Y",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8ZCE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9BIP",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8ZCF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8ZJG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "8ZTE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S099"
+    ],
+    "pred_sg": "G03-S099",
+    "sg_top3": [
+     "G03-S099"
+    ],
+    "true_owner": null,
+    "pred_owner": "8ZTH",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "8ZTH",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S099"
+    ],
+    "pred_sg": "G03-S099",
+    "sg_top3": [
+     "G03-S099"
+    ],
+    "true_owner": "8ZTE",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "8ZU3",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "8YEZ",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9ARX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S114",
+     "G03-S052"
+    ],
+    "true_owner": "6A93",
+    "pred_owner": "9AS8",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9AS8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9ARX",
+    "pred_owner": "6A93",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9AVI",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S131"
+    ],
+    "true_owner": "8ODT",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9B28",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S039",
+    "sg_top3": [
+     "G03-S039",
+     "G03-S037",
+     "G03-S038"
+    ],
+    "true_owner": "8ED7",
+    "pred_owner": "9B29",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9B29",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S039",
+    "sg_top3": [
+     "G03-S039",
+     "G03-S037",
+     "G03-S038"
+    ],
+    "true_owner": "9B28",
+    "pred_owner": "8ED7",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9B8A",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S005"
+    ],
+    "pred_sg": "G03-S063",
+    "sg_top3": [
+     "G02-S005",
+     "G01-S024",
+     "G02-S007"
+    ],
+    "true_owner": "6TZK",
+    "pred_owner": "9B8I",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9B8H",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S005"
+    ],
+    "pred_sg": "G03-S063",
+    "sg_top3": [
+     "G02-S005",
+     "G01-S024",
+     "G02-S007"
+    ],
+    "true_owner": "9B8A",
+    "pred_owner": "9B8I",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9B8V",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S063"
+    ],
+    "pred_sg": "G03-S063",
+    "sg_top3": [
+     "G03-S063",
+     "G03-S068",
+     "G01-S013"
+    ],
+    "true_owner": "4HG6",
+    "pred_owner": "9B8I",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BCR",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S035"
+    ],
+    "true_owner": "9NXC",
+    "pred_owner": "2R6G",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9BHL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9BHM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "9BHL",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BI6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9BHM",
+    "pred_owner": "9BHL",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BIP",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "9BHL",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BUM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S111",
+     "G03-S147"
+    ],
+    "true_owner": null,
+    "pred_owner": "9BUR",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BUR",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S052",
+     "G03-S037",
+     "G03-S111"
+    ],
+    "true_owner": "9BUM",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9BVM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S052",
+     "G02-S007",
+     "G03-S085"
+    ],
+    "true_owner": "9BVO",
+    "pred_owner": "9BVQ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BVO",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S111",
+     "G03-S147"
+    ],
+    "true_owner": "9BUM",
+    "pred_owner": "9BVQ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9BVQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S052",
+     "G03-S037",
+     "G03-S111"
+    ],
+    "true_owner": "9BVO",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9CBV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S003"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S032",
+     "G03-S038"
+    ],
+    "true_owner": null,
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9CGK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "4N6H",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9CKZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "8X5B",
+    "pred_owner": "9CL0",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9CL0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "9CKZ",
+    "pred_owner": "8X5B",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9CO2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S007"
+    ],
+    "pred_sg": "G02-S007",
+    "sg_top3": [
+     "G02-S007",
+     "G02-S008",
+     "G02-S006"
+    ],
+    "true_owner": "2QCZ",
+    "pred_owner": "9CNW",
+    "rule": "same-paper",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9CQ4",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S030"
+    ],
+    "pred_sg": "G03-S030",
+    "sg_top3": [
+     "G03-S030",
+     "G03-S016",
+     "G03-S037"
+    ],
+    "true_owner": "6JXR",
+    "pred_owner": "6JXR",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9CR8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "6C0V",
+    "pred_owner": "9CTG",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9CS0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S007"
+    ],
+    "pred_sg": "G02-S007",
+    "sg_top3": [
+     "G02-S007",
+     "G02-S008",
+     "G02-S006"
+    ],
+    "true_owner": "2QCZ",
+    "pred_owner": "9CS2",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9CS2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G02-S007"
+    ],
+    "pred_sg": "G02-S007",
+    "sg_top3": [
+     "G02-S007",
+     "G02-S008",
+     "G02-S006"
+    ],
+    "true_owner": "9CS0",
+    "pred_owner": "2QCZ",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9CTG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "9CR8",
+    "pred_owner": "6C0V",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9D7U",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S037"
+    ],
+    "true_owner": null,
+    "pred_owner": "9D7V",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9D7V",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S037"
+    ],
+    "true_owner": "9D7U",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.79
+   },
+   {
+    "pdb": "9D7W",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S037"
+    ],
+    "true_owner": "9D7U",
+    "pred_owner": "9D7V",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9D7X",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S116"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S037"
+    ],
+    "true_owner": "9D7U",
+    "pred_owner": "9D7V",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9DBK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "7WE4",
+    "pred_owner": "9DBN",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9DBN",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "9DBK",
+    "pred_owner": "7WE4",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9DI6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G01-S018"
+    ],
+    "pred_sg": "G01-S018",
+    "sg_top3": [
+     "G01-S018",
+     "G01-S011",
+     "G03-S133"
+    ],
+    "true_owner": "3I65",
+    "pred_owner": "9DIK",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9DIK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G01-S018"
+    ],
+    "pred_sg": "G01-S018",
+    "sg_top3": [
+     "G01-S018",
+     "G01-S011",
+     "G03-S133"
+    ],
+    "true_owner": "9DI6",
+    "pred_owner": "3I65",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9DMG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": null,
+    "pred_owner": "9DMS",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9DMS",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "9DMG",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9DYJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "8D1E",
+    "pred_owner": "9DYK",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9DYK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "9DYJ",
+    "pred_owner": "8D1E",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9DYL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "8D1I",
+    "pred_owner": "9DYK",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9EFZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "4RDQ",
+    "pred_owner": "4RDQ",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9EGT",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "8D1I",
+    "pred_owner": "9EFZ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9F9D",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S027"
+    ],
+    "pred_sg": "G03-S027",
+    "sg_top3": [
+     "G03-S027"
+    ],
+    "true_owner": "2BRD",
+    "pred_owner": "9F9G",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9F9G",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S027"
+    ],
+    "pred_sg": "G03-S027",
+    "sg_top3": [
+     "G03-S027"
+    ],
+    "true_owner": "9F9D",
+    "pred_owner": "2BRD",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9FUQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "5TV4",
+    "pred_owner": "9FV2",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9FV2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "9FUQ",
+    "pred_owner": "5TV4",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9G95",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": null,
+    "pred_owner": "9G97",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9G97",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "9G95",
+    "pred_owner": null,
+    "rule": "no-evidence",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9G9M",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "9G95",
+    "pred_owner": "9G97",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9G9N",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "9G95",
+    "pred_owner": "9G97",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9G9O",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "9G95",
+    "pred_owner": "9G97",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9G9P",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S070"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "9G95",
+    "pred_owner": "9G97",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GIV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S109",
+     "G03-S109"
+    ],
+    "pred_sg": "G01-S016",
+    "sg_top3": [
+     "G01-S016",
+     "G02-S007",
+     "G03-S114"
+    ],
+    "true_owner": "8YW6",
+    "pred_owner": "4WVG",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9GIW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": "G01-S016",
+    "sg_top3": [
+     "G01-S016",
+     "G02-S007",
+     "G03-S114"
+    ],
+    "true_owner": "9GIV",
+    "pred_owner": "9GIV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GIY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": "G01-S016",
+    "sg_top3": [
+     "G01-S016",
+     "G02-S007",
+     "G03-S114"
+    ],
+    "true_owner": "9GIV",
+    "pred_owner": "9GIV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GS2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S061"
+    ],
+    "pred_sg": "G03-S061",
+    "sg_top3": [
+     "G03-S061",
+     "G03-S144",
+     "G03-S147"
+    ],
+    "true_owner": "6SH3",
+    "pred_owner": "9GSN",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GSJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "6R81",
+    "pred_owner": "8REZ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GSN",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S061"
+    ],
+    "pred_sg": "G03-S061",
+    "sg_top3": [
+     "G03-S061",
+     "G03-S087",
+     "G03-S114"
+    ],
+    "true_owner": "9GU9",
+    "pred_owner": "6SH3",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9GU0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048",
+     "G03-S038",
+     "G03-S051"
+    ],
+    "true_owner": null,
+    "pred_owner": "9GU1",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9GU1",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048",
+     "G03-S038",
+     "G03-S051"
+    ],
+    "true_owner": "9GU0",
+    "pred_owner": "6UWZ",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9GU9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S061",
+     "G03-S061"
+    ],
+    "pred_sg": "G03-S061",
+    "sg_top3": [
+     "G03-S061",
+     "G03-S087",
+     "G03-S114"
+    ],
+    "true_owner": "6SH3",
+    "pred_owner": "9GSN",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9IJY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "9IJZ",
+    "pred_owner": "8X5B",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9IJZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "8X5B",
+    "pred_owner": "9IJY",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9INE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "8X5B",
+    "pred_owner": "9ITG",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9ITG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "9INE",
+    "pred_owner": "8X5B",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9IV1",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "8X9S",
+    "pred_owner": "8X9T",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9IV2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "8X9S",
+    "pred_owner": "8X9T",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9IY8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S053",
+     "G03-S052"
+    ],
+    "true_owner": null,
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9IYA",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S048",
+     "G03-S056"
+    ],
+    "true_owner": "9IY8",
+    "pred_owner": "9IY8",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9IZC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9J8Z",
+    "pred_owner": "7XK2",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9J0B",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": null,
+    "pred_owner": "9J0F",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9J0F",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9J0B",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9J5J",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S030"
+    ],
+    "pred_sg": "G03-S030",
+    "sg_top3": [
+     "G03-S030",
+     "G03-S038",
+     "G03-S037"
+    ],
+    "true_owner": null,
+    "pred_owner": "8ZA6",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9J7O",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JCV",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9J7U",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S081"
+    ],
+    "pred_sg": "G03-S082",
+    "sg_top3": [
+     "G03-S082"
+    ],
+    "true_owner": "9J7V",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9J7V",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S081"
+    ],
+    "pred_sg": "G03-S082",
+    "sg_top3": [
+     "G03-S082"
+    ],
+    "true_owner": null,
+    "pred_owner": "9J7U",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9J8Z",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "9IZC",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JCV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": null,
+    "pred_owner": "9JD5",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JD5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JCV",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9JFV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9JFW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JFX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JFZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JHP",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S053",
+     "G03-S052"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JMC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8IBU",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9JMD",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9JMC",
+    "pred_owner": "9JMC",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9JUJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "8ZPX",
+    "pred_owner": "9JUL",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KH5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S109"
+    ],
+    "true_owner": null,
+    "pred_owner": "9KJU",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KJU",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S109",
+     "G01-S005"
+    ],
+    "true_owner": "9KH5",
+    "pred_owner": "6IRT",
+    "rule": "partial-protein",
+    "confidence": 0.6
+   },
+   {
+    "pdb": "9KNW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "8YW6",
+    "pred_owner": "8YW9",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KNX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "8YW6",
+    "pred_owner": "8YW9",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KNY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S109"
+    ],
+    "pred_sg": null,
+    "sg_top3": [],
+    "true_owner": "8YW6",
+    "pred_owner": "8YW9",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KOM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S040"
+    ],
+    "true_owner": "8GTR",
+    "pred_owner": "9KRG",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KQF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S076"
+    ],
+    "pred_sg": "G03-S076",
+    "sg_top3": [
+     "G03-S076"
+    ],
+    "true_owner": "9B4E",
+    "pred_owner": "9KQJ",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9KQJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S076"
+    ],
+    "pred_sg": "G03-S076",
+    "sg_top3": [
+     "G03-S076"
+    ],
+    "true_owner": "9KQF",
+    "pred_owner": "9B4E",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9KRG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S040"
+    ],
+    "true_owner": "9KOM",
+    "pred_owner": "8GTR",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9LGM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8ZCE",
+    "pred_owner": "9JFV",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9LX5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "9B73",
+    "pred_owner": "9LXC",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9LXC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": "9LX5",
+    "pred_owner": "9B73",
+    "rule": "same-protein",
+    "confidence": 0.9
+   },
+   {
+    "pdb": "9NOY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S041"
+    ],
+    "true_owner": "9NOR",
+    "pred_owner": "9NOX",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9O38",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S051",
+     "G03-S041"
+    ],
+    "true_owner": "9NOR",
+    "pred_owner": "9NOX",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9O58",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S087"
+    ],
+    "pred_sg": "G03-S087",
+    "sg_top3": [
+     "G03-S087",
+     "G03-S085",
+     "G02-S001"
+    ],
+    "true_owner": "8SNL",
+    "pred_owner": "9O54",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   },
+   {
+    "pdb": "9O7S",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "8V2G",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9OA8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "6CNN",
+    "pred_owner": "9O7S",
+    "rule": "same-paper-batch",
+    "confidence": 0.85
+   }
+  ]
+ },
+ "test": {
+  "window": [
+   "2025-07-01",
+   "2025-12-31"
+  ],
+  "released": 8978,
+  "stats": {
+   "released": 8978,
+   "candidates": 1747
+  },
+  "discovery": {
+   "in_mpstruc": 447,
+   "found": 356,
+   "recall_pct": 79.6,
+   "proposed": 1747,
+   "proposed_not_in_mpstruc": 1391
+  },
+  "placement_type": {
+   "n": 356,
+   "correct": 208,
+   "pct": 58.4
+  },
+  "subgroup_top1": {
+   "n": 356,
+   "correct": 319,
+   "pct": 89.6
+  },
+  "subgroup_top3": {
+   "n": 356,
+   "correct": 349,
+   "pct": 98.0
+  },
+  "by_rule": {
+   "new-protein": {
+    "kind": {
+     "n": 12,
+     "correct": 6,
+     "pct": 50.0
+    },
+    "subgroup": {
+     "n": 12,
+     "correct": 8,
+     "pct": 66.7
+    },
+    "owner": {
+     "n": 0,
+     "correct": 0,
+     "pct": null
+    }
+   },
+   "partial-protein": {
+    "kind": {
+     "n": 41,
+     "correct": 0,
+     "pct": 0.0
+    },
+    "subgroup": {
+     "n": 41,
+     "correct": 26,
+     "pct": 63.4
+    },
+    "owner": {
+     "n": 37,
+     "correct": 10,
+     "pct": 27.0
+    }
+   },
+   "same-paper": {
+    "kind": {
+     "n": 7,
+     "correct": 6,
+     "pct": 85.7
+    },
+    "subgroup": {
+     "n": 7,
+     "correct": 7,
+     "pct": 100.0
+    },
+    "owner": {
+     "n": 7,
+     "correct": 6,
+     "pct": 85.7
+    }
+   },
+   "same-paper-batch": {
+    "kind": {
+     "n": 236,
+     "correct": 170,
+     "pct": 72.0
+    },
+    "subgroup": {
+     "n": 236,
+     "correct": 218,
+     "pct": 92.4
+    },
+    "owner": {
+     "n": 223,
+     "correct": 44,
+     "pct": 19.7
+    }
+   },
+   "same-protein": {
+    "kind": {
+     "n": 60,
+     "correct": 26,
+     "pct": 43.3
+    },
+    "subgroup": {
+     "n": 60,
+     "correct": 60,
+     "pct": 100.0
+    },
+    "owner": {
+     "n": 58,
+     "correct": 25,
+     "pct": 43.1
+    }
+   }
+  },
+  "confusion": {
+   "daughter\u2192daughter": 26,
+   "daughter\u2192related": 54,
+   "daughter\u2192review": 18,
+   "parent\u2192daughter": 2,
+   "parent\u2192parent": 6,
+   "parent\u2192related": 13,
+   "parent\u2192review": 4,
+   "related\u2192daughter": 32,
+   "related\u2192parent": 6,
+   "related\u2192related": 176,
+   "related\u2192review": 19
+  },
+  "misses": [
+   {
+    "pdb": "8W1Z",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9BD6",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9DDV",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9DDW",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9DDX",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9E3N",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9E3O",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9E3P",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9ECM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9EE5",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9EI5",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9EKH",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9G49",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9G4D",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9GA1",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9GF0",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9H63",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9H8T",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HIS",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HIV",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HJ3",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HJM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HQN",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HQO",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9HZ5",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9I3K",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9I5K",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9I5L",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IHO",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IHP",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IHQ",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9IHR",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KUY",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KV0",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KVV",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9KVY",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9L0I",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9L0O",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9L0S",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9L0U",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9LT4",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9LTI",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9M8M",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MBB",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MBC",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MBD",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MFF",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MFL",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9MFM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9N10",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9NVM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9NWW",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9OQY",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PS1",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PS2",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PS3",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PS6",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PS8",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9PYM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QJA",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QJU",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QN9",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QND",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QNF",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QNT",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9QQM",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9R10",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9R1E",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9R1F",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9R1G",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9RSJ",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9S35",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9S36",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9S3O",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9S3Z",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9S41",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9U4T",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9U4V",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9U51",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9U9F",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9UOX",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9UOY",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9UTD",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9UTE",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W1N",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W1O",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W1P",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W1Q",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W1R",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9W3I",
+    "in_mpstruc": true,
+    "proposed": false
+   },
+   {
+    "pdb": "9WNO",
+    "in_mpstruc": true,
+    "proposed": false
+   }
+  ],
+  "errors": [
+   {
+    "pdb": "8YKD",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S053",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "7WUI",
+    "pred_owner": "7WUI",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "8ZBW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "6OMM",
+    "pred_owner": "8JLN",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9AU0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "6D26",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9BS9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S114",
+     "G03-S052"
+    ],
+    "true_owner": null,
+    "pred_owner": "6CM4",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9DDM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S131"
+    ],
+    "true_owner": "8ODT",
+    "pred_owner": "9DDO",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9DDO",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G02-S005",
+     "G03-S131"
+    ],
+    "true_owner": "5SV0",
+    "pred_owner": "5SV0",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9DYD",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "7E2X",
+    "pred_owner": "9DYF",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9DYF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9DYD",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9E3E",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "9E3F",
+    "pred_owner": "6UWZ",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9E3F",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "6UWZ",
+    "pred_owner": "9E3E",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9E3Q",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041"
+    ],
+    "true_owner": null,
+    "pred_owner": "9E3M",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9E62",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "5Y4O",
+    "pred_owner": "9E63",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9E63",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "9E62",
+    "pred_owner": "5Y4O",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9E6B",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "8EIS",
+    "pred_owner": "9E6C",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9E6C",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "9E6B",
+    "pred_owner": "8EIS",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9E8A",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S022"
+    ],
+    "pred_sg": "G03-S022",
+    "sg_top3": [
+     "G03-S022",
+     "G02-S001",
+     "G03-S038"
+    ],
+    "true_owner": "2KNC",
+    "pred_owner": "9E8B",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9E8B",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S022"
+    ],
+    "pred_sg": "G03-S022",
+    "sg_top3": [
+     "G03-S022",
+     "G02-S001",
+     "G03-S038"
+    ],
+    "true_owner": "9E8A",
+    "pred_owner": "2KNC",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9E9S",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9AU0",
+    "pred_owner": "9AU0",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9EJZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S053",
+     "G03-S052"
+    ],
+    "true_owner": "9EK0",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9EK0",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "6OL9",
+    "pred_owner": "9EJZ",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9GL2",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9PJK",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9H2P",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "5Y4O",
+    "pred_owner": "9H95",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9H61",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S118"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102"
+    ],
+    "true_owner": "9QQM",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9H62",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S118"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102"
+    ],
+    "true_owner": "9QQM",
+    "pred_owner": "9H61",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9H84",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S007"
+    ],
+    "pred_sg": "G02-S007",
+    "sg_top3": [
+     "G02-S007",
+     "G03-S051",
+     "G02-S008"
+    ],
+    "true_owner": "2QCZ",
+    "pred_owner": "9H89",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9H89",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G02-S007"
+    ],
+    "pred_sg": "G02-S007",
+    "sg_top3": [
+     "G02-S007",
+     "G03-S051",
+     "G02-S008"
+    ],
+    "true_owner": "9H84",
+    "pred_owner": "5D0O",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9H95",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S036"
+    ],
+    "pred_sg": "G03-S036",
+    "sg_top3": [
+     "G03-S036"
+    ],
+    "true_owner": "9H2P",
+    "pred_owner": "5Y4O",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9HD7",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S151"
+    ],
+    "pred_sg": "G03-S151",
+    "sg_top3": [
+     "G03-S151",
+     "G03-S149",
+     "G03-S114"
+    ],
+    "true_owner": "8BD3",
+    "pred_owner": "8BD3",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9HPC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S038"
+    ],
+    "true_owner": null,
+    "pred_owner": "3KG2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9I4X",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S144"
+    ],
+    "pred_sg": "G03-S132",
+    "sg_top3": [
+     "G03-S144",
+     "G03-S147",
+     "G03-S132"
+    ],
+    "true_owner": "9G9T",
+    "pred_owner": "6TML",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9I52",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": null,
+    "pred_owner": "9I54",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9I54",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9I52",
+    "pred_owner": "7JV5",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9I78",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S035"
+    ],
+    "pred_sg": "G03-S071",
+    "sg_top3": [
+     "G03-S035",
+     "G03-S071",
+     "G03-S066"
+    ],
+    "true_owner": null,
+    "pred_owner": "8W9Y",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9I9L",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S149"
+    ],
+    "pred_sg": "G03-S149",
+    "sg_top3": [
+     "G03-S149",
+     "G03-S151",
+     "G03-S142"
+    ],
+    "true_owner": null,
+    "pred_owner": null,
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9IJR",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S037"
+    ],
+    "true_owner": "6LI1",
+    "pred_owner": "9IJS",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9IJS",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S037"
+    ],
+    "true_owner": "9IJR",
+    "pred_owner": "6LI1",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9IKF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S146"
+    ],
+    "pred_sg": "G03-S146",
+    "sg_top3": [
+     "G03-S146",
+     "G03-S147",
+     "G03-S148"
+    ],
+    "true_owner": "1OCC",
+    "pred_owner": "9M56",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9IRB",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "8JZX",
+    "pred_owner": "9IRC",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9IRC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "9IRB",
+    "pred_owner": "8JZX",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9ITH",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "7DTC",
+    "pred_owner": "9ITI",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9ITI",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "5EK0",
+    "pred_owner": "5EK0",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9J02",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": null,
+    "pred_owner": "9J04",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9J04",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "9J02",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9JCO",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9BIP",
+    "pred_owner": "9BIP",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9JD3",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JCV",
+    "pred_owner": "9JD9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JD9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JD3",
+    "pred_owner": "9JCV",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9JEQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "7F61",
+    "pred_owner": "9JED",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JFK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": null,
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9JFT",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9BHL",
+    "pred_owner": "8ZCE",
+    "rule": "same-paper",
+    "confidence": 0.8
+   },
+   {
+    "pdb": "9JG4",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JG5",
+    "pred_owner": "9JCV",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9JG5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JCV",
+    "pred_owner": "9JG4",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JTL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S081"
+    ],
+    "pred_sg": "G03-S081",
+    "sg_top3": [
+     "G03-S081",
+     "G03-S082",
+     "G03-S071"
+    ],
+    "true_owner": "9J7V",
+    "pred_owner": "9JTM",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JTM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S081"
+    ],
+    "pred_sg": "G03-S081",
+    "sg_top3": [
+     "G03-S081",
+     "G03-S082",
+     "G03-S071"
+    ],
+    "true_owner": "9JTL",
+    "pred_owner": "9J7V",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9JUQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S041"
+    ],
+    "true_owner": null,
+    "pred_owner": "9JV1",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JV1",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S041"
+    ],
+    "true_owner": "9JUQ",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9JXD",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "8X5B",
+    "pred_owner": "9JXN",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9JXN",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": "9JXD",
+    "pred_owner": "8X5B",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9JXR",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S156"
+    ],
+    "true_owner": null,
+    "pred_owner": "9JXN",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9K07",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9LWP",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9K3F",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8IOC",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9K3H",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8INR",
+    "pred_owner": "9K3F",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9K3K",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "6W25",
+    "pred_owner": "9K3F",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9K3L",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "8GY7",
+    "pred_owner": "9K3F",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9K3P",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "7F4D",
+    "pred_owner": "9K3F",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9K49",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S131"
+    ],
+    "true_owner": "8ODT",
+    "pred_owner": "8ODT",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9KB6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S041",
+     "G03-S025"
+    ],
+    "true_owner": "8XFT",
+    "pred_owner": "9KB8",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KB8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S041",
+     "G02-S001"
+    ],
+    "true_owner": "9KB6",
+    "pred_owner": "8XFT",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9KCU",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S039",
+     "G03-S111"
+    ],
+    "true_owner": null,
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9KCV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S111"
+    ],
+    "true_owner": "9KCU",
+    "pred_owner": "9KCU",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KFI",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S017",
+     "G03-S052"
+    ],
+    "true_owner": null,
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9KFJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9KFI",
+    "pred_owner": "9KFI",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KFK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S017",
+     "G03-S052"
+    ],
+    "true_owner": "7YJ4",
+    "pred_owner": "9KFI",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KHE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S039",
+     "G03-S111"
+    ],
+    "true_owner": "9KHF",
+    "pred_owner": null,
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9KHF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S039",
+     "G03-S111"
+    ],
+    "true_owner": null,
+    "pred_owner": "9KHE",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KHI",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S039",
+    "sg_top3": [
+     "G03-S039",
+     "G03-S037",
+     "G03-S038"
+    ],
+    "true_owner": null,
+    "pred_owner": "9KHJ",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KRK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "8IZ8",
+    "pred_owner": "9KRL",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KRL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "9KRK",
+    "pred_owner": "8IZ8",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9KT6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8IHJ",
+    "pred_owner": "9KT9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KT7",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "7XK2",
+    "pred_owner": "9KT9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KTS",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9JCV",
+    "pred_owner": "9KTX",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9KTX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S101",
+     "G03-S100"
+    ],
+    "true_owner": "9KTS",
+    "pred_owner": "9JCV",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9KVX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S111"
+    ],
+    "pred_sg": "G03-S104",
+    "sg_top3": [
+     "G03-S104",
+     "G03-S102",
+     "G03-S110"
+    ],
+    "true_owner": null,
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.29
+   },
+   {
+    "pdb": "9KVZ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S111"
+    ],
+    "pred_sg": "G03-S104",
+    "sg_top3": [
+     "G03-S104",
+     "G03-S102",
+     "G03-S110"
+    ],
+    "true_owner": "9KVX",
+    "pred_owner": "9KVX",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9L74",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "7C4S",
+    "pred_owner": "9WP9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9LHV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S053",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S118",
+     "G03-S054"
+    ],
+    "true_owner": "9LHX",
+    "pred_owner": "8U56",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9LHX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S053",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S118",
+     "G03-S054"
+    ],
+    "true_owner": "8U56",
+    "pred_owner": "9LHV",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9LLK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S035"
+    ],
+    "pred_sg": "G03-S035",
+    "sg_top3": [
+     "G03-S035",
+     "G03-S061",
+     "G03-S087"
+    ],
+    "true_owner": "7CZB",
+    "pred_owner": "7CZB",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9LWP",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": null,
+    "pred_owner": "9K07",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9M4Q",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S114",
+     "G03-S052"
+    ],
+    "true_owner": "7YM8",
+    "pred_owner": "7YM8",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9M56",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S146"
+    ],
+    "pred_sg": "G03-S146",
+    "sg_top3": [
+     "G03-S146",
+     "G03-S147",
+     "G03-S148"
+    ],
+    "true_owner": "9IKF",
+    "pred_owner": "1OCC",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9M88",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S056"
+    ],
+    "true_owner": "8WW2",
+    "pred_owner": "4S0V",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9MB9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S051",
+     "G03-S041"
+    ],
+    "true_owner": "9MBD",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9MBA",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S051",
+     "G03-S041"
+    ],
+    "true_owner": "9MBD",
+    "pred_owner": "9MB9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9MKY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S037",
+     "G03-S039"
+    ],
+    "true_owner": "9MLV",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9MLV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S037",
+     "G03-S039"
+    ],
+    "true_owner": null,
+    "pred_owner": "9MKY",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9MND",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S107"
+    ],
+    "pred_sg": "G03-S107",
+    "sg_top3": [
+     "G03-S107",
+     "G03-S102"
+    ],
+    "true_owner": "9MNG",
+    "pred_owner": "4YZF",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9MNG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S107"
+    ],
+    "pred_sg": "G03-S107",
+    "sg_top3": [
+     "G03-S107",
+     "G03-S102"
+    ],
+    "true_owner": "4YZF",
+    "pred_owner": "9MND",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9MQC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S157",
+    "sg_top3": [
+     "G03-S157",
+     "G03-S037",
+     "G03-S052"
+    ],
+    "true_owner": "9MQE",
+    "pred_owner": "9BUM",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9MQE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S157"
+    ],
+    "pred_sg": "G03-S157",
+    "sg_top3": [
+     "G03-S157",
+     "G03-S037",
+     "G03-S052"
+    ],
+    "true_owner": "9BUM",
+    "pred_owner": "9MQC",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9MRT",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S039",
+    "sg_top3": [
+     "G03-S039",
+     "G03-S037",
+     "G03-S038"
+    ],
+    "true_owner": "9MTA",
+    "pred_owner": "5WP6",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9MTA",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S039"
+    ],
+    "pred_sg": "G03-S039",
+    "sg_top3": [
+     "G03-S039",
+     "G03-S037",
+     "G03-S038"
+    ],
+    "true_owner": "5WP6",
+    "pred_owner": "9MRT",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9N4L",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S114"
+    ],
+    "true_owner": "7KS0",
+    "pred_owner": "9N4T",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9N4T",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G02-S001",
+     "G03-S054"
+    ],
+    "true_owner": "9N4L",
+    "pred_owner": "4UQQ",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9N9J",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S035"
+    ],
+    "pred_sg": "G03-S035",
+    "sg_top3": [
+     "G03-S035",
+     "G03-S071",
+     "G03-S066"
+    ],
+    "true_owner": "9YGY",
+    "pred_owner": "6W6L",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9NEC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S039",
+     "G03-S038"
+    ],
+    "true_owner": "7SIP",
+    "pred_owner": "9NES",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9NES",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S039",
+     "G03-S038"
+    ],
+    "true_owner": "9NEC",
+    "pred_owner": "7SIP",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9NGC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "9NGF",
+    "pred_owner": "8D63",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9NGF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S048"
+    ],
+    "pred_sg": "G03-S048",
+    "sg_top3": [
+     "G03-S048"
+    ],
+    "true_owner": "8D63",
+    "pred_owner": "9NGC",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9NK6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G02-S008"
+    ],
+    "pred_sg": "G02-S008",
+    "sg_top3": [
+     "G02-S008",
+     "G02-S007",
+     "G02-S006"
+    ],
+    "true_owner": "6WUH",
+    "pred_owner": "9NK7",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9NK7",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G02-S008"
+    ],
+    "pred_sg": "G02-S008",
+    "sg_top3": [
+     "G02-S008",
+     "G02-S007",
+     "G02-S006"
+    ],
+    "true_owner": "9NK6",
+    "pred_owner": "6WUH",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9NQJ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S035"
+    ],
+    "true_owner": "9NXC",
+    "pred_owner": "2R6G",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9NVL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S132"
+    ],
+    "pred_sg": "G03-S132",
+    "sg_top3": [
+     "G03-S132"
+    ],
+    "true_owner": "9NVM",
+    "pred_owner": "6N2Y",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9NXC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S035"
+    ],
+    "true_owner": "2R6G",
+    "pred_owner": "9NQJ",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9OKF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": null,
+    "pred_owner": "9OKH",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9OKH",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S102",
+    "sg_top3": [
+     "G03-S102",
+     "G03-S116",
+     "G03-S094"
+    ],
+    "true_owner": "9OKF",
+    "pred_owner": "8JLC",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9OO6",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S075"
+    ],
+    "pred_sg": "G03-S075",
+    "sg_top3": [
+     "G03-S075"
+    ],
+    "true_owner": "9OO8",
+    "pred_owner": "7URA",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9OO8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S075"
+    ],
+    "pred_sg": "G03-S075",
+    "sg_top3": [
+     "G03-S075",
+     "G03-S037",
+     "G03-S116"
+    ],
+    "true_owner": "7URA",
+    "pred_owner": "9OO6",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9OOQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S114"
+    ],
+    "true_owner": null,
+    "pred_owner": "9OOS",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9OOS",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S114"
+    ],
+    "true_owner": "9OOQ",
+    "pred_owner": "6IRA",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9OQG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S040"
+    ],
+    "true_owner": "6V6D",
+    "pred_owner": "9OQK",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9OQK",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S040"
+    ],
+    "true_owner": "9OQG",
+    "pred_owner": "6V6D",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9PS4",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S102"
+    ],
+    "pred_sg": "G03-S104",
+    "sg_top3": [
+     "G03-S104"
+    ],
+    "true_owner": "9PS1",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9PWO",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S038"
+    ],
+    "pred_sg": "G03-S038",
+    "sg_top3": [
+     "G03-S038",
+     "G03-S037",
+     "G03-S054"
+    ],
+    "true_owner": null,
+    "pred_owner": "9OL6",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9PXV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "8EF5",
+    "pred_owner": "9PY4",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9Q1Y",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S114"
+    ],
+    "pred_sg": "G03-S114",
+    "sg_top3": [
+     "G03-S114",
+     "G03-S037",
+     "G03-S132"
+    ],
+    "true_owner": "6XJI",
+    "pred_owner": "6XJI",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9QDN",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S038"
+    ],
+    "true_owner": "9QPW",
+    "pred_owner": "3KG2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9QPW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S041"
+    ],
+    "pred_sg": "G03-S041",
+    "sg_top3": [
+     "G03-S041",
+     "G03-S054",
+     "G03-S114"
+    ],
+    "true_owner": "3KG2",
+    "pred_owner": "9QDN",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9R3J",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G01-S004"
+    ],
+    "pred_sg": "G01-S004",
+    "sg_top3": [
+     "G01-S004",
+     "G03-S143",
+     "G01-S011"
+    ],
+    "true_owner": "1GOS",
+    "pred_owner": "9R3K",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9R3K",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G01-S004"
+    ],
+    "pred_sg": "G01-S004",
+    "sg_top3": [
+     "G01-S004",
+     "G03-S143",
+     "G01-S011"
+    ],
+    "true_owner": "9R3J",
+    "pred_owner": "1GOS",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9RGB",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "parent",
+    "true_sg": [
+     "G03-S094"
+    ],
+    "pred_sg": "G03-S094",
+    "sg_top3": [
+     "G03-S094",
+     "G03-S068",
+     "G03-S142"
+    ],
+    "true_owner": "9S2U",
+    "pred_owner": null,
+    "rule": "new-protein",
+    "confidence": 0.34
+   },
+   {
+    "pdb": "9U6G",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S129"
+    ],
+    "pred_sg": "G03-S129",
+    "sg_top3": [
+     "G03-S129",
+     "G03-S130",
+     "G03-S132"
+    ],
+    "true_owner": "3J0J",
+    "pred_owner": "9U6F",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9U80",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S114"
+    ],
+    "true_owner": "9U81",
+    "pred_owner": "7KH0",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9U81",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S114"
+    ],
+    "true_owner": "7KH0",
+    "pred_owner": "9U80",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9UT8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S054",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S041"
+    ],
+    "true_owner": "9NOR",
+    "pred_owner": "9UT9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9UT9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S054"
+    ],
+    "pred_sg": "G03-S054",
+    "sg_top3": [
+     "G03-S054",
+     "G03-S041"
+    ],
+    "true_owner": "9UT8",
+    "pred_owner": "9NOR",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9UTU",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S068"
+    ],
+    "pred_sg": "G03-S068",
+    "sg_top3": [
+     "G03-S068"
+    ],
+    "true_owner": "7XE4",
+    "pred_owner": "7XE4",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9UY3",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "6KO5",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9V0U",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S053"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S053",
+     "G03-S051",
+     "G03-S052"
+    ],
+    "true_owner": "7WU2",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9V2N",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9UY3",
+    "pred_owner": "9UY3",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9VEC",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "9WD8",
+    "pred_owner": "6UZZ",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9VI9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9VIF",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9VIF",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "parent",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": null,
+    "pred_owner": "9VI9",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9VJ5",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "7E2X",
+    "pred_owner": "9VJE",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9VJE",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S053"
+    ],
+    "true_owner": "9VJ5",
+    "pred_owner": "7E2X",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9VKG",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S133"
+    ],
+    "pred_sg": "G03-S133",
+    "sg_top3": [
+     "G03-S133",
+     "G03-S126",
+     "G01-S027"
+    ],
+    "true_owner": "9VSL",
+    "pred_owner": "6K7G",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9VSL",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S133"
+    ],
+    "pred_sg": "G03-S133",
+    "sg_top3": [
+     "G03-S133",
+     "G03-S126",
+     "G01-S027"
+    ],
+    "true_owner": "6K7G",
+    "pred_owner": "9VKG",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9VSP",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037"
+    ],
+    "true_owner": "6WC9",
+    "pred_owner": "9VSQ",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9VSQ",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037"
+    ],
+    "true_owner": "9VSP",
+    "pred_owner": "6WC9",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9W6W",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "7UM4",
+    "pred_owner": "7XK2",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9WD8",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S037"
+    ],
+    "pred_sg": "G03-S037",
+    "sg_top3": [
+     "G03-S037",
+     "G03-S038",
+     "G03-S039"
+    ],
+    "true_owner": "6UZZ",
+    "pred_owner": "9VEC",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9WP9",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9L74",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9WST",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9WSV",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9WSV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S037"
+    ],
+    "true_owner": "4DKL",
+    "pred_owner": "9WST",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9WSW",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9WSV",
+    "pred_owner": "9WST",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9WSX",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S037"
+    ],
+    "true_owner": "9WSV",
+    "pred_owner": "9WST",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9WXM",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "review",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S052",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S054"
+    ],
+    "true_owner": "8ZQE",
+    "pred_owner": "5VEW",
+    "rule": "partial-protein",
+    "confidence": 0.0
+   },
+   {
+    "pdb": "9YDU",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9J0B",
+    "pred_owner": "9YDV",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   },
+   {
+    "pdb": "9YDV",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "related",
+    "pred_kind": "daughter",
+    "true_sg": [
+     "G03-S051"
+    ],
+    "pred_sg": "G03-S051",
+    "sg_top3": [
+     "G03-S051",
+     "G03-S052",
+     "G03-S057"
+    ],
+    "true_owner": "9YDU",
+    "pred_owner": "9J0B",
+    "rule": "same-protein",
+    "confidence": 0.54
+   },
+   {
+    "pdb": "9YGY",
+    "in_mpstruc": true,
+    "proposed": true,
+    "true_kind": "daughter",
+    "pred_kind": "related",
+    "true_sg": [
+     "G03-S035"
+    ],
+    "pred_sg": "G03-S035",
+    "sg_top3": [
+     "G03-S035",
+     "G03-S066",
+     "G03-S038"
+    ],
+    "true_owner": "6W6L",
+    "pred_owner": "9N9J",
+    "rule": "same-paper-batch",
+    "confidence": 0.66
+   }
+  ]
+ },
+ "confidence": {
+  "parent": 0.34,
+  "partial": 0.0,
+  "related": 0.8,
+  "related-batch": 0.656,
+  "daughter": 0.54
+ }
+}

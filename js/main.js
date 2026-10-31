@@ -69,6 +69,11 @@ links.addEventListener("click", (event) => {
             state.all.push(e);
             addPdb(e.pdb, { type: e.kind === "p" ? "parent" : "daughter", entry: e });
             (e.rel || []).forEach((r, i) => addPdb(r, { type: "related", entry: e, n: i + 1 }));
+            for (const m of (e.desc || "").matchAll(/href="#\/pdb\/([0-9A-Z]{4})"/g)) {
+              if (m[1] !== e.pdb.toUpperCase() && !(e.rel || []).some((r) => r.toUpperCase() === m[1])) {
+                addPdb(m[1], { type: "mentioned", entry: e });
+              }
+            }
           }
         }
         state.sgOf.set(sg.k, sg);
@@ -79,7 +84,7 @@ links.addEventListener("click", (event) => {
   // ---- filters ------------------------------------------------------------
   function matches(e) {
     const f = state.filters;
-    if (f.domain && e.domain !== f.domain) return false;
+    if (f.domain && (e.domain || "Not stated") !== f.domain) return false;
     if (f.method && e.method !== f.method) return false;
     if (f.host && e.hostN !== f.host) return false;
     if (f.resMax && !(e.resV != null && e.resV <= Number(f.resMax))) return false;
@@ -158,7 +163,8 @@ links.addEventListener("click", (event) => {
     if (form) form.addEventListener("submit", (ev) => {
       ev.preventDefault();
       const q = form.elements.q.value.trim();
-      if (/^[0-9][A-Za-z0-9]{3}$/.test(q)) location.hash = `#/pdb/${q.toUpperCase()}`;
+      const id = q.toUpperCase();
+      if (/^[0-9][A-Z0-9]{3}$/.test(id) && (state.byPdb.has(id) || state.data.relPdb[id])) location.hash = `#/pdb/${id}`;
       else if (q) location.hash = `#/search/${encodeURIComponent(q)}`;
     });
   }
@@ -314,8 +320,8 @@ links.addEventListener("click", (event) => {
       <h3>Families</h3>
       <div class="mp-groups">${groups}</div>
       <h3>Data quality</h3>
-      <p>Automatic checks against the PDB and PubMed found <b>${fc.error}</b> errors and <b>${fc.warning}</b> warnings
-        (plus ${fc.info} informational notes). Entries with issues carry a highlighted note; use the
+      <p>Automatic checks against the PDB and PubMed found <b>${fc.error}</b> errors and <b>${fc.warning}</b> warnings.
+        Entries with issues carry a highlighted note; use the
         <i>Data issues</i> filter in any list to see them. Nothing in the data has been changed.</p>
       <p><a class="mp-btn" href="#/search/${encodeURIComponent("*issues")}">Show all entries with issues</a></p>
     </div>`;
@@ -364,7 +370,9 @@ links.addEventListener("click", (event) => {
   }
 
   function viewPdb(id) {
-    const refs = state.byPdb.get(id) || [];
+    const all = state.byPdb.get(id) || [];
+    const refs = all.filter((r) => r.type !== "mentioned");
+    const mentions = all.filter((r) => r.type === "mentioned");
     const x = state.data.relPdb[id] || (refs[0] && refs[0].entry.pdb.toUpperCase() === id && refs[0].entry.x);
     const rows = refs.map((r) => {
       const e = r.entry;
@@ -382,11 +390,15 @@ links.addEventListener("click", (event) => {
       ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in mpstruc${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Listed as</th><th>Where</th><th>Record key</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="mp-empty">This PDB ID is not listed in mpstruc.</p>'}
+      ${mentions.length ? `<p>Cited in the description of ${mentions.map((r) =>
+          `<a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>`).join(", ")}${refs.length ? "" : ", but not listed as an entry or related entry there (possibly a typo in the description)"}.</p>` : ""}
+      ${!refs.length && !mentions.length && !x ? `<p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>` : ""}
     </div>`;
   }
 
   function viewEntry(e) {
-    const others = (state.byPdb.get(e.pdb.toUpperCase()) || []).filter((r) => !(r.entry === e && r.type !== "related"));
+    const others = (state.byPdb.get(e.pdb.toUpperCase()) || [])
+      .filter((r) => r.type !== "mentioned" && !(r.entry === e && r.type !== "related"));
     const relRows = (e.rel || []).map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
       return `<tr><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}">${esc(id)}</a></td>
@@ -399,6 +411,7 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › ${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>
         ${e.parent ? ` › <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}</p>
+      <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${strip(e.name)}</h2>
       <div class="mp-entry-top">
         ${entryCard(e, { showParent: true, noDaughters: true })}
         <img class="mp-figure" loading="lazy" src="https://cdn.rcsb.org/images/structures/${lower.slice(1, 3)}/${lower}/${lower}_assembly-1.jpeg"
@@ -408,7 +421,7 @@ links.addEventListener("click", (event) => {
         <a href="${rcsb(e.pdb)}" rel="noopener">RCSB PDB (3D viewer) ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(lower)}" rel="noopener">PDBe ↗</a>
         <a href="https://opm.phar.umich.edu/proteins?search=${esc(lower)}" rel="noopener">OPM ↗</a>
-        <a href="https://pdbtm.unitmp.org/entry/${esc(lower)}" rel="noopener">PDBTM ↗</a>
+        ${e.sg.group.topology === "Monotopic" ? "" : `<a href="https://pdbtm.unitmp.org/entry/${esc(lower)}" rel="noopener">PDBTM ↗</a>`}
       </p>
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
@@ -438,6 +451,7 @@ links.addEventListener("click", (event) => {
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
     if (h !== lastRoute) state.limit = PAGE;
+    state.focusHeading = lastRoute !== "" || h !== "";
     lastRoute = h;
     render();
     window.scrollTo(0, 0);
@@ -454,7 +468,11 @@ links.addEventListener("click", (event) => {
 
   function renderNow() {
     const [kind, ...rest] = lastRoute.split("/");
-    const arg = decodeURIComponent(rest.join("/"));
+    let arg;
+    try { arg = decodeURIComponent(rest.join("/")); } catch { arg = rest.join("/"); }
+    // Remember which control had focus, so re-rendering does not drop keyboard users.
+    const active = document.activeElement;
+    const focusName = active && app.contains(active) ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
     document.querySelectorAll(".mp-tabs a").forEach((a) =>
       a.classList.toggle("active", a.dataset.tab === (kind === "automation" ? "automation" : "database")));
     if (kind === "automation") { app.innerHTML = viewAutomation(); return; }
@@ -471,6 +489,9 @@ links.addEventListener("click", (event) => {
     } else if (kind === "search" && arg) {
       const v = viewSearch(arg);
       main = v.html; csv = [v.pool.filter(matches), v.filename];
+    } else if ((kind === "sg" || kind === "entry") && arg) {
+      main = `<div class="mp-view"><p class="mp-crumbs"><a href="#/">Database</a></p><h2>No record ${esc(arg)}</h2>
+        <p class="mp-empty">There is no ${kind === "sg" ? "subfamily" : "entry"} with this key. Try the search box, or browse the families on the left.</p></div>`;
     } else {
       main = viewHome();
     }
@@ -483,8 +504,26 @@ links.addEventListener("click", (event) => {
     if (moreBtn) moreBtn.addEventListener("click", () => {
       state.limit += PAGE;
       const y = window.scrollY;
-      setTimeout(() => { render(); window.scrollTo(0, y); }, 0);
+      const before = app.querySelectorAll(".mp-view > .mp-entry").length;
+      setTimeout(() => {
+        render();
+        window.scrollTo(0, y);
+        const next = app.querySelectorAll(".mp-view > .mp-entry")[before];
+        if (next) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
+      }, 0);
     });
+    const status = document.getElementById("mp-status");
+    const summary = app.querySelector(".mp-toolbar .mp-summary");
+    const h2 = app.querySelector(".mp-view h2");
+    if (status) status.textContent = summary ? summary.textContent : (h2 ? h2.textContent : "");
+    if (focusName) {
+      const el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
+      if (el) el.focus();
+    } else if (state.focusHeading && h2) {
+      h2.setAttribute("tabindex", "-1");
+      h2.focus({ preventScroll: true });
+    }
+    state.focusHeading = false;
     const side = app.querySelector(".mp-side > details");
     if (side && window.matchMedia("(max-width: 860px)").matches && kind) side.open = false;
     const cur = app.querySelector(".mp-side a.current");

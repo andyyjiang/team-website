@@ -248,6 +248,12 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-entry.daughter { border-left-color: var(--color-daughter); margin: 10px 0 0; background: var(--color-bg-alt); }
 .mp-entry-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
 .mp-entry-head h3 { margin: 0; font-size: 1.05rem; line-height: 1.35; flex-basis: 100%; }
+.mp-view h2, .mp-entry-head h3, .mp-desc, .mp-cite { overflow-wrap: anywhere; }
+.mp-view h2:focus { outline: none; }
+.mp-visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .mp-pdb { font-family: var(--font-mono); font-weight: 700; font-size: 1.05rem; }
 .mp-badge {
   font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
