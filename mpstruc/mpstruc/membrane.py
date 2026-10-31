@@ -13,7 +13,9 @@ consistently until March 2025, so training (Jul 2023 - Aug 2024) and testing
 (Sep 2024 - Mar 2025) use that period.
 
 Features are things known on the day a structure is released, so the
-prediction works for brand-new entries: UniProt keywords and families,
+prediction works for brand-new entries: whether the residues that cross the
+membrane (UniProt transmembrane segments) are actually resolved in the
+structure, UniProt keywords and families,
 detergents, lipids or nanodiscs in the sample, whether mpstruc already lists
 the same protein (only earlier mpstruc entries count), how often its protein
 family is a membrane protein in the training data, the method, and words in
@@ -28,7 +30,7 @@ import re
 import urllib.request
 from collections import Counter, defaultdict
 
-from . import membranedb, rcsb
+from . import membranedb, rcsb, uniprot
 from .automation import FUSION_UNIPROT, SEARCH, TM_KEYWORDS, released_between
 from .model import load
 from .report import ROOT, source_xml
@@ -96,7 +98,40 @@ def _uniprots(det: dict | None) -> set[str]:
             for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []}
 
 
-def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None) -> dict | None:
+def _fetch(ids: list[str]):
+    ext, fam, det, cov = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids), rcsb.entry_coverage(ids)
+    accs = sorted({a for v in cov.values() for e in (v or []) for a in e.get("align") or {}})
+    return ext, fam, det, cov, uniprot.tm_segments(accs)
+
+
+def tm_coverage(cov: list | None, tmseg: dict[str, list]) -> tuple[int, int]:
+    """(membrane-crossing segments in the construct, of those actually modelled).
+
+    Maps each UniProt transmembrane/intramembrane segment onto the chain via the
+    PDB's UniProt alignment, and counts it as modelled if at least half of its
+    residues are not in the chain's unobserved ranges.
+    """
+    total = modelled = 0
+    for ent in cov or []:
+        unobs = ent.get("unobs") or []
+        for acc, regions in (ent.get("align") or {}).items():
+            for b, e in tmseg.get(acc) or []:
+                pos = []
+                for u in range(b, e + 1):
+                    for eb, rb, n in regions:
+                        if rb <= u < rb + n:
+                            pos.append(eb + u - rb)
+                            break
+                if len(pos) < (e - b + 1) / 2:
+                    continue  # this part of the protein is not in the construct
+                total += 1
+                seen = sum(1 for q in pos if not any(lo <= q <= hi for lo, hi in unobs))
+                modelled += seen >= (e - b + 1) / 2
+    return total, modelled
+
+
+def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
+              cov: list | None = None, tmseg: dict | None = None) -> dict | None:
     """Release-day facts about a structure (no labels, no PDB annotations)."""
     if not det:
         return None
@@ -109,7 +144,10 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None) ->
     ligs = {((n.get("nonpolymer_comp") or {}).get("chem_comp") or {}).get("id") for n in det.get("nonpolymer_entities") or []}
     descs = [((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "") for e in prot]
     ipr = (fam or {}).get("ipr") or {}
+    has_tm_protein = any(tmseg.get(u) for u in ups) if tmseg is not None else None
+    tm_total, tm_modelled = tm_coverage(cov, tmseg or {}) if cov is not None else (None, None)
     return {
+        "has_tm_protein": has_tm_protein, "tm_in_construct": tm_total, "tm_modelled": tm_modelled,
         "pdb": pdb, "released": (ext or {}).get("released", ""),
         "uniprots": sorted(ups), "tm_uniprots": sorted(tm_ups), "keywords": sorted(all_kw),
         "detergents": sorted(ligs & DETERGENTS), "lipids": sorted(ligs & LIPIDS),
@@ -145,6 +183,10 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
     for k in KW_SOLUBLE:
         x[f"kw_{k}"] = float(k in kw)
     x["no_uniprot"] = float(not f["uniprots"])
+    # Is the membrane-crossing part actually in the structure? (None: coverage unknown.)
+    if f.get("tm_modelled") is not None:
+        x["tm_modelled"] = float(f["tm_modelled"] > 0)
+        x["tm_missing"] = float(bool(f.get("has_tm_protein")) and f["tm_modelled"] == 0)
     tcs = sorted({tc for u in f["uniprots"] for tc in ctx.tcdb.get(u, ())})
     x["tcdb_transporter"] = float(any(tc[0] in "123" for tc in tcs))
     x["tcdb_other"] = float(bool(tcs) and not x["tcdb_transporter"])
@@ -226,6 +268,10 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
         add("tcdb_transporter", 1, f"TCDB classifies a protein in it as a channel or transporter (TC {why['tcdb'][0]})")
     elif x.get("tcdb_other"):
         add("tcdb_other", 1, f"TCDB lists a protein in it (TC {why['tcdb'][0]})")
+    if x.get("tm_modelled"):
+        add("tm_modelled", 1, f"{f['tm_modelled']} of its membrane-crossing segments are resolved in the structure")
+    if x.get("tm_missing"):
+        add("tm_missing", 1, "its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure")
     if x.get("detergent"):
         add("detergent", 1, f"the sample contains detergent ({', '.join(f['detergents'][:2])})")
     if x.get("lipid"):
@@ -260,19 +306,6 @@ def _labels(start: str, end: str, mpstruc_ids: set[str]) -> tuple[list[str], set
         {p for p in ids if opm.get(p) == "transmembrane"}
     unsure = {p for p in ids if opm.get(p) in ("monotopic/peripheral", "peptide")} - pos
     return [p for p in ids if p not in unsure], pos
-
-
-def _rows(ids, pos, ctx, prior, training: bool):
-    ext, fam, det = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids)
-    rows = []
-    for pdb in ids:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
-        if not f:
-            continue
-        y = int(pdb in pos)
-        x, why = features(f, ctx, prior, own_label=y if training else None)
-        rows.append((pdb, x, y, f, why))
-    return rows
 
 
 def evaluate(rows, model) -> dict:
@@ -371,10 +404,10 @@ def train_and_test(folds: int = 5) -> dict:
     db = load(source_xml())
     ctx = Context(db)
     ids_tr, pos_tr = _labels(*TRAIN, ctx.mpstruc_ids)
-    ext, fam, det = rcsb.entry_extras(ids_tr), rcsb.entry_families(ids_tr), rcsb.entry_details(ids_tr)
+    ext, fam, det, cov, seg = _fetch(ids_tr)
     facts = []
     for pdb in ids_tr:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
         if f:
             facts.append((f, int(pdb in pos_tr)))
     facts.sort(key=lambda r: (r[0]["released"], r[0]["pdb"]))
@@ -397,10 +430,10 @@ def train_and_test(folds: int = 5) -> dict:
     ctx.fam_stats = model["fam_stats"]
 
     ids_te, pos_te = _labels(*TEST, ctx.mpstruc_ids)
-    ext, fam, det = rcsb.entry_extras(ids_te), rcsb.entry_families(ids_te), rcsb.entry_details(ids_te)
+    ext, fam, det, cov, seg = _fetch(ids_te)
     rows_te = []
     for pdb in ids_te:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
         if f:
             x, why = features(f, ctx, prior)
             rows_te.append((pdb, x, int(pdb in pos_te), f, why))
@@ -432,10 +465,10 @@ def score_structures(ids: list[str], db=None, model: dict | None = None) -> dict
     if not model:
         return {}
     ctx = Context(db or load(source_xml()), model.get("fam_stats"))
-    ext, fam, det = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids)
+    ext, fam, det, cov, seg = _fetch(ids)
     out = {}
     for pdb in ids:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb))
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
         if not f:
             continue
         x, why = features(f, ctx, model["prior"])

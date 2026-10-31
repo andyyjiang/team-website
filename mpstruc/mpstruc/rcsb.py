@@ -267,3 +267,47 @@ def entry_details(pdb_ids: list[str], batch: int = 100, max_age_s: float = 7 * 8
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_coverage(pdb_ids: list[str], batch: int = 100, max_age_s: float = 30 * 86400) -> dict[str, list | None]:
+    """Which UniProt residues each protein chain covers, and which it leaves unmodelled.
+
+    Per entry: [{"align": {accession: [[entity_start, uniprot_start, length], ...]},
+                 "unobs": [[first, last], ...]}, ...] -- one item per polymer entity,
+    unobserved residues taken from its first instance (chain).
+    """
+    path = CACHE_DIR / "entry_coverage.json"
+    cache: dict[str, list | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id polymer_entities { "
+         "rcsb_polymer_entity_align { reference_database_name reference_database_accession "
+         "aligned_regions { entity_beg_seq_id ref_beg_seq_id length } } "
+         "polymer_entity_instances { rcsb_polymer_instance_feature { type feature_positions { beg_seq_id end_seq_id } } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e:
+                continue
+            ents = []
+            for pe in e.get("polymer_entities") or []:
+                align = {}
+                for a in pe.get("rcsb_polymer_entity_align") or []:
+                    if a.get("reference_database_name") == "UniProt":
+                        align.setdefault(a["reference_database_accession"], []).extend(
+                            [r["entity_beg_seq_id"], r["ref_beg_seq_id"], r["length"]] for r in a.get("aligned_regions") or [])
+                inst = (pe.get("polymer_entity_instances") or [{}])[0]
+                unobs = [[p["beg_seq_id"], p["end_seq_id"]] for f in inst.get("rcsb_polymer_instance_feature") or []
+                         if f.get("type") == "UNOBSERVED_RESIDUE_XYZ" for p in f.get("feature_positions") or []
+                         if p.get("beg_seq_id") is not None]
+                ents.append({"align": align, "unobs": unobs})
+            found[e["rcsb_id"]] = ents
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}

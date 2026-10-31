@@ -5,7 +5,7 @@ A structure counts as a membrane protein if mpstruc lists it, if PDBTM or MemPro
 ## Test period
 
 - Structures: 9,583, of which membrane proteins: 1,187
-- Ranking quality (AUC): 0.9832; Brier score: 0.0322
+- Ranking quality (AUC): 0.9827; Brier score: 0.0323
 - Called membrane protein (≥50%): 1,317; of those, 79.8% are; they include 88.5% of all membrane proteins
 - Of the 447 structures mpstruc added from Jul–Dec 2025 releases, 91.7% score at least 50% and 97.1% at least 10%
 
@@ -20,9 +20,9 @@ A structure counts as a membrane protein if mpstruc lists it, if PDBTM or MemPro
 | 40-50% | 49 | 44.5% | 73.5% |
 | 50-60% | 35 | 55.0% | 48.6% |
 | 60-70% | 85 | 65.1% | 67.1% |
-| 70-80% | 132 | 76.2% | 60.6% |
-| 80-90% | 324 | 86.6% | 79.9% |
-| 90-100% | 741 | 92.4% | 86.1% |
+| 70-80% | 139 | 76.4% | 62.6% |
+| 80-90% | 196 | 86.0% | 76.5% |
+| 90-100% | 862 | 92.7% | 85.8% |
 
 ## Strongest signals
 
@@ -54,11 +54,11 @@ Title words that lower it: domain (-0.90), fab (-0.81), sars-cov-2 (-0.69), rat 
 
 | PDB | Shown | Membrane protein? | Why |
 |---|---|---|---|
-| 8KDF | 93% | yes | UniProt lists all its proteins as crossing the membrane; its protein family (IPR002293) is a membrane protein in 8 of 8 training structures; lipids are bound (CLR, LBN) |
-| 9JUL | 93% | yes | its protein family (IPR011527) is a membrane protein in 93 of 93 training structures; UniProt lists a protein in it as crossing the membrane; TCDB classifies a protein in it as a channel or transporter (TC 3.A.1.201.5) |
-| 9CTF | 93% | yes | its protein family (IPR011527) is a membrane protein in 93 of 93 training structures; UniProt lists a protein in it as crossing the membrane; TCDB classifies a protein in it as a channel or transporter (TC 3.A.1.201.1); but UniProt says a protein in it is in the cytoplasm |
-| 8ZPM | 90% | no | its protein family (IPR017452) is a membrane protein in 363 of 388 training structures; UniProt lists a protein in it as crossing the membrane; TCDB lists a protein in it (TC 9.A.14.13.17) |
-| 8WPN | 86% | yes | its protein family (IPR005821) is a membrane protein in 194 of 216 training structures; UniProt lists a protein in it as crossing the membrane; the sample contains detergent (Y01) |
+| 8JC9 | 93% | yes | UniProt lists all its proteins as crossing the membrane; its protein family (IPR000066) is a membrane protein in 10 of 11 training structures; the sample contains detergent (D12) |
+| 9KQQ | 93% | yes | its protein family (IPR001344) is a membrane protein in 26 of 26 training structures; UniProt lists a protein in it as crossing the membrane; the sample contains detergent (LMT) |
+| 8UVI | 93% | yes | UniProt lists a protein in it as crossing the membrane; its protein family (IPR001898) is a membrane protein in 7 of 7 training structures; lipids are bound (CLR) |
+| 8XNS | 92% | yes | its protein family (IPR008030) is a membrane protein in 12 of 12 training structures; UniProt lists a protein in it as crossing the membrane; lipids are bound (3PE, PC1) |
+| 9AST | 86% | yes | its protein family (IPR001408) is a membrane protein in 197 of 201 training structures; UniProt lists a protein in it as crossing the membrane; TCDB lists a protein in it (TC 8.A.92.1.1); but UniProt says a protein in it is in the cytoplasm |
 | 9DYN | 70% | yes | UniProt lists a protein in it as crossing the membrane; TCDB classifies a protein in it as a channel or transporter (TC 1.A.46.1.2); mpstruc already lists this protein (e.g. 8D1E) |
 | 9BVP | 26% | yes | its protein family (IPR011051) is a membrane protein in 0 of 22 training structures; but UniProt lists all its proteins as crossing the membrane |
 | 9FX3 | 8% | no | UniProt does not list any of its proteins as crossing the membrane; but UniProt places a protein in it in a membrane |

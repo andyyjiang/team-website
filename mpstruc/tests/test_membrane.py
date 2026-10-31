@@ -56,3 +56,14 @@ def test_tcdb_and_explanation():
     p = predict(x, model)
     reasons = explain(x, why, f, p, model)
     assert p < 0.5 and any("crossing the membrane" in r for r in reasons)
+
+
+def test_tm_coverage_detects_missing_membrane_segments():
+    from mpstruc.membrane import tm_coverage
+    seg = {"P05106": [[719, 741]], "P51681": [[31, 58], [69, 89]]}
+    ecto = [{"align": {"P05106": [[1, 1, 788]]}, "unobs": [[508, 788]]}]
+    assert tm_coverage(ecto, seg) == (1, 0)          # in the construct, but not resolved
+    truncated = [{"align": {"P05106": [[1, 1, 600]]}, "unobs": []}]
+    assert tm_coverage(truncated, seg) == (0, 0)     # construct stops before the membrane segment
+    ccr5 = [{"align": {"P51681": [[4, 2, 222]]}, "unobs": [[1, 20]]}]
+    assert tm_coverage(ccr5, seg) == (2, 2)
