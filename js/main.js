@@ -229,10 +229,14 @@ links.addEventListener("click", (event) => {
     if (!isD && e.d && e.d.length && !opts.noDaughters) {
       const ds = opts.filter ? e.d.filter(opts.filter) : e.d;
       if (ds.length) {
-        const label = ds.length === e.d.length ? `${ds.length} daughter ${ds.length === 1 ? "structure" : "structures"}`
-                                               : `${ds.length} of ${e.d.length} daughter structures match the filters`;
+        // Every structure under a parent counts as a daughter structure, related entries included.
+        const nRel = (e.rel || []).length + e.d.reduce((n, d) => n + (d.rel || []).length, 0);
+        const total = e.d.length + nRel;
+        const label = ds.length === e.d.length
+          ? `${total} daughter ${total === 1 ? "structure" : "structures"} of ${esc(e.pdb)}${nRel ? ` (${e.d.length} described in full, ${nRel} related)` : ""}`
+          : `${ds.length} of the ${e.d.length} fully described daughter structures of ${esc(e.pdb)} match the filters`;
         daughters = `<details class="mp-daughters"${ds.length <= 4 || opts.openDaughters ? " open" : ""}>
-          <summary>${label} of ${esc(e.pdb)}</summary>${ds.map((d) => entryCard(d)).join("")}</details>`;
+          <summary>${label}</summary>${ds.map((d) => entryCard(d)).join("")}</details>`;
       }
     }
     return `<article class="mp-entry${isD ? " daughter" : ""}" id="e-${e.k}">${body}${daughters}</article>`;
@@ -311,8 +315,9 @@ links.addEventListener("click", (event) => {
       <p class="mp-summary">Snapshot of ${esc(m.timestamp)} · last new protein ${esc((m.lastNewProtein || "").slice(0, 10))}</p>
       <div class="mp-stats">
         <div class="mp-stat"><b>${c.parents.toLocaleString()}</b><span>parent proteins</span></div>
-        <div class="mp-stat"><b>${c.daughters.toLocaleString()}</b><span>daughter structures</span></div>
-        <div class="mp-stat"><b>${c.related.toLocaleString()}</b><span>related PDB entries</span></div>
+        <div class="mp-stat"><b>${c.daughters.toLocaleString()}</b><span>daughter structures
+          (${c.daughtersListed.toLocaleString()} described in full, ${c.daughtersRelated.toLocaleString()} listed as related)</span></div>
+        <div class="mp-stat"><b>${c.structures.toLocaleString()}</b><span>structures in total</span></div>
         <div class="mp-stat"><b>${c.subgroups}</b><span>subfamilies in 3 groups</span></div>
       </div>
       <h3>Structures by publication year</h3>
@@ -352,7 +357,8 @@ links.addEventListener("click", (event) => {
     return {
       sg, pool, filename: strip(sg.name).replace(/[^\w]+/g, "_"),
       html: listView(sg.name, `<a href="#/">Database</a> › ${esc(sg.group.topology)}`,
-        `${sg.parents.length} parents · ${pool.length - sg.parents.length} daughters · ${related} related entries · ${sg.n} listings in total`,
+        `${sg.parents.length} parents · ${pool.length - sg.parents.length + related} daughter structures `
+          + `(${pool.length - sg.parents.length} described in full, ${related} listed as related)`,
         pool, null, true),
     };
   }
@@ -406,7 +412,7 @@ links.addEventListener("click", (event) => {
         <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td></tr>`;
     }).join("");
     const daughters = e.kind === "p" && e.d && e.d.length
-      ? `<h3>Daughter structures (${e.d.length})</h3>${e.d.map((d) => entryCard(d)).join("")}` : "";
+      ? `<h3>Daughter structures described in full (${e.d.length})</h3>${e.d.map((d) => entryCard(d)).join("")}` : "";
     const lower = e.pdb.toLowerCase();
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › ${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>
@@ -467,7 +473,7 @@ links.addEventListener("click", (event) => {
     const where = c.subgroup ? `${esc(sgName(c.subgroup))} <span class="mp-of">(${esc(groupOf(c.subgroup))})</span>` : "no subfamily found";
     if (c.placement === "parent") return `New parent in ${where}`;
     if (c.placement === "daughter") return `Daughter of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}`;
-    if (c.placement === "related") return `Related entry of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a>${c.ownerKey ? ` in ${where}` : " (new this week)"}`;
+    if (c.placement === "related") return `Related entry of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a>${c.ownerKey ? ` in ${where}` : " (also a new structure, not yet in mpstruc)"}`;
     return c.ownerPdb ? `Shares a protein with <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}, but not exactly: choose parent, daughter or related.`
                       : "No strong link to any subfamily: choose where it belongs.";
   }
@@ -477,7 +483,7 @@ links.addEventListener("click", (event) => {
   // What a decision remembers about its structure, so it can still be exported
   // after the structure drops out of a later week's suggestions.
   function snapshot(c) {
-    return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, pmid: c.pmid, doi: c.doi,
+    return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, pmid: c.pmid, doi: c.doi, mp: c.mp,
              suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", likelihood: c.likelihood };
   }
 
@@ -494,6 +500,31 @@ links.addEventListener("click", (event) => {
     }
     const sgs = refs.map((r) => r.entry.sg.k);
     return { subgroup: sgs.includes(subgroup) ? subgroup : sgs[0], moved: !sgs.includes(subgroup) };
+  }
+
+  // A suggestion shown as an mpstruc entry (draft fields from the PDB, written
+  // the way mpstruc writes them), with the PDB's own title underneath. The mp
+  // fields are escaped text with only <br />, <sup> and entities, built by
+  // mpstruc/mpstruc/listing.py; numbers and IDs still go through esc().
+  function mpListing(c) {
+    const m = c.mp;
+    if (!m) return `<p class="mp-pdbtitle"><b>PDB title:</b> ${esc(c.title || "")}</p>`;
+    const b = m.bibliography || {};
+    const desc = (m.description || "").replace(/(&Aring;|Å)([\s:;,]*)([0-9][A-Za-z0-9]{3})\b/g,
+      (all, a, sep, id) => `${a}${sep}<a href="https://www.rcsb.org/structure/${id}" rel="noopener">${id}</a>`);
+    const where = [b.journal, b.volume && `${esc(b.volume)}${b.issue ? `(${esc(b.issue)})` : ""}`, b.pages && esc(b.pages)].filter(Boolean).join(" ");
+    const links = [b.doi && `<a href="https://doi.org/${esc(b.doi)}" rel="noopener">DOI</a>`,
+                   b.pubMedId && `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(b.pubMedId)}/" rel="noopener">PubMed</a>`].filter(Boolean).join(" · ");
+    return `<div class="mp-draft">
+      <dl class="mp-meta">
+        <dt>Species</dt><dd>${m.species || "—"}${m.taxonomicDomain ? ` <span class="mp-frompdb">(${esc(m.taxonomicDomain)})</span>` : ""}</dd>
+        <dt>Expressed in</dt><dd>${m.expressedInSpecies || "Not stated"}</dd>
+        <dt>Resolution</dt><dd>${m.resolution ? `${esc(m.resolution)} Å` : "—"}</dd>
+      </dl>
+      ${desc ? `<div class="mp-desc">${desc}</div>` : ""}
+      <p class="mp-cite">${b.authors ? `${b.authors}${b.year ? ` (${esc(b.year)})` : ""}. ` : ""}${b.title ? `<span class="t">${b.title}</span> ` : ""}${where ? `<i>${where}</i>. ` : ""}${links || "Paper not yet linked in the PDB."}</p>
+      <p class="mp-pdbtitle"><b>PDB title:</b> ${esc(c.title || "")} <span class="mp-of">· ${esc((c.method || "").toLowerCase())}</span></p>
+    </div>`;
   }
 
   function candidateCard(c) {
@@ -528,19 +559,16 @@ links.addEventListener("click", (event) => {
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
         ${status}
-        <span class="mp-of">released ${esc(c.released || "")} · ${esc((c.method || "").toLowerCase())}${c.res ? ` · ${fmtRes(c.res)}` : ""}</span>
-        <h3>${esc(c.title || c.pdb)}</h3>
+        <span class="mp-of">released ${esc(c.released || "")}</span>
+        <h3>${c.mp && c.mp.name ? c.mp.name : esc(c.title || c.pdb)}</h3>
       </div>
+      ${mpListing(c)}
       <div class="mp-like" title="How likely mpstruc is to list this structure, learned from past curator decisions">
         <span>Likely to belong in mpstruc</span><meter min="0" max="1" low="0.3" high="0.6" optimum="1" value="${c.likelihood}"></meter><b>${pct(c.likelihood)}</b>
       </div>
       <p class="mp-suggest"><b>Suggestion:</b> ${suggestion(c)}
         ${c.placement !== "review" ? `<span class="mp-conf${lowConf ? " low" : ""}">right ${pct(c.confidence)} of the time in testing</span>` : ""}</p>
-      <dl class="mp-meta">
-        <dt>Organism</dt><dd>${esc((c.organisms || []).join(", ") || "—")}</dd>
-        <dt>Chains</dt><dd>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</dd>
-        <dt>Paper</dt><dd>${c.doi ? `<a href="https://doi.org/${esc(c.doi)}" rel="noopener">DOI</a>` : ""}${c.doi && c.pmid ? " · " : ""}${c.pmid ? `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(c.pmid)}/" rel="noopener">PubMed</a>` : ""}${!c.doi && !c.pmid ? "Not yet published" : ""}</dd>
-      </dl>
+      <details class="mp-why"><summary>All chains in the structure</summary><p>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</p></details>
       <details class="mp-why"><summary>Why</summary>
         <ul>${(c.evidence || []).map((e) => `<li>${esc(e)}</li>`).join("")}
           ${(c.reasons || []).map(([label, w]) => `<li>${esc(label)} ${w > 0 ? "raises" : "lowers"} the likelihood</li>`).join("")}</ul>
@@ -690,26 +718,41 @@ links.addEventListener("click", (event) => {
 
   function approvedXml() {
     const today = new Date().toISOString().slice(0, 10);
-    const out = [`<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB title. -->`];
-    for (const [pdb, d] of Object.entries(decisions)) {
-      if (d.status !== "approved") continue;
+    const out = [`<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`];
+    // Draft mp fields are already mpstruc markup (escaped); anything else is escaped here.
+    const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${raw}</${tag}>`);
+    const approved = Object.entries(decisions).filter(([, d]) => d.status === "approved");
+    // Related entries approved under a structure that is itself approved here go
+    // inside its <relatedPdbEntries>, as in mpstruc's own file.
+    const newHere = new Set(approved.filter(([, d]) => d.placement !== "related").map(([p]) => p));
+    const relatedOf = {};
+    approved.forEach(([p, d]) => { if (d.placement === "related" && newHere.has(d.owner)) (relatedOf[d.owner] ||= []).push(p); });
+    for (const [pdb, d] of approved) {
+      if (d.placement === "related" && newHere.has(d.owner)) continue;
       const live = auto.cands.candidates.find((x) => x.pdb === pdb);
-      const c = live ? { ...live, organisms: live.organisms } : { pdb, title: d.title, organisms: [d.organism], res: d.res, pmid: d.pmid, doi: d.doi };
+      const m = (live && live.mp) || d.mp || {};
+      const b = m.bibliography || {};
       const sgRec = state.sgOf.get(d.subgroup);
       const where = `${sgRec ? sgRec.group.name : ""} : ${sgName(d.subgroup)} (${d.subgroup})`;
-      const bib = ["<bibliography>", `<pubMedId>${xmlEsc(c.pmid || "")}</pubMedId>`, "<authors/>", "<year/>", "<title/>", "<journal/>",
-                   "<volume/>", "<issue/>", "<pages/>", c.doi ? `<doi>${xmlEsc(c.doi)}</doi>` : "<doi/>", "<notes/>", "</bibliography>"];
-      const fields = [`<pdbCode>${xmlEsc(c.pdb)}</pdbCode>`];
+      if (d.placement === "related") {
+        out.push(`<!-- Related: add to <relatedPdbEntries> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, `<pdbCode>${xmlEsc(pdb)}</pdbCode>`);
+        continue;
+      }
+      const fields = [`<pdbCode>${xmlEsc(pdb)}</pdbCode>`];
       if (d.placement === "daughter") fields.push(`<masterProteinPdbCode>${xmlEsc(d.owner)}</masterProteinPdbCode>`);
-      fields.push(`<name>${xmlEsc(c.title)}</name>`, `<species>${xmlEsc((c.organisms || [])[0] || "")}</species>`, "<taxonomicDomain/>",
-                  "<expressedInSpecies/>", c.res ? `<resolution>${c.res}</resolution>` : "<resolution/>", "<description/>", ...bib,
-                  "<secondaryBibliographies/>", "<relatedPdbEntries/>");
+      fields.push(leaf("name", m.name || xmlEsc(live ? live.title : d.title)), leaf("species", m.species),
+                  leaf("taxonomicDomain", m.taxonomicDomain && xmlEsc(m.taxonomicDomain)), leaf("expressedInSpecies", m.expressedInSpecies),
+                  leaf("resolution", m.resolution && xmlEsc(m.resolution)), leaf("description", m.description),
+                  "<bibliography>", leaf("pubMedId", b.pubMedId && xmlEsc(b.pubMedId)), leaf("authors", b.authors), leaf("year", b.year && xmlEsc(b.year)),
+                  leaf("title", b.title), leaf("journal", b.journal), leaf("volume", b.volume && xmlEsc(b.volume)),
+                  leaf("issue", b.issue && xmlEsc(b.issue)), leaf("pages", b.pages && xmlEsc(b.pages)), leaf("doi", b.doi && xmlEsc(b.doi)),
+                  "<notes/>", "</bibliography>", "<secondaryBibliographies/>",
+                  ...(relatedOf[pdb] ? ["<relatedPdbEntries>", ...relatedOf[pdb].sort().map((r) => `<pdbCode>${xmlEsc(r)}</pdbCode>`), "</relatedPdbEntries>"]
+                                     : ["<relatedPdbEntries/>"]));
       if (d.placement === "parent") {
         out.push(`<!-- New parent in ${xmlEsc(where)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
-      } else if (d.placement === "daughter") {
-        out.push(`<!-- Daughter: add to <memberProteins> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
       } else {
-        out.push(`<!-- Related: add to <relatedPdbEntries> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, `<pdbCode>${xmlEsc(c.pdb)}</pdbCode>`);
+        out.push(`<!-- Daughter: add to <memberProteins> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
       }
     }
     return out.join("\n") + "\n";

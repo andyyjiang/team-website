@@ -126,3 +126,36 @@ def test_unlinked_batch_groups_by_authors():
     b = _s(["P9"], []); b["authors_key"] = "auth:lee|kim"
     leads = batch_leads({"9AAB": a, "9AAA": b})
     assert classify(_kb(), "9AAB", a, leads, {}).owner_pdb == "9AAA"
+
+
+def test_listing_in_mpstruc_style():
+    from mpstruc.listing import _authors, _clean_name, build
+    assert _authors(["Ahmed, S.", "Lee, C.H.", "Nguyen, L.N."]) == "Ahmed S, Lee CH, & Nguyen LN"
+    assert _clean_name("ATP-binding cassette sub-family D member 3,Green fluorescent protein") == \
+        "ATP-binding cassette sub-family D member 3"
+    assert _clean_name("Isoform 2 of Sodium channel protein") == "Sodium channel protein"
+    det = {
+        "struct": {"title": "Cryo-EM structure of X bound to calcium"},
+        "exptl": [{"method": "ELECTRON MICROSCOPY"}],
+        "rcsb_entry_info": {"resolution_combined": [3.10]},
+        "rcsb_primary_citation": {"rcsb_authors": ["Wang, L.", "Zhou, M."], "title": "A <b>title</b> & more",
+                                  "journal_abbrev": "Nature", "year": 2026, "pdbx_database_id_PubMed": -1},
+        "polymer_entities": [
+            {"entity_poly": {"rcsb_entity_polymer_type": "Protein"}, "rcsb_polymer_entity": {"pdbx_description": "channel X"},
+             "rcsb_polymer_entity_container_identifiers": {"uniprot_ids": ["P1"]},
+             "rcsb_entity_source_organism": [{"ncbi_scientific_name": "Homo sapiens",
+                                              "taxonomy_lineage": [{"name": "Eukaryota"}]}],
+             "rcsb_entity_host_organism": [{"ncbi_scientific_name": "Spodoptera frugiperda"}]},
+            {"entity_poly": {"rcsb_entity_polymer_type": "Protein"}, "rcsb_polymer_entity": {"pdbx_description": "Fab heavy chain"},
+             "rcsb_polymer_entity_container_identifiers": {"uniprot_ids": []}}],
+        "nonpolymer_entities": [{"nonpolymer_comp": {"chem_comp": {"id": "CA", "name": "CALCIUM ION"}}},
+                                {"nonpolymer_comp": {"chem_comp": {"id": "LMT", "name": "DODECYL-BETA-D-MALTOSIDE"}}}],
+    }
+    m = build(det, {"P1"}, [("9ABC", det)])
+    assert m["name"] == "Channel X" and m["species"] == "Homo sapiens" and m["taxonomicDomain"] == "Eukaryota"
+    assert m["expressedInSpecies"] == "Spodoptera frugiperda" and m["resolution"] == "3.1"
+    assert m["description"] == ("cryo-EM structure<br /> in complex with Fab heavy chain, with bound Ca<sup>2+</sup>"
+                                "<br /> in complex with Fab heavy chain, with bound Ca<sup>2+</sup>, 3.10 &Aring;: 9ABC")
+    b = m["bibliography"]
+    assert b["authors"] == "Wang L, &amp; Zhou M" and b["title"] == "A &lt;b&gt;title&lt;/b&gt; &amp; more"
+    assert b["pubMedId"] is None and b["year"] == "2026"

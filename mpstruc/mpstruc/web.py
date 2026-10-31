@@ -156,6 +156,20 @@ def _entry(e: Entry, flags: dict, pdb: dict) -> dict:
     return {k: v for k, v in d.items() if v not in (None, [], "")}
 
 
+def _counts(db: Database) -> dict:
+    ents = list(db.entries())
+    parents = {e.pdbCode.upper() for e in ents if e.kind == "parent"}
+    members = {e.pdbCode.upper() for e in ents if e.kind == "daughter"} - parents
+    related = {r.pdb.upper() for e in ents for r in e.related} - parents - members
+    return {
+        "parents": len(parents), "daughters": len(members | related),
+        "daughtersListed": len(members), "daughtersRelated": len(related),
+        "structures": len(parents | members | related),
+        "listings": len(ents) + sum(len(e.related) for e in ents),
+        "subgroups": len(list(db.subgroups())),
+    }
+
+
 def build(db: Database, online: bool = True) -> dict:
     findings = integrity.run(db, online=online)
     flags: dict[str, list] = {}
@@ -195,12 +209,10 @@ def build(db: Database, online: bool = True) -> dict:
             "source": meta.get("url"), "createdBy": meta.get("createdBy"),
             "maintainedBy": meta.get("maintainedBy"), "copyright": meta.get("copyright"),
             "pdbChecked": online,
-            "counts": {
-                "parents": sum(e.kind == "parent" for e in ents),
-                "daughters": sum(e.kind == "daughter" for e in ents),
-                "related": sum(len(e.related) for e in ents),
-                "subgroups": len(list(db.subgroups())),
-            },
+            # Distinct structures. Every structure that is not a parent counts as a
+            # daughter structure: mpstruc's <memberProtein> records and its related
+            # PDB entries alike. Cross-listed structures are counted once.
+            "counts": _counts(db),
             "flagCounts": {s: sum(1 for f in findings if f["severity"] == s) for s in ("error", "warning", "info")},
         },
         "groups": groups,

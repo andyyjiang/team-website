@@ -327,6 +327,9 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-edit select, .mp-edit input { font: inherit; color: var(--color-text); background: var(--color-bg);
   border: 1px solid var(--color-border); border-radius: 6px; padding: 5px 6px; max-width: 100%; }
 .mp-table tr.current td { font-weight: 700; }
+.mp-draft { margin: 4px 0 8px; }
+.mp-pdbtitle { font-size: 0.85rem; color: var(--color-muted); margin: 6px 0 0; padding-top: 6px;
+  border-top: 1px dashed var(--color-border); overflow-wrap: anywhere; }
 .mp-form-note { flex-basis: 100%; margin: 0; color: var(--color-error-text); font-weight: 600; }
 .mp-form-note:empty { display: none; }
 .mp-edit input:disabled { opacity: 0.5; }

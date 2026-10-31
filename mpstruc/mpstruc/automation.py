@@ -709,6 +709,30 @@ def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, th
     return "\n".join(L) + "\n"
 
 
+def add_listings(props: list[dict]) -> None:
+    """Attach a draft mpstruc entry to each suggestion (see listing.py).
+
+    `mp` holds the fields in mpstruc raw markup, used both by the XML download
+    and (being escaped text) by the page. A structure suggested as the
+    lead of other new structures lists them in its description, as mpstruc does.
+    """
+    from . import listing
+    ids = [p["pdb"] for p in props]
+    det = rcsb.entry_details(ids)
+    by_owner = defaultdict(list)
+    for p in props:
+        if p["placement"] == "related" and p.get("ownerPdb"):
+            by_owner[p["ownerPdb"]].append(p["pdb"])
+    for p in props:
+        core = set(p.get("uniprot") or []) - FUSION_UNIPROT
+        mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))])
+        if not mp:
+            continue
+        # Name, species, description, authors and title are built from escaped
+        # text plus <br />, <sup> and entities only, so the page shows them as HTML.
+        p["mp"] = mp
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -760,6 +784,7 @@ def main() -> None:
     stats["below 10% likelihood (not shown)"] = sum(p["likelihood"] < floor for p in props)
     props = [{k: v for k, v in p.items() if k not in ("sig", "taxa")} for p in props if p["likelihood"] >= floor]
     props.sort(key=lambda p: (-p["likelihood"], p["pdb"]))
+    add_listings(props)
     snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
     age = (today - dt.date.fromisoformat(snap)).days if snap else None
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),

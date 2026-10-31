@@ -237,3 +237,32 @@ def entry_families(pdb_ids: list[str], batch: int = 150, max_age_s: float = 30 *
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_details(pdb_ids: list[str], batch: int = 100, max_age_s: float = 7 * 86400) -> dict[str, dict | None]:
+    """What an mpstruc-style listing needs: entity names, organisms with lineage,
+    expression hosts, bound ligands and the full primary citation."""
+    path = CACHE_DIR / "entry_details.json"
+    cache: dict[str, dict | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id struct { title } exptl { method } "
+         "rcsb_entry_info { resolution_combined } "
+         "rcsb_primary_citation { rcsb_authors title journal_abbrev journal_volume journal_issue page_first page_last "
+         "year pdbx_database_id_DOI pdbx_database_id_PubMed } "
+         "polymer_entities { rcsb_polymer_entity { pdbx_description } "
+         "entity_poly { rcsb_entity_polymer_type } "
+         "rcsb_polymer_entity_container_identifiers { uniprot_ids } "
+         "rcsb_entity_source_organism { ncbi_scientific_name taxonomy_lineage { name } } "
+         "rcsb_entity_host_organism { ncbi_scientific_name } } "
+         "nonpolymer_entities { nonpolymer_comp { chem_comp { id name } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {e["rcsb_id"]: e for e in (data.get("data") or {}).get("entries") or [] if e}
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}
