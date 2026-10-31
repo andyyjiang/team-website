@@ -807,6 +807,11 @@ def main() -> None:
         out["membraneAccuracy"] = {"window": t["window"], "trainWindow": mr["train"]["window"], "n": t["n"],
                                    "auc": t["auc"], "at_50": t["at_50"], "calibration": t["calibration"],
                                    "mpstrucLater": mr.get("mpstruc_later")}
+        review = ROOT / "reports" / "membrane_review.json"
+        if review.exists():
+            rv = json.loads(review.read_text())
+            out["membraneAccuracy"]["review"] = {k: rv[k] for k in ("high_score_not_in_databases",
+                                                                     "low_score_in_databases", "middle_scores")}
     (SITE_DATA / "candidates.json").write_text(json.dumps(out, separators=(",", ":")))
     print(f"{stats}; {sum(p['membrane'] >= 0.5 for p in props)} at least 50% likely to be membrane proteins; "
           f"wrote {SITE_DATA / 'candidates.json'}")
