@@ -1,16 +1,17 @@
 /* Design tokens: change colors and fonts here, not throughout the file.
-   Palette "precision instrument": ink blues, hairlines, and the molecule's
-   spectral cyan-to-magenta as the only saturated colour. Text colours are
-   checked for >= 4.5:1 contrast on every surface they sit on. */
+   Palette "minimal": neutral greys with near-black (light) or near-white (dark)
+   ink, and one restrained accent, burnt amber, used sparingly (daughters,
+   current tab, meters, the bound drug in the 3D model). No gradients or glows.
+   Text colours are checked for >= 4.5:1 contrast on every surface they sit on. */
 :root {
   color-scheme: light dark;
-  --color-bg: #f5f7fb;
-  --color-bg-alt: #e9eef6;
-  --color-surface: rgba(255, 255, 255, 0.78);
+  --color-bg: #fafaf9;
+  --color-bg-alt: #f1f1ef;
+  --color-surface: #ffffff;
   --color-surface-solid: #ffffff;
-  --color-text: #0a1324;
-  --color-muted: #4a5670;
-  --color-accent: #086a80;
+  --color-text: #141414;
+  --color-muted: #5e5e5e;
+  --color-accent: #141414;
   --color-accent-text: #ffffff;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-ui: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -18,81 +19,89 @@
   --radius-sm: 6px;
   --max-width: 1080px;
   /* mpstruc database page */
-  --color-border: rgba(16, 36, 78, 0.12);
-  --color-border-strong: rgba(16, 36, 78, 0.28);
-  --color-parent: #086a80;
-  --color-daughter: #a1237a;
-  --color-related: #55607a;
-  --color-warn-bg: #fff4dc;
-  --color-warn-text: #6e4300;
-  --color-error-bg: #fdebef;
-  --color-error-text: #951a35;
-  --color-chart: #086a80;
-  --color-focus: #0b8aa6;
-  --color-grid: rgba(16, 36, 78, 0.045);
-  --spec-a: #13b8d4;
-  --spec-b: #6c74e8;
-  --spec-c: #d3409f;
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-strong: rgba(0, 0, 0, 0.24);
+  --color-parent: #141414;
+  --color-daughter: #a6460a;
+  --color-related: #6b6b6b;
+  --color-warn-bg: #fdf3e2;
+  --color-warn-text: #6b3d00;
+  --color-error-bg: #fbeaea;
+  --color-error-text: #8f1d1d;
+  --color-chart: #141414;
+  --color-focus: #a6460a;
+  --color-grid: transparent;
+  --spec-a: #a6460a;
+  --spec-b: #a6460a;
+  --spec-c: #a6460a;
   --thumb-blend: multiply;
   --thumb-bg: transparent;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  /* The hero is an instrument display: dark in both colour schemes. */
-  --hero-bg: #050912;
-  --hero-text: #e8eefa;
-  --hero-muted: #9eabc4;
-  --hero-accent: #6fe2f2;
-  --hero-line: rgba(150, 190, 255, 0.16);
-  --hero-bg-top: #070c18;           /* solid fallback behind the hero's light text */
-  --hero-accent-2: #ee6ccb;         /* magenta end of the hero's spectral rule */
-  --hero-glow-blue: rgba(46, 104, 196, 0.30);
-  --hero-glow-blue-strong: rgba(46, 104, 196, 0.32);
-  --hero-glow-magenta: rgba(196, 70, 170, 0.12);
-  --hero-dot: rgba(150, 190, 255, 0.22);
-  --hero-reticle: rgba(150, 200, 255, 0.45);
+  /* The hero is a plain panel in the page's own colours. */
+  --hero-bg: var(--color-surface-solid);
+  --hero-text: var(--color-text);
+  --hero-muted: var(--color-muted);
+  --hero-accent: var(--color-daughter);
+  --hero-line: var(--color-border);
+  --hero-bg-top: var(--color-surface-solid);
+  --hero-accent-2: var(--color-daughter);
+  --hero-glow-blue: transparent;
+  --hero-glow-blue-strong: transparent;
+  --hero-glow-magenta: transparent;
+  --hero-dot: transparent;
+  --hero-reticle: transparent;
   /* Mask stops: only the alpha matters, the colour is never seen. */
   --mask-solid: #000;
   --mask-fade: rgba(0, 0, 0, 0.35);
   /* Layout measures shared by the sticky header, tab bar and sidebar */
   --header-h: 61px;
   --tabbar-h: 46px;
-  /* Read by the molecule canvas (js/main.js) */
-  --mol-hue-start: 188;
-  --mol-hue-end: 318;
-  --mol-membrane: rgba(140, 200, 255, 0.55);
-  --mol-band-head: rgba(110, 205, 255, 0.24);
-  --mol-band-core: rgba(70, 130, 220, 0.06);
-  --mol-ligand: #ffc861;
-  --mol-glow: 1;
+  /* Read by the molecule canvas (js/main.js): a single neutral tone shaded by
+     depth (far -> near lightness), the drug in the accent colour. */
+  --mol-hue-start: 0;
+  --mol-hue-end: 0;
+  --mol-sat: 0;
+  --mol-light-far: 72;
+  --mol-light-near: 26;
+  --mol-membrane: rgba(0, 0, 0, 0.16);
+  --mol-band-head: transparent;
+  --mol-band-core: transparent;
+  --mol-ligand: #c2580f;
+  --mol-glow: 0;
   --mol-cx: 0.5;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-bg: #060a13;
-    --color-bg-alt: #0d1424;
-    --color-surface: rgba(14, 22, 40, 0.66);
-    --color-surface-solid: #0d1424;
-    --color-text: #e4ebf7;
-    --color-muted: #93a0ba;
-    --color-accent: #62dbee;
-    --color-accent-text: #04131a;
-    --color-border: rgba(150, 178, 230, 0.14);
-    --color-border-strong: rgba(150, 178, 230, 0.3);
-    --color-parent: #62dbee;
-    --color-daughter: #f28fdd;
-    --color-related: #9ea9c1;
+    --color-bg: #0f0f0f;
+    --color-bg-alt: #181818;
+    --color-surface: #161616;
+    --color-surface-solid: #161616;
+    --color-text: #ededed;
+    --color-muted: #a3a3a3;
+    --color-accent: #ededed;
+    --color-accent-text: #111111;
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-border-strong: rgba(255, 255, 255, 0.24);
+    --color-parent: #ededed;
+    --color-daughter: #f0a24a;
+    --color-related: #a3a3a3;
     --color-warn-bg: #2a2010;
     --color-warn-text: #f3cf7f;
-    --color-error-bg: #2d1220;
-    --color-error-text: #ffa3bb;
-    --color-chart: #62dbee;
-    --color-focus: #7fe6f5;
-    --color-grid: rgba(140, 170, 230, 0.05);
-    --spec-a: #4fd6ec;
-    --spec-b: #8a8cff;
-    --spec-c: #ee6ccb;
+    --color-error-bg: #2d1414;
+    --color-error-text: #ffaaaa;
+    --color-chart: #ededed;
+    --color-focus: #f0a24a;
+    --color-grid: transparent;
+    --spec-a: #f0a24a;
+    --spec-b: #f0a24a;
+    --spec-c: #f0a24a;
     --thumb-blend: normal;
     --thumb-bg: #ffffff;
+    --mol-light-far: 26;
+    --mol-light-near: 84;
+    --mol-membrane: rgba(255, 255, 255, 0.18);
+    --mol-ligand: #f0a24a;
   }
 }
 
@@ -368,7 +377,6 @@ a { color: var(--color-accent); }
 .mp-readout-id { left: 32px; display: flex; align-items: center; gap: 8px; }
 .mp-readout-id::before {
   content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--hero-accent);
-  box-shadow: 0 0 10px var(--hero-accent);
 }
 .mp-readout-hint { right: 32px; text-align: right; max-width: 40%; }
 .mp-hero-mol figcaption {

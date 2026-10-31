@@ -1068,6 +1068,7 @@ links.addEventListener("click", (event) => {
       heads: css("--mol-membrane", "rgba(120,140,200,0.35)"), ligand: css("--mol-ligand", "#f2b33d"),
       bandHead: css("--mol-band-head", "rgba(110,200,255,0.30)"), bandCore: css("--mol-band-core", "rgba(60,120,200,0.07)"),
       cx: num("--mol-cx", 0.5), glow: num("--mol-glow", 0),
+      sat: num("--mol-sat", 84), far: num("--mol-light-far", 40), near: num("--mol-light-near", 70),
     };
   }
 
@@ -1110,11 +1111,14 @@ links.addEventListener("click", (event) => {
     return [w * theme.cx + x * scale * persp, h / 2 - (y + 6) * scale * persp, z, persp];
   }
 
-  // Colour along the chain: hue from --mol-hue-start to --mol-hue-end, rubredoxin muted.
+  // Colour along the chain: hue from --mol-hue-start to --mol-hue-end at --mol-sat
+  // saturation, shaded by depth from --mol-light-far to --mol-light-near; the
+  // crystallisation partner (rubredoxin) is drawn faint.
   function hueOf(pt) { return theme.h0 + (theme.h1 - theme.h0) * pt.f; }
   function colour(pt, light) {
-    if (pt.part !== "ccr5") return `hsl(220 10% ${36 + light * 26}%)`;
-    return `hsl(${hueOf(pt)} 84% ${40 + light * 30}%)`;
+    const l = theme.far + (theme.near - theme.far) * light;
+    if (pt.part !== "ccr5") return `hsl(0 0% ${l}% / 0.32)`;
+    return `hsl(${hueOf(pt)} ${theme.sat}% ${l}%)`;
   }
 
   // The bilayer as a luminous band: bright head-group layers at +-16 A around a
@@ -1192,13 +1196,13 @@ links.addEventListener("click", (event) => {
       // Specular highlight along the top of the tube (light from above).
       if (pt.part === "ccr5" && light > 0.35) {
         const o = lw * 0.22;
-        ctx.strokeStyle = `hsl(${hueOf(pt)} 100% 84% / ${0.1 + 0.28 * light})`;
+        ctx.strokeStyle = `hsl(${hueOf(pt)} ${theme.sat}% 92% / ${0.06 + 0.16 * light})`;
         ctx.lineWidth = lw * 0.26;
         ctx.beginPath(); ctx.moveTo(a[0] - o * 0.4, a[1] - o); ctx.lineTo(b[0] - o * 0.4, b[1] - o); ctx.stroke();
       }
     }
     // Maraviroc as small atoms, with a soft halo marking the binding site.
-    const el = { C: theme.ligand, N: "#6f9bff", O: "#ff6b6b", F: "#8be08b" };
+    const el = { C: theme.ligand };  // one colour for the whole drug
     const L = model.lig.map((l) => [project(l.p, w, h, scale), l.e]);
     if (L.length && theme.glow > 0) {
       const cx = L.reduce((s, [q]) => s + q[0], 0) / L.length, cy = L.reduce((s, [q]) => s + q[1], 0) / L.length;
