@@ -313,6 +313,7 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-like meter { flex: 0 1 180px; height: 10px; }
 .mp-like b { color: var(--color-text); font-variant-numeric: tabular-nums; }
 .mp-suggest { margin: 8px 0; }
+.mp-memwhy { font-size: 0.88rem; color: var(--color-muted); margin: -2px 0 8px; max-width: 75ch; }
 .mp-conf { display: inline-block; font-size: 0.8rem; color: var(--color-muted); margin-left: 6px; }
 .mp-conf.low { color: var(--color-warn-text); background: var(--color-warn-bg); padding: 0 6px; border-radius: 6px; }
 .mp-why { font-size: 0.88rem; margin: 6px 0; }

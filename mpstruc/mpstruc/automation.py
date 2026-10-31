@@ -425,9 +425,11 @@ def _reasons(sig: dict[str, float], model: dict | None, n: int = 4) -> list[list
 
 
 def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None = None,
-            release_time: bool = False) -> tuple[list[dict], dict]:
+            release_time: bool = False, keep: set[str] | None = None) -> tuple[list[dict], dict]:
     """Proposals for the given releases. release_time=True shows each structure
-    as it looked in its release week (see as_at_release), for the backtest."""
+    as it looked in its release week (see as_at_release), for the backtest.
+    keep: place exactly these structures (e.g. those likely to be membrane
+    proteins) instead of those whose membrane signals fire."""
     ents = rcsb.entry_entities(ids)
     summ = rcsb.entry_summaries(ids)
     extras = rcsb.entry_extras(ids)
@@ -469,7 +471,7 @@ def propose(kb: KB, ids: list[str], conf: dict[str, float], model: dict | None =
     cands, sigs, scores = {}, {}, {}
     for pdb, s in pool.items():
         sig = signals(kb, s, batch_papers)
-        if in_pool(sig):
+        if (pdb in keep) if keep is not None else in_pool(sig):
             cands[pdb], sigs[pdb], scores[pdb] = s, sig, score(sig, model)
     leads = batch_leads(cands)
     out = []
@@ -778,20 +780,35 @@ def main() -> None:
     conf, model = settings.get("confidence", {}), settings.get("model")
     kb = build_kb(db, _full_summaries(db))
     ids = released_between(since, until)
-    props, stats = propose(kb, ids, conf, model)
-    # Below 10% likelihood the backtest finds under 1% of mpstruc's additions; leave those out of the page.
+    # Score every new structure for how likely it is to be a membrane protein
+    # (mpstruc/membrane.py), and place those at 10% or more.
+    from . import membrane
+    fresh = [p for p in ids if p not in kb.by_pdb]
+    mem = membrane.score_structures(fresh, db)
     floor = 0.1
-    stats["below 10% likelihood (not shown)"] = sum(p["likelihood"] < floor for p in props)
-    props = [{k: v for k, v in p.items() if k not in ("sig", "taxa")} for p in props if p["likelihood"] >= floor]
-    props.sort(key=lambda p: (-p["likelihood"], p["pdb"]))
+    keep = {p for p, v in mem.items() if v["p"] >= floor}
+    props, stats = propose(kb, ids, conf, model, keep=keep)
+    stats["scored"] = len(mem)
+    stats["below 10% membrane protein (not shown)"] = sum(v["p"] < floor for v in mem.values())
+    for p in props:
+        p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
+    props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
+    props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
     add_listings(props)
     snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
     age = (today - dt.date.fromisoformat(snap)).days if snap else None
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
            "window": [since, until], "snapshot": db.meta.get("timeStamp"), "snapshotAgeDays": age, "stats": stats,
-           "threshold": settings.get("threshold", 0.0), "confidence": conf, "candidates": props}
+           "threshold": 0.5, "confidence": conf, "candidates": props}
+    mem_report = ROOT / "reports" / "membrane.json"
+    if mem_report.exists():
+        mr = json.loads(mem_report.read_text())
+        t = mr["test"]
+        out["membraneAccuracy"] = {"window": t["window"], "trainWindow": mr["train"]["window"], "n": t["n"],
+                                   "auc": t["auc"], "at_50": t["at_50"], "calibration": t["calibration"],
+                                   "mpstrucLater": mr.get("mpstruc_later")}
     (SITE_DATA / "candidates.json").write_text(json.dumps(out, separators=(",", ":")))
-    print(f"{stats}; {sum(p['likelihood'] >= out['threshold'] for p in props)} at or above the cut-off; "
+    print(f"{stats}; {sum(p['membrane'] >= 0.5 for p in props)} at least 50% likely to be membrane proteins; "
           f"wrote {SITE_DATA / 'candidates.json'}")
 
 

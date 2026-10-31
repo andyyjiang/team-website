@@ -459,7 +459,7 @@ links.addEventListener("click", (event) => {
     auto.loading = true;
     Promise.all([fetch("data/candidates.json").then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))),
                  fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
-      .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0; })
+      .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5; })
       .catch((err) => { auto.error = err.message; })
       .finally(() => { auto.loading = false; if (lastRoute.startsWith("automation")) render(); });
   }
@@ -484,7 +484,7 @@ links.addEventListener("click", (event) => {
   // after the structure drops out of a later week's suggestions.
   function snapshot(c) {
     return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, pmid: c.pmid, doi: c.doi, mp: c.mp,
-             suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", likelihood: c.likelihood };
+             suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", membrane: c.membrane };
   }
 
   // Check a curator-entered owner. Returns {error} or {subgroup} (the owner's subfamily, which the entry must share).
@@ -563,15 +563,16 @@ links.addEventListener("click", (event) => {
         <h3>${c.mp && c.mp.name ? c.mp.name : esc(c.title || c.pdb)}</h3>
       </div>
       ${mpListing(c)}
-      <div class="mp-like" title="How likely mpstruc is to list this structure, learned from past curator decisions">
-        <span>Likely to belong in mpstruc</span><meter min="0" max="1" low="0.3" high="0.6" optimum="1" value="${c.likelihood}"></meter><b>${pct(c.likelihood)}</b>
+      <div class="mp-like">
+        <span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${c.membrane}"></meter><b>${pct(c.membrane)} likely</b>
       </div>
+      ${c.membraneWhy && c.membraneWhy.length ? `<p class="mp-memwhy">${esc(whySentence(c.membraneWhy))}</p>` : ""}
       <p class="mp-suggest"><b>Suggestion:</b> ${suggestion(c)}
         ${c.placement !== "review" ? `<span class="mp-conf${lowConf ? " low" : ""}">right ${pct(c.confidence)} of the time in testing</span>` : ""}</p>
       <details class="mp-why"><summary>All chains in the structure</summary><p>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</p></details>
       <details class="mp-why"><summary>Why</summary>
         <ul>${(c.evidence || []).map((e) => `<li>${esc(e)}</li>`).join("")}
-          ${(c.reasons || []).map(([label, w]) => `<li>${esc(label)} ${w > 0 ? "raises" : "lowers"} the likelihood</li>`).join("")}</ul>
+</ul>
         ${alts ? `<p class="mp-summary">Subfamily candidates:</p><ol>${alts}</ol>` : ""}
       </details>
       ${finalText}
@@ -594,7 +595,7 @@ links.addEventListener("click", (event) => {
       if (v.status === "approved" && d?.status !== "approved") return false;
       if (v.status === "rejected" && d?.status !== "rejected") return false;
       if (v.placement && c.placement !== v.placement) return false;
-      if (c.likelihood < Number(v.min || 0)) return false;
+      if (c.membrane < Number(v.min || 0)) return false;
       if (v.age) {
         const days = (Date.parse(auto.cands.window[1]) - Date.parse(c.released)) / 864e5;
         if (v.age === "new" && days > 28) return false;
@@ -606,20 +607,27 @@ links.addEventListener("click", (event) => {
     });
   }
 
-  const atCut = (r) => r && (r.bands || []).find((x) => Math.abs(x.min_likelihood - (auto.backtest.threshold ?? 0)) < 1e-9);
+  // "UniProt lists ... membrane", "the sample contains detergent", "but ..." -> one plain sentence.
+  function whySentence(reasons) {
+    const pro = reasons.filter((r) => !r.startsWith("but ")), con = reasons.find((r) => r.startsWith("but "));
+    const list = pro.length > 1 ? `${pro.slice(0, -1).join(", ")} and ${pro[pro.length - 1]}` : (pro[0] || "");
+    const text = list ? `${list}${con ? `, ${con}` : ""}` : (con ? con.slice(4) : "");
+    return text ? `${text[0].toUpperCase()}${text.slice(1)}.` : "";
+  }
 
   function accuracySummary() {
-    const b = auto.backtest && auto.backtest.test;
-    if (!b) return "";
-    const band = atCut(b), later = atCut(auto.backtest.later);
+    const m = auto.cands && auto.cands.membraneAccuracy, b = auto.backtest && auto.backtest.test;
+    if (!m && !b) return "";
+    const top = m && m.calibration && m.calibration[m.calibration.length - 1];
     return `<div class="mp-stats">
-      <div class="mp-stat"><b>${band ? `${Math.round(band.recall_pct)}%` : "—"}</b><span>of structures mpstruc added were suggested in their release week${later ? ` (${Math.round(later.recall_pct)}% once papers are linked)` : ""}</span></div>
-      <div class="mp-stat"><b>${Math.round(b.subgroup_top1.pct)}%</b><span>right subfamily as first choice (${Math.round(b.subgroup_top3.pct)}% in the top 3)</span></div>
-      <div class="mp-stat"><b>${Math.round(b.placement_full_auto.pct)}%</b><span>of suggested placements fully right: type, subfamily and parent</span></div>
-      <div class="mp-stat"><b>${band ? Math.round(band.per_week) : "—"}</b><span>suggestions per week; ${band ? Math.round(band.precision_pct) : "—"}% of them were added to mpstruc</span></div>
+      ${m ? `<div class="mp-stat"><b>${Math.round(m.at_50.precision_pct)}%</b><span>of structures shown as 50% or more likely really are membrane proteins
+        (${top ? `${Math.round(top.actual)}% of those shown as ${top.range}` : ""})</span></div>
+      <div class="mp-stat"><b>${Math.round(m.at_50.recall_pct)}%</b><span>of all membrane proteins are shown as 50% or more likely</span></div>` : ""}
+      ${b ? `<div class="mp-stat"><b>${Math.round(b.subgroup_top1.pct)}%</b><span>right subfamily as first choice (${Math.round(b.subgroup_top3.pct)}% in the top 3)</span></div>
+      <div class="mp-stat"><b>${Math.round(b.placement_full_auto.pct)}%</b><span>of suggested placements fully right: type, subfamily and parent</span></div>` : ""}
     </div>
-    <p class="mp-summary">Measured by replaying ${esc(b.window[0])} to ${esc(b.window[1])} week by week, as each structure looked when it was
-      released, against what mpstruc curators actually did. Treat every suggestion as a draft.
+    <p class="mp-summary">The membrane-protein percentage was tested on ${m ? m.n.toLocaleString() : ""} PDB structures released ${m ? `${esc(m.window[0])} to ${esc(m.window[1])}` : ""};
+      placements were tested against what mpstruc curators did. Treat every suggestion as a draft.
       <a href="#/automation/accuracy">How accurate is this?</a></p>`;
   }
 
@@ -637,13 +645,13 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <h2>New structures to review</h2>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
-        ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to belong</p>
+        ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
         <label>Show<select name="status">${opt("undecided", "Not yet decided", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
-        <label>Likely to belong at least<select name="min">${[...new Set([0, 0.1, 0.2, c.threshold, 0.4, 0.5, 0.6])].sort((a, b) => a - b).map((t) =>
-          opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
+        <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
+          opt(t, `${pct(t)} likely${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
         <label>Released<select name="age">${opt("", "Any time (last 26 weeks)", v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
@@ -658,16 +666,27 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
+  function memAccuracy() {
+    const m = auto.cands && auto.cands.membraneAccuracy;
+    if (!m) return "";
+    const rows = m.calibration.map((x) => `<tr><td>${esc(x.range)}</td><td>${x.n.toLocaleString()}</td><td>${x.actual}%</td></tr>`).join("");
+    return `<h3>Is it a membrane protein?</h3>
+      <p>The percentage was trained on PDB structures released ${esc(m.trainWindow[0])} to ${esc(m.trainWindow[1])} and tested on
+        ${m.n.toLocaleString()} structures released ${esc(m.window[0])} to ${esc(m.window[1])}. A structure counts as a membrane protein if mpstruc
+        lists it, or if PDBTM or MemProtMD (which checked every PDB entry for membrane proteins) do. It uses only what is known the day a
+        structure is released: UniProt's descriptions of its proteins and their families, detergent, lipids or nanodiscs in the sample,
+        whether mpstruc already lists the same protein, the method and words in the title.</p>
+      <p class="mp-summary">If the percentage is right, the last column should be close to the first.</p>
+      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Shown as</th><th>Structures</th><th>Actually membrane proteins</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+      <p class="mp-summary">${m.mpstrucLater ? `Of the ${m.mpstrucLater.n} structures mpstruc added from ${esc(m.mpstrucLater.window[0])} to ${esc(m.mpstrucLater.window[1])}
+        releases, ${m.mpstrucLater.at_least_50_pct}% are shown as 50% or more likely and ${m.mpstrucLater.at_least_10_pct}% as 10% or more.` : ""}</p>`;
+  }
+
   function viewAccuracy() {
     const b = auto.backtest && auto.backtest.test, later = auto.backtest && auto.backtest.later;
-    if (!b) return '<div class="mp-view"><h2>Accuracy</h2><p class="mp-empty">No accuracy report yet.</p></div>';
-    const th = auto.backtest.threshold;
-    const isCut = (x) => Math.abs(x.min_likelihood - th) < 1e-9;
-    const bands = b.bands.map((x, i) => {
-      const l = later && later.bands[i];
-      return `<tr${isCut(x) ? ' class="current"' : ""}><td>${pct(x.min_likelihood)}${isCut(x) ? " (default)" : ""}</td>
-        <td>${x.per_week}</td><td>${x.recall_pct}%${l ? ` <span class="mp-of">(${l.recall_pct}%)</span>` : ""}</td><td>${x.precision_pct ?? "—"}%</td></tr>`;
-    }).join("");
+    if (!b) return `<div class="mp-view"><h2>Accuracy</h2>${memAccuracy() || '<p class="mp-empty">No accuracy report yet.</p>'}</div>`;
+
     const names = { "same-paper": "Same paper as an mpstruc entry → related", "same-paper-batch": "Same paper as another new structure → related",
                     "same-protein": "Same protein as an mpstruc entry → daughter", "partial-protein": "Shares only some proteins → curator decides",
                     "new-protein": "Protein not in mpstruc → new parent", "no-evidence": "No link to any subfamily → curator decides" };
@@ -682,18 +701,14 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/automation">Automation</a> › Accuracy</p>
       <h2>How accurate are the suggestions?</h2>
-      <p>The automation was replayed week by week over ${esc(b.window[0])} to ${esc(b.window[1])}. Each week it knew only what mpstruc
+      ${memAccuracy()}
+      <h3>Placing them</h3>
+      <p>Placement was tested by replaying, week by week, ${esc(b.window[0])} to ${esc(b.window[1])}. Each week it knew only what mpstruc
         contained before that week, and saw each new structure as it looked when released: about half of new structures have no paper
         linked in their first weeks, which hides the strongest clue. Its suggestions were compared with what mpstruc's curators actually did
-        with the ${b.discovery.in_mpstruc} structures from that period they added. The model and the default cut-off were fitted on the
-        half-year before, so this is a fair test.</p>
-      <p>Every Thursday the job re-checks the last 26 weeks, so a suggestion improves once its paper is linked. Figures in brackets show
-        that later view.</p>
-      <h3>Finding new structures</h3>
-      <p class="mp-summary">A lower cut-off finds more of what curators add, but means more suggestions to look through.</p>
-      <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Show if likely at least</th><th>Suggestions per week</th>
-        <th>Share of mpstruc's additions found (later)</th><th>Share of suggestions that mpstruc added</th></tr></thead><tbody>${bands}</tbody></table></div>
-      <h3>Placing them</h3>
+        with the ${b.discovery.in_mpstruc} structures from that period they added. The confidence shown for each rule was measured on the
+        half-year before, so this is a fair test. Every Thursday the job re-checks the last 26 weeks, so a suggestion improves once its paper
+        is linked.</p>
       <p class="mp-summary">Fully right means the type (parent, daughter or related), the subfamily and the parent or owner all match the curators'
         choice. ${later ? `Once papers are linked, ${Math.round(later.placement_full_auto.pct)}% of suggested placements are fully right, against
         ${Math.round(b.placement_full_auto.pct)}% in the release week.` : ""}</p>
@@ -761,12 +776,12 @@ links.addEventListener("click", (event) => {
   function decisionsCsv() {
     const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const cols = ["PDB ID", "Title", "Released", "Decision", "Placement", "Subfamily", "Group", "Parent or owner", "Changed from suggestion",
-                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Likelihood", "Decided at"];
+                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Membrane protein (%)", "Decided at"];
     const rows = Object.entries(decisions).map(([pdb, d]) => {
       const c = auto.cands.candidates.find((x) => x.pdb === pdb) || {};
       return [pdb, c.title ?? d.title, c.released ?? d.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "",
               d.edited ? "yes" : "", d.reason || "", c.placement ?? d.suggested, sgName(c.subgroup ?? d.suggestedSubgroup), c.ownerPdb ?? d.suggestedOwner ?? "",
-              c.likelihood ?? d.likelihood, d.at].map(q).join(",");
+              Math.round(100 * (c.membrane ?? d.membrane ?? 0)), d.at].map(q).join(",");
     });
     return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
   }
