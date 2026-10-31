@@ -30,6 +30,9 @@ links.addEventListener("click", (event) => {
   if (!app) return;
 
   const PAGE = 50;
+  // Presentation hook: CSS shows the full hero on the overview and a compact one elsewhere.
+  const heroMode = (kind) => { document.body.dataset.mpView = kind || "home"; };
+  heroMode(location.hash.replace(/^#\/?/, "").split("/")[0]);
   const state = { data: null, byKey: new Map(), byPdb: new Map(), all: [], sgOf: new Map(),
                   filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "" } };
 
@@ -301,7 +304,7 @@ links.addEventListener("click", (event) => {
     for (let y = first; y <= last; y++) {
       const n = counts.get(y) || 0, h = (n / max) * (H - B - 12);
       bars += `<rect x="${(L + (y - first) * bw + 1).toFixed(1)}" y="${(H - B - h).toFixed(1)}" width="${Math.max(bw - 2, 1).toFixed(1)}"
-               height="${h.toFixed(1)}" fill="currentColor"><title>${y}: ${n} structures</title></rect>`;
+               height="${h.toFixed(1)}" fill="url(#mp-spec)"><title>${y}: ${n} structures</title></rect>`;
     }
     let labels = "";
     for (let y = first; y <= last; y++) if (y % 5 === 0) {
@@ -312,17 +315,21 @@ links.addEventListener("click", (event) => {
       return `<line class="axis" x1="${L}" x2="${W}" y1="${y}" y2="${y}"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${v}</text>`;
     }).join("");
     return `<svg class="mp-chart" viewBox="0 0 ${W} ${H}" role="img"
-      aria-label="Parent and daughter structures by publication year, ${first} to ${last}">${ticks}${bars}${labels}</svg>`;
+      aria-label="Parent and daughter structures by publication year, ${first} to ${last}">
+      <defs><linearGradient id="mp-spec" gradientUnits="userSpaceOnUse" x1="${L}" x2="${W}" y1="0" y2="0">
+        <stop offset="0" class="s0"/><stop offset="0.55" class="s1"/><stop offset="1" class="s2"/></linearGradient></defs>
+      ${ticks}${bars}${labels}</svg>`;
   }
 
   function viewHome() {
     const m = state.data.meta, c = m.counts;
     const groups = state.data.groups.map((g) => {
       const n = g.subgroups.reduce((s, sg) => s + sg.n, 0);
-      const top = [...g.subgroups].sort((a, b) => b.n - a.n).slice(0, 5)
-        .map((sg) => `<li><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${sg.n}</span></li>`).join("");
-      return `<article class="card"><h3>${esc(g.topology)}</h3><p class="mp-summary">${g.subgroups.length} subfamilies, ${n.toLocaleString()} listings</p>
-        <p class="mp-summary">Largest subfamilies:</p><ul>${top}</ul></article>`;
+      const sorted = [...g.subgroups].sort((a, b) => b.n - a.n), maxN = (sorted[0] && sorted[0].n) || 1;
+      const top = sorted.slice(0, 5)
+        .map((sg) => `<li style="--w:${((sg.n / maxN) * 100).toFixed(1)}%"><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${sg.n}</span></li>`).join("");
+      return `<article class="card mp-family"><h3>${esc(g.topology)}</h3><p class="mp-summary">${g.subgroups.length} subfamilies, ${n.toLocaleString()} listings</p>
+        <p class="mp-summary">Largest subfamilies:</p><ul class="mp-ranked">${top}</ul></article>`;
     }).join("");
     const fc = m.flagCounts;
     return `<div class="mp-view">
@@ -924,6 +931,7 @@ links.addEventListener("click", (event) => {
 
   function renderNow() {
     const [kind, ...rest] = lastRoute.split("/");
+    heroMode(kind);
     let arg;
     try { arg = decodeURIComponent(rest.join("/")); } catch { arg = rest.join("/"); }
     // Remember which control had focus, so re-rendering does not drop keyboard users.
@@ -1027,7 +1035,18 @@ links.addEventListener("click", (event) => {
   const ctx = canvas.getContext("2d");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
   const css = (name, fallback) => getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
-  let model = null, angle = 0.6, tilt = 0.18, dragging = null, visible = true, last = 0;
+  let model = null, angle = 0.6, tilt = 0.18, dragging = null, visible = true, last = 0, theme = null;
+
+  // Theme comes from CSS custom properties; read once per resize, not per segment.
+  function readTheme() {
+    const num = (name, fallback) => { const v = parseFloat(css(name, "")); return Number.isFinite(v) ? v : fallback; };
+    theme = {
+      h0: num("--mol-hue-start", 195), h1: num("--mol-hue-end", 330),
+      heads: css("--mol-membrane", "rgba(120,140,200,0.35)"), ligand: css("--mol-ligand", "#f2b33d"),
+      bandHead: css("--mol-band-head", "rgba(110,200,255,0.30)"), bandCore: css("--mol-band-core", "rgba(60,120,200,0.07)"),
+      cx: num("--mol-cx", 0.5), glow: num("--mol-glow", 0),
+    };
+  }
 
   fetch(`data/${canvas.dataset.molecule}.json`).then((r) => r.json()).then((d) => { model = build(d); resize(); frame(0); })
     .catch(() => canvas.remove());
@@ -1056,6 +1075,7 @@ links.addEventListener("click", (event) => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    readTheme();
   }
 
   function project(p, w, h, scale) {
@@ -1064,30 +1084,49 @@ links.addEventListener("click", (event) => {
     const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
     const persp = 260 / (260 - z);
     // The structure spans about y = -45 (rubredoxin) to +33 A; centre it.
-    return [w / 2 + x * scale * persp, h / 2 - (y + 6) * scale * persp, z, persp];
+    return [w * theme.cx + x * scale * persp, h / 2 - (y + 6) * scale * persp, z, persp];
   }
 
-  // Colour along the chain: from --mol-start through --mol-mid to --mol-end (hues), rubredoxin muted.
+  // Colour along the chain: hue from --mol-hue-start to --mol-hue-end, rubredoxin muted.
+  function hueOf(pt) { return theme.h0 + (theme.h1 - theme.h0) * pt.f; }
   function colour(pt, light) {
-    if (pt.part !== "ccr5") return `hsl(220 8% ${44 + light * 22}%)`;
-    const h0 = parseFloat(css("--mol-hue-start", "195")), h1 = parseFloat(css("--mol-hue-end", "330"));
-    const hue = h0 + (h1 - h0) * pt.f;
-    return `hsl(${hue} 78% ${42 + light * 26}%)`;
+    if (pt.part !== "ccr5") return `hsl(220 10% ${36 + light * 26}%)`;
+    return `hsl(${hueOf(pt)} 84% ${40 + light * 30}%)`;
+  }
+
+  // The bilayer as a luminous band: bright head-group layers at +-16 A around a
+  // faint hydrophobic core, fading out towards the left where the text sits.
+  function band(w, h, scale) {
+    const a = project([0, 16, 0], w, h, scale)[1], b = project([0, -16, 0], w, h, scale)[1];
+    const pad = 5 * scale, y0 = Math.min(a, b) - pad, y1 = Math.max(a, b) + pad;
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, "rgba(0,0,0,0)");
+    g.addColorStop(0.1, theme.bandHead); g.addColorStop(0.24, theme.bandCore);
+    g.addColorStop(0.76, theme.bandCore); g.addColorStop(0.9, theme.bandHead);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, y0, w, y1 - y0);
+    const fx = ctx.createLinearGradient(0, 0, w, 0), c = Math.max(0.05, Math.min(0.95, theme.cx));
+    fx.addColorStop(0, "rgba(0,0,0,0.25)"); fx.addColorStop(c, "rgba(0,0,0,1)"); fx.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.globalCompositeOperation = "destination-in";
+    ctx.fillStyle = fx; ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = "source-over";
   }
 
   function draw() {
+    if (!model || !theme) return;
     const w = canvas.clientWidth, h = canvas.clientHeight;
     ctx.clearRect(0, 0, w, h);
-    const scale = Math.min(w, h) / 112;
-    // Lipid bilayer: two head-group planes at +-16 A, drawn as dotted discs behind and in front.
-    const heads = css("--mol-membrane", "rgba(120,140,200,0.35)");
+    const scale = Math.min(w / 1.05, h) / 112;
+    band(w, h, scale);
+    // Lipid head groups: two planes at +-16 A, drawn as dotted discs behind and in front.
     const ring = (y, front) => {
+      ctx.fillStyle = theme.heads;
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 26) {
         for (const r of [28, 35, 42]) {
           const q = project([Math.cos(a + r) * r, y, Math.sin(a + r) * r], w, h, scale);
           if ((q[2] > 0) !== front) continue;
-          ctx.beginPath(); ctx.fillStyle = heads; ctx.globalAlpha = 0.35 + 0.4 * (q[2] + 46) / 92;
-          ctx.arc(q[0], q[1], 2.2 * scale * q[3] * 0.55, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.globalAlpha = 0.22 + 0.4 * (q[2] + 46) / 92;
+          ctx.arc(q[0], q[1], 2.2 * scale * q[3] * 0.4, 0, Math.PI * 2); ctx.fill();
         }
       }
       ctx.globalAlpha = 1;
@@ -1100,19 +1139,52 @@ links.addEventListener("click", (event) => {
       if (model.pts[i].brk || model.pts[i].i - model.pts[i - 1].i > 1) continue;
       segs.push(i);
     }
-    segs.sort((a, b) => P[a][2] - P[b][2]);
     ctx.lineCap = "round";
+    // Soft glow: a few wide, faint strokes, one path per hue bucket so overlaps do not stack up.
+    if (theme.glow > 0) {
+      const buckets = 10, paths = Array.from({ length: buckets }, () => new Path2D());
+      for (const i of segs) {
+        const pt = model.pts[i];
+        if (pt.part !== "ccr5") continue;
+        const path = paths[Math.min(buckets - 1, Math.floor(pt.f * buckets))];
+        path.moveTo(P[i - 1][0], P[i - 1][1]); path.lineTo(P[i][0], P[i][1]);
+      }
+      ctx.globalCompositeOperation = "lighter";
+      for (const [width, alpha] of [[14, 0.05], [8, 0.08]]) {
+        ctx.lineWidth = width * scale; ctx.globalAlpha = alpha * theme.glow;
+        paths.forEach((path, k) => { ctx.strokeStyle = `hsl(${theme.h0 + (theme.h1 - theme.h0) * (k + 0.5) / buckets} 100% 60%)`; ctx.stroke(path); });
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+    segs.sort((a, b) => P[a][2] - P[b][2]);
     for (const i of segs) {
       const a = P[i - 1], b = P[i], pt = model.pts[i];
       const light = Math.max(0, Math.min(1, (b[2] + 40) / 80));
       const rad = pt.ss === "H" ? 2.4 : pt.ss === "E" ? 1.7 : 0.9;
+      const lw = rad * 2 * scale * b[3];
       ctx.strokeStyle = colour(pt, light);
-      ctx.lineWidth = rad * 2 * scale * b[3];
+      ctx.lineWidth = lw;
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      // Specular highlight along the top of the tube (light from above).
+      if (pt.part === "ccr5" && light > 0.35) {
+        const o = lw * 0.22;
+        ctx.strokeStyle = `hsl(${hueOf(pt)} 100% 84% / ${0.1 + 0.28 * light})`;
+        ctx.lineWidth = lw * 0.26;
+        ctx.beginPath(); ctx.moveTo(a[0] - o * 0.4, a[1] - o); ctx.lineTo(b[0] - o * 0.4, b[1] - o); ctx.stroke();
+      }
     }
-    // Maraviroc as small atoms.
-    const el = { C: css("--mol-ligand", "#f2b33d"), N: "#5b8cff", O: "#ff5d5d", F: "#7fd87f" };
-    model.lig.map((l) => [project(l.p, w, h, scale), l.e]).sort((a, b) => a[0][2] - b[0][2]).forEach(([q, e]) => {
+    // Maraviroc as small atoms, with a soft halo marking the binding site.
+    const el = { C: theme.ligand, N: "#6f9bff", O: "#ff6b6b", F: "#8be08b" };
+    const L = model.lig.map((l) => [project(l.p, w, h, scale), l.e]);
+    if (L.length && theme.glow > 0) {
+      const cx = L.reduce((s, [q]) => s + q[0], 0) / L.length, cy = L.reduce((s, [q]) => s + q[1], 0) / L.length;
+      const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14 * scale);
+      halo.addColorStop(0, theme.ligand); halo.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalAlpha = 0.28 * theme.glow; ctx.fillStyle = halo;
+      ctx.fillRect(cx - 14 * scale, cy - 14 * scale, 28 * scale, 28 * scale); ctx.globalAlpha = 1;
+    }
+    L.sort((a, b) => a[0][2] - b[0][2]).forEach(([q, e]) => {
       ctx.beginPath(); ctx.fillStyle = el[e] || el.C;
       ctx.arc(q[0], q[1], 1.15 * scale * q[3], 0, Math.PI * 2); ctx.fill();
     });

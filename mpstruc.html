@@ -5,9 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Membrane Proteins of Known 3D Structure</title>
   <meta name="description" content="Browse the mpstruc database of membrane proteins of known 3D structure by family, subfamily, parent and daughter structures.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="mp-body">
   <header class="site-header">
     <div class="container nav">
       <a class="logo" href="index.html">Our Group</a>
@@ -26,6 +29,7 @@
       <div class="container">
         <div class="mp-hero">
           <div class="mp-hero-text">
+            <p class="mp-eyebrow" aria-hidden="true"><span>mpstruc</span><span>Membrane proteins · 3D structures</span></p>
             <h1 class="mp-title">Membrane Proteins of Known 3D Structure</h1>
             <p class="mp-credit">
               Data from <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a>, created by Stephen White and
@@ -36,6 +40,9 @@
           <figure class="mp-hero-mol">
             <canvas data-molecule="4mbs" tabindex="0" role="img"
               aria-label="Rotating 3D model of the CCR5 chemokine receptor (PDB 4MBS) in a lipid membrane, with the HIV drug maraviroc bound. Drag or use the arrow keys to turn it."></canvas>
+            <span class="mp-reticle" aria-hidden="true"></span>
+            <span class="mp-readout mp-readout-id" aria-hidden="true"><b>PDB</b> 4MBS</span>
+            <span class="mp-readout mp-readout-hint" aria-hidden="true">Drag or use the arrow keys to turn it</span>
             <figcaption>
               <a href="https://www.rcsb.org/structure/4MBS">4MBS</a> · CCR5 chemokine receptor with maraviroc ·
               contributed by Gye Won Han (Tan <i>et al.</i>, <i>Science</i> 2013)
