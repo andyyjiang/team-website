@@ -132,3 +132,30 @@ def entry_entities(pdb_ids: list[str], batch: int = 100, max_age_s: float = 30 *
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_keywords(pdb_ids: list[str], batch: int = 200, max_age_s: float = 30 * 86400) -> dict[str, list[str] | None]:
+    """UniProt keyword IDs (e.g. KW-0812 Transmembrane) over all protein entities of each entry."""
+    path = CACHE_DIR / "entry_keywords.json"
+    cache: dict[str, list[str] | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id polymer_entities { "
+         "uniprots { rcsb_uniprot_keyword { id } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e:
+                continue
+            kws = {k["id"] for pe in e.get("polymer_entities") or [] for u in pe.get("uniprots") or []
+                   for k in u.get("rcsb_uniprot_keyword") or []}
+            found[e["rcsb_id"]] = sorted(kws)
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}
