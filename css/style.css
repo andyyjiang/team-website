@@ -305,6 +305,22 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-more { display: block; margin: 12px auto; }
 .mp-empty { padding: 24px; text-align: center; color: var(--color-muted); background: var(--color-bg-alt); border-radius: var(--radius); }
 
+/* Hero with the animated structure */
+.mp-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 420px); gap: 24px; align-items: center; margin-bottom: 8px; }
+.mp-hero-mol { margin: 0; }
+.mp-hero-mol canvas { display: block; width: 100%; aspect-ratio: 1 / 1; cursor: grab; touch-action: pan-y; border-radius: var(--radius); }
+.mp-hero-mol canvas:active { cursor: grabbing; }
+.mp-hero-mol canvas:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
+.mp-hero-mol figcaption { font-size: 0.8rem; color: var(--color-muted); text-align: center; margin-top: 6px; }
+:root { --mol-hue-start: 195; --mol-hue-end: 330; --mol-membrane: rgba(110, 130, 190, 0.5); --mol-ligand: #f2b33d; }
+
+/* Structure pictures (from the RCSB PDB) */
+.mp-entry.has-thumb > .mp-thumb { float: right; width: 112px; height: 112px; object-fit: contain; margin: 0 0 8px 12px;
+  border-radius: 8px; background: #fff; border: 1px solid var(--color-border); }
+.mp-thumb-sm { width: 44px; height: 44px; object-fit: contain; border-radius: 6px; background: #fff; display: block; }
+.mp-td-thumb { width: 52px; }
+.mp-figure-inline { float: right; max-width: 220px; }
+
 /* Automation tab */
 .mp-cand.decided { opacity: 0.85; }
 .mp-cand.decided.approved { border-left-color: var(--color-daughter); }
@@ -336,6 +352,9 @@ a.mp-btn { display: inline-block; text-decoration: none; }
 .mp-edit input:disabled { opacity: 0.5; }
 
 @media (max-width: 860px) {
+  .mp-hero { grid-template-columns: minmax(0, 1fr); }
+  .mp-hero-mol { max-width: 340px; margin: 0 auto; }
+  .mp-figure-inline { float: none; display: block; }
   .mp-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .mp-side { position: static; max-height: none; }
   .mp-side > details > summary {
@@ -346,6 +365,7 @@ a.mp-btn { display: inline-block; text-decoration: none; }
   .mp-figure { max-width: 280px; order: -1; }
 }
 @media (max-width: 480px) {
+  .mp-entry.has-thumb > .mp-thumb { width: 72px; height: 72px; }
   .mp-meta { grid-template-columns: 1fr; }
   .mp-meta dt { margin-top: 4px; }
   .mp-tabs a { padding: 10px 10px; }

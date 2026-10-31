@@ -37,6 +37,20 @@ links.addEventListener("click", (event) => {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const strip = (h) => String(h ?? "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
   const rcsb = (id) => `https://www.rcsb.org/structure/${encodeURIComponent(id)}`;
+  // The PDB's own picture of a structure (as on rcsb.org). Falls back to the
+  // model image, then disappears, if the PDB has no assembly picture.
+  const thumbSrc = (id, kind = "assembly-1") => {
+    const l = String(id).toLowerCase();
+    return `https://cdn.rcsb.org/images/structures/${l.slice(1, 3)}/${l}/${l}_${kind}.jpeg`;
+  };
+  window.mpThumbFallback = (img) => {
+    if (img.dataset.tried) { img.remove(); return; }
+    img.dataset.tried = "1";
+    img.src = thumbSrc(img.dataset.pdb, "model-1");
+  };
+  const thumb = (id, cls = "mp-thumb") =>
+    `<img class="${cls}" loading="lazy" decoding="async" src="${thumbSrc(id)}" data-pdb="${esc(id)}"
+      alt="3D structure of PDB ${esc(id)} (image: RCSB PDB)" onerror="mpThumbFallback(this)">`;
   const fmtRes = (v) => (v == null ? "" : `${Number(v).toFixed(2).replace(/0$/, "")} Å`);
 
   // ---- data loading and indexes -------------------------------------------
@@ -239,7 +253,8 @@ links.addEventListener("click", (event) => {
           <summary>${label}</summary>${ds.map((d) => entryCard(d)).join("")}</details>`;
       }
     }
-    return `<article class="mp-entry${isD ? " daughter" : ""}" id="e-${e.k}">${body}${daughters}</article>`;
+    const pic = opts.noThumb ? "" : thumb(e.pdb);
+    return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
   }
 
   function csvButton() {
@@ -390,6 +405,7 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${thumb(id, "mp-figure mp-figure-inline")}
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
       ${x ? `<p class="mp-frompdb">From PDB: ${esc(x.title || "")} · ${esc(x.method || "")}${x.res ? ` · ${fmtRes(x.res)}` : ""}${x.released ? ` · released ${esc(x.released)}` : ""}</p>` : ""}
@@ -407,7 +423,7 @@ links.addEventListener("click", (event) => {
       .filter((r) => r.type !== "mentioned" && !(r.entry === e && r.type !== "related"));
     const relRows = (e.rel || []).map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
-      return `<tr><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}">${esc(id)}</a></td>
+      return `<tr><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}">${esc(id)}</a></td>
         <td>${x ? esc(x.title || "") : '<span class="mp-frompdb">Not found in the PDB</span>'}</td>
         <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td></tr>`;
     }).join("");
@@ -419,9 +435,8 @@ links.addEventListener("click", (event) => {
         ${e.parent ? ` › <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}</p>
       <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${strip(e.name)}</h2>
       <div class="mp-entry-top">
-        ${entryCard(e, { showParent: true, noDaughters: true })}
-        <img class="mp-figure" loading="lazy" src="https://cdn.rcsb.org/images/structures/${lower.slice(1, 3)}/${lower}/${lower}_assembly-1.jpeg"
-             alt="3D model of PDB entry ${esc(e.pdb)} (image from RCSB PDB)" onerror="this.remove()">
+        ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true })}
+        ${thumb(e.pdb, "mp-figure")}
       </div>
       <p class="mp-links">
         <a href="${rcsb(e.pdb)}" rel="noopener">RCSB PDB (3D viewer) ↗</a>
@@ -432,7 +447,7 @@ links.addEventListener("click", (event) => {
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
       ${relRows ? `<h3>Related entries (${e.rel.length})</h3><p class="mp-frompdb">Details below come from the PDB; mpstruc records only the IDs.</p>
-        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
+        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
       ${others.length ? `<h3>Also listed</h3><ul>${others.map((r) => `<li>${r.type === "related" ? `As a related entry of <a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>` : `As a ${r.type} in <a href="#/entry/${r.entry.k}">${esc(r.entry.k)}</a>`} · <a href="#/sg/${r.entry.sg.k}">${r.entry.sg.name}</a></li>`).join("")}</ul>` : ""}
       ${daughters}
     </div>`;
@@ -554,7 +569,7 @@ links.addEventListener("click", (event) => {
       </form>` : "";
     const lowConf = c.confidence < 0.7;
     const alts = (c.alternatives || []).map((a) => `<li>${esc(a.name)} <span class="mp-count">${pct(a.score)}</span></li>`).join("");
-    return `<article class="mp-entry mp-cand${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">
+    return `<article class="mp-entry mp-cand has-thumb${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">${thumb(c.pdb)}
       <div class="mp-entry-head">
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
@@ -673,9 +688,10 @@ links.addEventListener("click", (event) => {
     return `<h3>Is it a membrane protein?</h3>
       <p>The percentage was trained on PDB structures released ${esc(m.trainWindow[0])} to ${esc(m.trainWindow[1])} and tested on
         ${m.n.toLocaleString()} structures released ${esc(m.window[0])} to ${esc(m.window[1])}. A structure counts as a membrane protein if mpstruc
-        lists it, or if PDBTM or MemProtMD (which checked every PDB entry for membrane proteins) do. It uses only what is known the day a
-        structure is released: UniProt's descriptions of its proteins and their families, detergent, lipids or nanodiscs in the sample,
-        whether mpstruc already lists the same protein, the method and words in the title.</p>
+        lists it, if PDBTM or MemProtMD (which checked every PDB entry for membrane proteins) do, or if OPM classes it as transmembrane.
+        It uses only what is known the day a structure is released: UniProt's descriptions of its proteins and their families, TCDB's
+        transporter classes, detergent, lipids or nanodiscs in the sample, whether mpstruc already lists the same protein, the method and
+        words in the title.</p>
       <p class="mp-summary">If the percentage is right, the last column should be close to the first.</p>
       <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Shown as</th><th>Structures</th><th>Actually membrane proteins</th></tr></thead>
         <tbody>${rows}</tbody></table></div>
@@ -997,4 +1013,137 @@ links.addEventListener("click", (event) => {
     const sideBox = app.querySelector(".mp-side");
     if (cur && sideBox) sideBox.scrollTop = cur.offsetTop - sideBox.clientHeight / 2;
   }
+})();
+
+// ---------------------------------------------------------------------------
+// Animated 3D structure (mpstruc.html hero). Draws a protein backbone from
+// data/<id>.json (C-alpha coordinates, oriented so the membrane normal is the
+// y axis) as a smooth ribbon inside a lipid bilayer, on a plain 2D canvas.
+// Runs only where a [data-molecule] canvas exists.
+// ---------------------------------------------------------------------------
+(function () {
+  const canvas = document.querySelector("canvas[data-molecule]");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const css = (name, fallback) => getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
+  let model = null, angle = 0.6, tilt = 0.18, dragging = null, visible = true, last = 0;
+
+  fetch(`data/${canvas.dataset.molecule}.json`).then((r) => r.json()).then((d) => { model = build(d); resize(); frame(0); })
+    .catch(() => canvas.remove());
+
+  // Catmull-Rom spline through the C-alpha trace, broken at chain gaps.
+  function build(d) {
+    const res = d.residues, pts = [];
+    const sub = 5;
+    for (let i = 0; i < res.length - 1; i++) {
+      const gap = (j) => j < 0 || j >= res.length || Math.hypot(...res[j].p.map((v, k) => v - res[i].p[k])) > 4.5 * Math.abs(j - i) + 1;
+      const p0 = res[gap(i - 1) ? i : i - 1].p, p1 = res[i].p, p2 = res[i + 1].p, p3 = res[gap(i + 2) ? i + 1 : i + 2].p;
+      if (Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) > 4.5) continue;
+      for (let s = 0; s < sub; s++) {
+        const t = s / sub, t2 = t * t, t3 = t2 * t;
+        const p = [0, 1, 2].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
+                                            + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3));
+        const r = res[i];
+        pts.push({ p, f: i / (res.length - 1), ss: r.ss, part: r.part, brk: s === 0 && pts.length && pts[pts.length - 1].i !== i - 1, i });
+      }
+    }
+    return { pts, lig: d.ligand || [] };
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function project(p, w, h, scale) {
+    const ca = Math.cos(angle), sa = Math.sin(angle), ct = Math.cos(tilt), st = Math.sin(tilt);
+    const x = p[0] * ca + p[2] * sa, z0 = -p[0] * sa + p[2] * ca;
+    const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
+    const persp = 260 / (260 - z);
+    // The structure spans about y = -45 (rubredoxin) to +33 A; centre it.
+    return [w / 2 + x * scale * persp, h / 2 - (y + 6) * scale * persp, z, persp];
+  }
+
+  // Colour along the chain: from --mol-start through --mol-mid to --mol-end (hues), rubredoxin muted.
+  function colour(pt, light) {
+    if (pt.part !== "ccr5") return `hsl(220 8% ${44 + light * 22}%)`;
+    const h0 = parseFloat(css("--mol-hue-start", "195")), h1 = parseFloat(css("--mol-hue-end", "330"));
+    const hue = h0 + (h1 - h0) * pt.f;
+    return `hsl(${hue} 78% ${42 + light * 26}%)`;
+  }
+
+  function draw() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    const scale = Math.min(w, h) / 112;
+    // Lipid bilayer: two head-group planes at +-16 A, drawn as dotted discs behind and in front.
+    const heads = css("--mol-membrane", "rgba(120,140,200,0.35)");
+    const ring = (y, front) => {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 26) {
+        for (const r of [28, 35, 42]) {
+          const q = project([Math.cos(a + r) * r, y, Math.sin(a + r) * r], w, h, scale);
+          if ((q[2] > 0) !== front) continue;
+          ctx.beginPath(); ctx.fillStyle = heads; ctx.globalAlpha = 0.35 + 0.4 * (q[2] + 46) / 92;
+          ctx.arc(q[0], q[1], 2.2 * scale * q[3] * 0.55, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    };
+    ring(16, false); ring(-16, false);
+    // Ribbon segments, far to near.
+    const P = model.pts.map((pt) => project(pt.p, w, h, scale));
+    const segs = [];
+    for (let i = 1; i < P.length; i++) {
+      if (model.pts[i].brk || model.pts[i].i - model.pts[i - 1].i > 1) continue;
+      segs.push(i);
+    }
+    segs.sort((a, b) => P[a][2] - P[b][2]);
+    ctx.lineCap = "round";
+    for (const i of segs) {
+      const a = P[i - 1], b = P[i], pt = model.pts[i];
+      const light = Math.max(0, Math.min(1, (b[2] + 40) / 80));
+      const rad = pt.ss === "H" ? 2.4 : pt.ss === "E" ? 1.7 : 0.9;
+      ctx.strokeStyle = colour(pt, light);
+      ctx.lineWidth = rad * 2 * scale * b[3];
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    // Maraviroc as small atoms.
+    const el = { C: css("--mol-ligand", "#f2b33d"), N: "#5b8cff", O: "#ff5d5d", F: "#7fd87f" };
+    model.lig.map((l) => [project(l.p, w, h, scale), l.e]).sort((a, b) => a[0][2] - b[0][2]).forEach(([q, e]) => {
+      ctx.beginPath(); ctx.fillStyle = el[e] || el.C;
+      ctx.arc(q[0], q[1], 1.15 * scale * q[3], 0, Math.PI * 2); ctx.fill();
+    });
+    ring(16, true); ring(-16, true);
+  }
+
+  function frame(t) {
+    if (!model) return;
+    const dt = last ? Math.min(t - last, 50) : 0;
+    last = t;
+    if (!dragging && !reduce.matches) angle += dt * 0.00022;
+    draw();
+    if (visible && !reduce.matches) requestAnimationFrame(frame);
+  }
+
+  new ResizeObserver(() => { if (model) { resize(); draw(); } }).observe(canvas);
+  new IntersectionObserver(([e]) => {
+    const was = visible;
+    visible = e.isIntersecting && !document.hidden;
+    if (visible && !was && model) { last = 0; requestAnimationFrame(frame); }
+  }).observe(canvas);
+  document.addEventListener("visibilitychange", () => { visible = !document.hidden; if (visible && model) { last = 0; requestAnimationFrame(frame); } });
+  canvas.addEventListener("pointerdown", (e) => { dragging = { x: e.clientX, y: e.clientY, a: angle, t: tilt }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    angle = dragging.a + (e.clientX - dragging.x) * 0.01;
+    tilt = Math.max(-0.9, Math.min(0.9, dragging.t + (e.clientY - dragging.y) * 0.006));
+    if (reduce.matches) draw();
+  });
+  canvas.addEventListener("pointerup", () => { dragging = null; });
+  canvas.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { angle += e.key === "ArrowLeft" ? -0.15 : 0.15; draw(); e.preventDefault(); }
+  });
 })();

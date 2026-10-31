@@ -24,12 +24,24 @@
     <main id="top">
     <section class="section mp-page">
       <div class="container">
-        <h1 class="mp-title">Membrane Proteins of Known 3D Structure</h1>
-        <p class="mp-credit">
-          Data from <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a>, created by Stephen White and
-          maintained by Craig Snider (UC Irvine). This is a curation tool for the mpstruc team; mpstruc remains the
-          authoritative source.
-        </p>
+        <div class="mp-hero">
+          <div class="mp-hero-text">
+            <h1 class="mp-title">Membrane Proteins of Known 3D Structure</h1>
+            <p class="mp-credit">
+              Data from <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a>, created by Stephen White and
+              maintained by Craig Snider (UC Irvine). This is a curation tool for the mpstruc team; mpstruc remains the
+              authoritative source.
+            </p>
+          </div>
+          <figure class="mp-hero-mol">
+            <canvas data-molecule="4mbs" tabindex="0" role="img"
+              aria-label="Rotating 3D model of the CCR5 chemokine receptor (PDB 4MBS) in a lipid membrane, with the HIV drug maraviroc bound. Drag or use the arrow keys to turn it."></canvas>
+            <figcaption>
+              <a href="https://www.rcsb.org/structure/4MBS">4MBS</a> · CCR5 chemokine receptor with maraviroc ·
+              contributed by Gye Won Han (Tan <i>et al.</i>, <i>Science</i> 2013)
+            </figcaption>
+          </figure>
+        </div>
         <nav class="mp-tabs" aria-label="mpstruc sections">
           <a href="#/" data-tab="database">Database</a>
           <a href="#/automation" data-tab="automation">Automation</a>

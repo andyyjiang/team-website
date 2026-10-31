@@ -3,9 +3,12 @@
     python -m mpstruc.membrane        # train, test, write membrane_model.json + reports/membrane.md
 
 Labels (what counts as a membrane protein): the structure is listed in
-mpstruc, or the PDBTM or MemProtMD databases, which screened every PDB entry
-for transmembrane proteins, list it. Everything else released in the same
-weeks is labelled "not a membrane protein". PDBTM screened the whole PDB
+mpstruc, or PDBTM or MemProtMD (which screened every PDB entry for
+transmembrane proteins) list it, or OPM classes it as transmembrane.
+Structures OPM classes only as monotopic/peripheral or peptide, and that no
+other source lists, are left out of training and testing (OPM does not say
+whether they sit in the membrane or on it). Everything else released in the
+same weeks is labelled "not a membrane protein". PDBTM screened the whole PDB
 consistently until March 2025, so training (Jul 2023 - Aug 2024) and testing
 (Sep 2024 - Mar 2025) use that period.
 
@@ -25,7 +28,7 @@ import re
 import urllib.request
 from collections import Counter, defaultdict
 
-from . import rcsb
+from . import membranedb, rcsb
 from .automation import FUSION_UNIPROT, SEARCH, TM_KEYWORDS, released_between
 from .model import load
 from .report import ROOT, source_xml
@@ -85,6 +88,7 @@ class Context:
         for v in self.protein_dates.values():
             v.sort()
         self.fam_stats = fam_stats or {}  # InterPro -> [membrane, not membrane] counts in training
+        self.tcdb = membranedb.tcdb()
 
 
 def _uniprots(det: dict | None) -> set[str]:
@@ -141,6 +145,10 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
     for k in KW_SOLUBLE:
         x[f"kw_{k}"] = float(k in kw)
     x["no_uniprot"] = float(not f["uniprots"])
+    tcs = sorted({tc for u in f["uniprots"] for tc in ctx.tcdb.get(u, ())})
+    x["tcdb_transporter"] = float(any(tc[0] in "123" for tc in tcs))
+    x["tcdb_other"] = float(bool(tcs) and not x["tcdb_transporter"])
+    why["tcdb"] = tcs[:2]
     x["detergent"] = float(bool(f["detergents"]))
     x["lipid"] = float(bool(f["lipids"]))
     x["nanodisc"] = float(f["nanodisc"])
@@ -212,6 +220,10 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
     for k, place in KW_SOLUBLE.items():
         if x.get(f"kw_{k}"):
             add(f"kw_{k}", 1, f"UniProt says a protein in it is {place}")
+    if x.get("tcdb_transporter"):
+        add("tcdb_transporter", 1, f"TCDB classifies a protein in it as a channel or transporter (TC {why['tcdb'][0]})")
+    elif x.get("tcdb_other"):
+        add("tcdb_other", 1, f"TCDB lists a protein in it (TC {why['tcdb'][0]})")
     if x.get("detergent"):
         add("detergent", 1, f"the sample contains detergent ({', '.join(f['detergents'][:2])})")
     if x.get("lipid"):
@@ -239,9 +251,13 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
 
 
 def _labels(start: str, end: str, mpstruc_ids: set[str]) -> tuple[list[str], set[str]]:
+    """Release IDs (minus OPM-only monotopic/peripheral and peptide entries) and the membrane-protein set."""
     ids = released_between(start, end)
-    pos = annotated(start, end, ["PDBTM", "MemProtMD"]) | (set(ids) & mpstruc_ids)
-    return ids, pos
+    opm = membranedb.opm()
+    pos = annotated(start, end, ["PDBTM", "MemProtMD"]) | (set(ids) & mpstruc_ids) | \
+        {p for p in ids if opm.get(p) == "transmembrane"}
+    unsure = {p for p in ids if opm.get(p) in ("monotopic/peripheral", "peptide")} - pos
+    return [p for p in ids if p not in unsure], pos
 
 
 def _rows(ids, pos, ctx, prior, training: bool):
@@ -366,8 +382,10 @@ def score_structures(ids: list[str], db=None, model: dict | None = None) -> dict
 def report_md(r: dict, model: dict) -> str:
     t = r["test"]
     L = ["# How likely is a structure to be a membrane protein?", "",
-         "A structure counts as a membrane protein if mpstruc lists it, or if PDBTM or MemProtMD (which screened every "
-         "PDB entry for transmembrane proteins) do. The model uses only facts known on the day a structure is released. "
+         "A structure counts as a membrane protein if mpstruc lists it, if PDBTM or MemProtMD (which screened every "
+         "PDB entry for transmembrane proteins) do, or if OPM classes it as transmembrane. Structures OPM classes only as "
+         "monotopic/peripheral or peptide, with no other source, are left out. Signals include UniProt keywords and "
+         "families and TCDB transporter classes. The model uses only facts known on the day a structure is released. "
          f"It was trained on PDB releases {TRAIN[0]} to {TRAIN[1]} and tested on {TEST[0]} to {TEST[1]}.", "",
          "## Test period", "",
          f"- Structures: {t['n']:,}, of which membrane proteins: {t['membrane']:,}",
