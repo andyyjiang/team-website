@@ -5,93 +5,95 @@ A structure counts as a membrane protein if mpstruc lists it, if PDBTM or MemPro
 ## Test period
 
 - Structures: 9,583, of which membrane proteins: 1,187
-- Ranking quality (AUC): 0.9827; Brier score: 0.0323
-- Called membrane protein (≥50%): 1,317; of those, 79.8% are; they include 88.5% of all membrane proteins
-- Of the 447 structures mpstruc added from Jul–Dec 2025 releases, 91.7% score at least 50% and 97.1% at least 10%
+- Ranking quality (AUC): 0.9852; Brier score: 0.0254
+- Called membrane protein (≥50%): 1,301; of those, 84.1% are; they include 92.2% of all membrane proteins
+- Of the 447 structures mpstruc added from Jul–Dec 2025 releases, 91.5% score at least 50% and 98.0% at least 10%
 
 ### Does the percentage mean what it says?
 
 | Shown as | Structures | Average shown | Actually membrane proteins |
 |---|---|---|---|
-| 0-10% | 7,969 | 0.5% | 0.5% |
-| 10-20% | 156 | 13.9% | 23.7% |
-| 20-30% | 55 | 25.1% | 23.6% |
-| 30-40% | 37 | 34.2% | 18.9% |
-| 40-50% | 49 | 44.5% | 73.5% |
-| 50-60% | 35 | 55.0% | 48.6% |
-| 60-70% | 85 | 65.1% | 67.1% |
-| 70-80% | 139 | 76.4% | 62.6% |
-| 80-90% | 196 | 86.0% | 76.5% |
-| 90-100% | 862 | 92.7% | 85.8% |
+| 0-10% | 8,026 | 0.4% | 0.3% |
+| 10-20% | 106 | 13.7% | 11.3% |
+| 20-30% | 51 | 24.7% | 25.5% |
+| 30-40% | 62 | 35.0% | 41.9% |
+| 40-50% | 37 | 44.8% | 51.4% |
+| 50-60% | 27 | 55.4% | 48.1% |
+| 60-70% | 39 | 67.2% | 74.4% |
+| 70-80% | 61 | 76.2% | 78.7% |
+| 80-90% | 182 | 85.6% | 75.8% |
+| 90-100% | 992 | 94.2% | 87.3% |
 
 ## Strongest signals
 
 | Signal | Weight |
 |---|---|
-| kw_tm | +2.06 |
-| detergent | +1.71 |
-| m:xray | -1.36 |
-| tcdb_other | +0.78 |
-| kw_membrane | +0.67 |
-| kw_tm_all | +0.62 |
-| lipid | +0.62 |
-| m:em | +0.62 |
-| kw_KW-0963 | -0.57 |
-| family | +0.57 |
-| tcdb_transporter | +0.55 |
-| kw_KW-0964 | -0.47 |
-| no_uniprot | -0.30 |
-| kw_KW-0539 | +0.25 |
-| same_protein | +0.22 |
-| m:nmr | +0.04 |
-| many_chains | -0.04 |
+| tm_modelled | +2.31 |
+| detergent | +1.38 |
+| kw_tm | +1.37 |
+| tm_missing | -1.37 |
+| m:xray | -1.03 |
+| tcdb_other | +0.81 |
+| kw_membrane | +0.61 |
+| kw_KW-0963 | -0.60 |
+| kw_tm_all | +0.50 |
+| family | +0.44 |
+| tcdb_transporter | +0.38 |
+| m:em | +0.36 |
+| many_chains | -0.34 |
+| no_uniprot | -0.29 |
+| lipid | +0.21 |
+| kw_KW-0539 | +0.20 |
+| kw_KW-0964 | -0.15 |
+| same_protein | +0.10 |
+| m:nmr | +0.02 |
 
-Title words that raise it: transporter (+0.55), channel (+0.54), receptor (+0.52), substrate (+0.44), system (+0.31), coli (+0.31), nanodiscs (+0.30), apo (+0.28), outward-facing (+0.26), vibrio (+0.25), tuberculosis (+0.25), full-length (+0.24), membrane (+0.24), mycobacterium (+0.24), lipid (+0.23)
+Title words that raise it: receptor (+0.55), substrate (+0.40), transporter (+0.39), channel (+0.35), full-length (+0.32), apo (+0.28), system (+0.28), region (+0.28), nanodiscs (+0.24), vibrio (+0.23), lipid (+0.19), dimer (+0.19), outward-facing (+0.18), coli (+0.18), tuberculosis (+0.16)
 
-Title words that lower it: domain (-0.90), fab (-0.81), sars-cov-2 (-0.69), rat (-0.50), antibody (-0.48), isoform (-0.47), spike (-0.44), flip (-0.44), beta (-0.40), ampa (-0.39), local (-0.38), glua2 (-0.37), tarp (-0.36), protein (-0.34), composite (-0.33)
+Title words that lower it: fab (-0.58), variant (-0.42), domain (-0.41), antibody (-0.38), hiv-1 (-0.34), beta (-0.31), composite (-0.30), env (-0.29), sars-cov-2 (-0.29), fibril (-0.27), protein (-0.26), iii (-0.25), dataset (-0.24), bacteriophage (-0.23), trimer (-0.22)
 
 ## Examples from the test period
 
 | PDB | Shown | Membrane protein? | Why |
 |---|---|---|---|
-| 8JC9 | 93% | yes | UniProt lists all its proteins as crossing the membrane; its protein family (IPR000066) is a membrane protein in 10 of 11 training structures; the sample contains detergent (D12) |
-| 9KQQ | 93% | yes | its protein family (IPR001344) is a membrane protein in 26 of 26 training structures; UniProt lists a protein in it as crossing the membrane; the sample contains detergent (LMT) |
-| 8UVI | 93% | yes | UniProt lists a protein in it as crossing the membrane; its protein family (IPR001898) is a membrane protein in 7 of 7 training structures; lipids are bound (CLR) |
-| 8XNS | 92% | yes | its protein family (IPR008030) is a membrane protein in 12 of 12 training structures; UniProt lists a protein in it as crossing the membrane; lipids are bound (3PE, PC1) |
-| 9AST | 86% | yes | its protein family (IPR001408) is a membrane protein in 197 of 201 training structures; UniProt lists a protein in it as crossing the membrane; TCDB lists a protein in it (TC 8.A.92.1.1); but UniProt says a protein in it is in the cytoplasm |
-| 9DYN | 70% | yes | UniProt lists a protein in it as crossing the membrane; TCDB classifies a protein in it as a channel or transporter (TC 1.A.46.1.2); mpstruc already lists this protein (e.g. 8D1E) |
-| 9BVP | 26% | yes | its protein family (IPR011051) is a membrane protein in 0 of 22 training structures; but UniProt lists all its proteins as crossing the membrane |
-| 9FX3 | 8% | no | UniProt does not list any of its proteins as crossing the membrane; but UniProt places a protein in it in a membrane |
-| 9BGZ | 5% | no | none of its proteins is linked to UniProt yet; but the title mentions 'transporter' |
-| 9HBW | 1% | no | UniProt does not list any of its proteins as crossing the membrane |
-| 8QHZ | 1% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR007157) is a membrane protein in 0 of 11 training structures; but UniProt places a protein in it in a membrane |
-| 9KBQ | 1% | no | UniProt does not list any of its proteins as crossing the membrane; but its protein family (IPR002196) is a membrane protein in 7 of 9 training structures |
-| 9C3A | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR005564) is a membrane protein in 0 of 4 training structures |
-| 8UDY | 0% | no | its protein family (IPR001205) is a membrane protein in 0 of 1186 training structures; the title mentions 'sars-cov-2'; but UniProt lists a protein in it as crossing the membrane |
-| 9AR1 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; but its protein family (IPR001509) is a membrane protein in 17 of 64 training structures |
-| 9CFU | 0% | no | its protein family (IPR043129) is a membrane protein in 0 of 123 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but UniProt places a protein in it in a membrane |
-| 8QGA | 0% | no | UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but its protein family (IPR016064) is a membrane protein in 1 of 2 training structures |
-| 8Z1G | 0% | no | its protein family (IPR036866) is a membrane protein in 0 of 121 training structures; UniProt does not list any of its proteins as crossing the membrane; but UniProt says a protein in it is in the nucleus |
-| 9CQ9 | 0% | no | its protein family (IPR029063) is a membrane protein in 1 of 1382 training structures; UniProt does not list any of its proteins as crossing the membrane |
-| 9JJG | 0% | no | its protein family (IPR001205) is a membrane protein in 0 of 1186 training structures; UniProt does not list any of its proteins as crossing the membrane |
-| 9E7Z | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR016184) is a membrane protein in 0 of 21 training structures; the title mentions 'fab' |
-| 9CM2 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR009003) is a membrane protein in 9 of 1443 training structures; UniProt says a protein in it is secreted |
-| 9JFF | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR004838) is a membrane protein in 0 of 3 training structures |
-| 8RN9 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR007099) is a membrane protein in 0 of 42 training structures; the title mentions 'local' |
-| 9MGX | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR000845) is a membrane protein in 0 of 7 training structures |
-| 8YD1 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR029045) is a membrane protein in 0 of 63 training structures; UniProt says a protein in it is in the cytoplasm |
-| 9AYP | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR014719) is a membrane protein in 0 of 14 training structures |
-| 9A4K | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR029045) is a membrane protein in 0 of 63 training structures; UniProt says a protein in it is in the cytoplasm |
-| 8V57 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR000169) is a membrane protein in 0 of 32 training structures; UniProt says a protein in it is secreted; but UniProt places a protein in it in a membrane |
-| 7GUL | 0% | no | its protein family (IPR013087) is a membrane protein in 0 of 114 training structures; UniProt does not list any of its proteins as crossing the membrane; the title mentions 'domain'; but UniProt says a protein in it is in the nucleus |
-| 7HBB | 0% | no | its protein family (IPR020568) is a membrane protein in 0 of 385 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but UniProt places a protein in it in a membrane |
-| 7HUJ | 0% | no | its protein family (IPR001205) is a membrane protein in 0 of 1186 training structures; UniProt does not list any of its proteins as crossing the membrane; but UniProt places a protein in it in a membrane |
-| 8P3H | 0% | no | its protein family (IPR035892) is a membrane protein in 0 of 107 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but TCDB lists a protein in it (TC 9.A.57.1.4) |
-| 8RW8 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR013767) is a membrane protein in 0 of 59 training structures; the title mentions 'domain'; but UniProt says a protein in it is in the nucleus |
-| 8W13 | 0% | no | its protein family (IPR036388) is a membrane protein in 0 of 479 training structures; UniProt does not list any of its proteins as crossing the membrane; the title mentions 'domain'; but UniProt says a protein in it is in the nucleus |
-| 8Y23 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR005468) is a membrane protein in 0 of 17 training structures; UniProt says a protein in it is secreted |
-| 9AVO | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR019931) is a membrane protein in 0 of 46 training structures; the title mentions 'fab'; but UniProt says a protein in it is in the nucleus |
-| 9D7L | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR016161) is a membrane protein in 0 of 37 training structures; the title mentions 'domain' |
-| 9FD9 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR013785) is a membrane protein in 1 of 142 training structures; UniProt says a protein in it is in the cytoplasm |
-| 9H7I | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR000895) is a membrane protein in 0 of 47 training structures; UniProt says a protein in it is in the cytoplasm |
-| 9MY5 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR025110) is a membrane protein in 0 of 58 training structures; the title mentions 'domain' |
+| 8IRJ | 95% | yes | 7 of its membrane-crossing segments are resolved in the structure; its protein family (IPR017978) is a membrane protein in 26 of 27 training structures; UniProt lists a protein in it as crossing the membrane |
+| 9CZK | 95% | yes | 10 of its membrane-crossing segments are resolved in the structure; its protein family (IPR005821) is a membrane protein in 194 of 216 training structures; UniProt lists all its proteins as crossing the membrane |
+| 9J4X | 95% | yes | 11 of its membrane-crossing segments are resolved in the structure; UniProt lists a protein in it as crossing the membrane; its protein family (IPR004331) is a membrane protein in 6 of 8 training structures |
+| 8W8X | 94% | yes | 7 of its membrane-crossing segments are resolved in the structure; its protein family (IPR000367) is a membrane protein in 166 of 170 training structures; UniProt lists a protein in it as crossing the membrane; but UniProt says a protein in it is secreted |
+| 8W7R | 91% | yes | 7 of its membrane-crossing segments are resolved in the structure; the sample contains detergent (OLC); UniProt lists a protein in it as crossing the membrane |
+| 9F5Z | 77% | no | 9 of its membrane-crossing segments are resolved in the structure; UniProt lists a protein in it as crossing the membrane; its protein family (IPR036909) is a membrane protein in 39 of 67 training structures |
+| 9B43 | 22% | yes | but UniProt lists a protein in it as crossing the membrane |
+| 9FTI | 4% | no | UniProt does not list any of its proteins as crossing the membrane; but the title mentions 'channel' |
+| 9HBZ | 2% | no | UniProt does not list any of its proteins as crossing the membrane |
+| 9B4V | 1% | no | UniProt does not list any of its proteins as crossing the membrane |
+| 9FLX | 1% | no | none of its proteins is linked to UniProt yet |
+| 9MML | 1% | no | the title mentions 'fab'; none of its proteins is linked to UniProt yet |
+| 9MU6 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR023213) is a membrane protein in 0 of 26 training structures |
+| 8QYC | 0% | no | its protein family (IPR014001) is a membrane protein in 1 of 304 training structures; UniProt does not list any of its proteins as crossing the membrane |
+| 9IIA | 0% | no | UniProt does not list any of its proteins as crossing the membrane |
+| 8UL5 | 0% | no | UniProt does not list any of its proteins as crossing the membrane |
+| 9BFF | 0% | no | its protein family (IPR025110) is a membrane protein in 0 of 58 training structures; UniProt does not list any of its proteins as crossing the membrane |
+| 8WPJ | 0% | no | none of its proteins is linked to UniProt yet |
+| 9AUS | 0% | no | none of its proteins is linked to UniProt yet |
+| 8S3L | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR005103) is a membrane protein in 0 of 2 training structures; UniProt says a protein in it is secreted |
+| 8W3B | 0% | no | its protein family (IPR001245) is a membrane protein in 1 of 252 training structures; its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure; UniProt says a protein in it is secreted; but UniProt lists a protein in it as crossing the membrane |
+| 9B78 | 0% | no | its protein family (IPR043129) is a membrane protein in 0 of 123 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm |
+| 9H3N | 0% | no | its protein family (IPR009000) is a membrane protein in 0 of 340 training structures; UniProt does not list any of its proteins as crossing the membrane |
+| 8YO3 | 0% | no | its protein family (IPR020568) is a membrane protein in 0 of 385 training structures; UniProt does not list any of its proteins as crossing the membrane; the title mentions 'domain' |
+| 8ZMK | 0% | no | its protein family (IPR014729) is a membrane protein in 0 of 89 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm |
+| 8ZXC | 0% | no | its protein family (IPR001487) is a membrane protein in 0 of 90 training structures; UniProt does not list any of its proteins as crossing the membrane; the title mentions 'domain'; but UniProt says a protein in it is in the nucleus |
+| 9CGA | 0% | no | its protein family (IPR029062) is a membrane protein in 0 of 41 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but UniProt places a protein in it in a membrane |
+| 9GO5 | 0% | no | its protein family (IPR043129) is a membrane protein in 0 of 123 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm |
+| 7H6H | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR009003) is a membrane protein in 9 of 1443 training structures; UniProt says a protein in it is in the cytoplasm; but UniProt places a protein in it in a membrane |
+| 7G37 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR017850) is a membrane protein in 0 of 19 training structures; UniProt says a protein in it is secreted |
+| 7GVN | 0% | no | its protein family (IPR013087) is a membrane protein in 0 of 114 training structures; UniProt does not list any of its proteins as crossing the membrane; the title mentions 'domain'; but UniProt says a protein in it is in the nucleus |
+| 7HGC | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR000313) is a membrane protein in 0 of 19 training structures; UniProt says a protein in it is in the cytoplasm; but UniProt says a protein in it is in the nucleus |
+| 7HUP | 0% | no | its protein family (IPR001205) is a membrane protein in 0 of 1186 training structures; UniProt does not list any of its proteins as crossing the membrane; its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure; but UniProt places a protein in it in a membrane |
+| 8Q2F | 0% | no | its protein family (IPR001128) is a membrane protein in 0 of 95 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm |
+| 8S7T | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR006094) is a membrane protein in 0 of 29 training structures |
+| 8WWQ | 0% | no | its protein family (IPR029063) is a membrane protein in 1 of 1382 training structures; UniProt does not list any of its proteins as crossing the membrane |
+| 8Z29 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR046346) is a membrane protein in 0 of 37 training structures |
+| 9C4P | 0% | no | its protein family (IPR029035) is a membrane protein in 0 of 80 training structures; UniProt does not list any of its proteins as crossing the membrane |
+| 9ETR | 0% | no | its protein family (IPR001357) is a membrane protein in 0 of 66 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm; but UniProt says a protein in it is in the nucleus |
+| 9GU5 | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR047575) is a membrane protein in 0 of 34 training structures; UniProt says a protein in it is in the cytoplasm |
+| 9MTO | 0% | no | UniProt does not list any of its proteins as crossing the membrane; its protein family (IPR016181) is a membrane protein in 0 of 36 training structures; UniProt says a protein in it is in the cytoplasm |
