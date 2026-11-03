@@ -1,7 +1,8 @@
 /* Design tokens: change colors and fonts here, not throughout the file.
    Palette "minimal": neutral greys with near-black (light) or near-white (dark)
    ink, and one restrained accent, burnt amber, used sparingly (daughters,
-   current tab, meters, the bound drug in the 3D model). No gradients or glows.
+   current tab, meters). The 3D models use the traditional cartoon colours
+   (--mol-*). No gradients or glows.
    Text colours are checked for >= 4.5:1 contrast on every surface they sit on. */
 :root {
   color-scheme: light dark;
@@ -62,21 +63,20 @@
   /* Layout measures shared by the sticky header, tab bar and sidebar */
   --header-h: 61px;
   --tabbar-h: 46px;
-  /* Read by the molecule canvas (js/main.js): a single neutral tone shaded by
-     depth (far -> near lightness), the drug in the accent colour. */
-  --mol-hue-start: 0;
-  --mol-hue-end: 0;
-  --mol-sat: 0;
-  --mol-light-far: 72;
-  --mol-light-near: 26;
+  /* Read by the molecule canvas (js/main.js) and its colour keys: a cartoon in
+     the traditional secondary-structure colours (helix red, strand gold, loop
+     grey) and CPK element colours for the bound drug. */
+  --mol-helix: #d6455d;
+  --mol-strand: #e3ac1e;
+  --mol-coil: #8a8a8a;
+  --mol-atom-c: #808080;
+  --mol-atom-n: #3a5bd9;
+  --mol-atom-o: #e0301e;
+  --mol-atom-f: #3fa32a;
   --mol-membrane: rgba(0, 0, 0, 0.16);
   --mol-band-head: transparent;
   --mol-band-core: transparent;
-  --mol-ligand: #c2580f;
-  --mol-glow: 0;
   --mol-cx: 0.5;
-  /* Structure previews: one grey per chain (0 = full depth shading, 1 = background-faint). */
-  --mol-chain-tones: 0 0.38 0.62 0.2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -106,10 +106,14 @@
     --spec-c: #f0a24a;
     --thumb-blend: normal;
     --thumb-bg: #ffffff;
-    --mol-light-far: 26;
-    --mol-light-near: 84;
+    --mol-helix: #f06d82;
+    --mol-strand: #f2c544;
+    --mol-coil: #9a9a9a;
+    --mol-atom-c: #b4b4b4;
+    --mol-atom-n: #7b93ff;
+    --mol-atom-o: #ff6b5e;
+    --mol-atom-f: #7fd65a;
     --mol-membrane: rgba(255, 255, 255, 0.18);
-    --mol-ligand: #f0a24a;
     --toast-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
   }
 }
@@ -672,6 +676,8 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   display: block; width: 100%; aspect-ratio: 1; height: auto; object-fit: contain; margin: 0; padding: 4px;
   border-radius: 8px; background: var(--thumb-bg); mix-blend-mode: var(--thumb-blend); border: 1px solid var(--color-border);
 }
+.mp-preview-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 10px; }
+.mp-preview-foot .mp-preview-note { margin-left: auto; }
 .mp-preview-toggle {
   display: block; margin: 4px 0 0 auto; min-height: 24px; padding: 2px 4px; border: 0; background: none; cursor: pointer;
   font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted);
@@ -685,6 +691,33 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 @media (prefers-color-scheme: dark) {
   .mp-preview-pic .mp-thumb, .mp-preview-pic .mp-figure { filter: brightness(0.92); }
 }
+
+/* Colour key for the 3D cartoons: the swatches use the canvas's own tokens. */
+.mol-key {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin: 4px 0 0; padding: 0; list-style: none;
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.04em; line-height: 1.6; color: var(--color-muted);
+}
+.mol-key[hidden] { display: none; }
+.mol-key li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mol-sw { display: inline-block; flex: none; }
+.mol-sw-helix {
+  width: 20px; height: 9px;
+  background: radial-gradient(ellipse 3px 5px at 50% 50%, var(--mol-helix) 92%, transparent 100%) 0 0 / 5px 9px repeat-x;
+}
+.mol-sw-strand {
+  width: 20px; height: 10px; background: var(--mol-strand);
+  clip-path: polygon(0 25%, 58% 25%, 58% 0, 100% 50%, 58% 100%, 58% 75%, 0 75%);
+}
+.mol-sw-loop { width: 18px; height: 2px; border-radius: 1px; background: var(--mol-coil); }
+.mol-sw-lig {
+  width: 22px; height: 9px;
+  background:
+    radial-gradient(circle, var(--mol-atom-c) 3.2px, transparent 3.8px) 0 50% / 8px 8px no-repeat,
+    radial-gradient(circle, var(--mol-atom-n) 3.2px, transparent 3.8px) 7px 50% / 8px 8px no-repeat,
+    radial-gradient(circle, var(--mol-atom-f) 3.2px, transparent 3.8px) 14px 50% / 8px 8px no-repeat;
+}
+.mp-hero-key { justify-content: flex-end; margin: 0 0 6px; color: var(--hero-muted); }
+.mp-preview-key { margin-right: auto; }
 
 /* ---- Overview: readouts, chart, families --------------------------- */
 .mp-stats {
@@ -961,6 +994,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .mp-readout-id { left: 24px; }
   .mp-readout-hint { display: none; }
   .mp-hero-mol figcaption { position: static; max-width: none; text-align: left; padding: 0 22px; }
+  .mp-hero-key { justify-content: flex-start; }
   .mp-hero-text, .mp-body[data-mp-view]:not([data-mp-view="home"]) .mp-hero-text { padding: 26px 22px 20px; align-self: stretch; }
   /* Compact phone hero: title first, then a label strip with a small live molecule */
   .mp-body[data-mp-view]:not([data-mp-view="home"]) .mp-hero-text { padding: 20px 18px 14px; border-top: 0; }

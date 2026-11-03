@@ -65,16 +65,25 @@ links.addEventListener("click", (event) => {
   // ModelServer, drawn by window.mpMol below), with the PDB's own picture one
   // click away and as the fallback. "sm" previews (Automation cards) are still
   // and load when scrolled near; "lg" previews (entry and PDB pages) turn slowly.
+  // Colour key for the cartoon (swatches use the same --mol-* tokens as the canvas).
+  const molKey = (extra = "") => `<ul class="mol-key${extra}">
+      <li><i class="mol-sw mol-sw-helix" aria-hidden="true"></i>alpha-helix</li>
+      <li><i class="mol-sw mol-sw-strand" aria-hidden="true"></i>beta-strand</li>
+      <li><i class="mol-sw mol-sw-loop" aria-hidden="true"></i>loop</li>
+    </ul>`;
   const preview = (id, size = "sm", cls = "") => {
     const ID = esc(String(id).toUpperCase());
     const keys = size === "lg" ? "Drag, or use the arrow keys, to turn it." : "Drag, or use the arrow keys, to rotate it.";
     return `<figure class="mp-preview mp-preview-${size}${cls ? ` ${cls}` : ""} loading" data-preview="${ID}" data-size="${size}">
       <div class="mp-preview-stage">
-        <canvas tabindex="0" role="img" aria-label="3D model of PDB ${ID}: backbone trace${size === "lg" ? ", slowly turning" : ""}. ${keys}"></canvas>
+        <canvas tabindex="0" role="img" aria-label="3D cartoon of PDB ${ID}${size === "lg" ? ", slowly turning" : ""}: alpha-helices are red ribbons, beta-strands gold arrows, loops a thin grey tube. ${keys}"></canvas>
         <p class="mp-preview-msg">Loading 3D model…</p>
       </div>
       <div class="mp-preview-pic" hidden>${thumb(id, size === "lg" ? "mp-figure" : "mp-thumb")}</div>
-      <button type="button" class="mp-preview-toggle" aria-label="Show the PDB picture of ${ID}">Picture</button>
+      <div class="mp-preview-foot">
+        ${size === "lg" ? molKey(" mp-preview-key") : ""}
+        <button type="button" class="mp-preview-toggle" aria-label="Show the PDB picture of ${ID}">Picture</button>
+      </div>
     </figure>`;
   };
   const previewIo = "IntersectionObserver" in window
@@ -90,7 +99,8 @@ links.addEventListener("click", (event) => {
       if (!canvas.isConnected) return;
       fig.classList.remove("loading");
       msg.hidden = true;
-      window.mpMol.mount(canvas, model, { autoRotate: lg, key: `${id}:${fig.dataset.size}`, tiltKeys: true });
+      window.mpMol.mount(canvas, model, { autoRotate: lg, key: `${id}:${fig.dataset.size}`, tiltKeys: true,
+                                          tilt: lg ? model.tilt : undefined });
       fig.dataset.ready = "1";
     }).catch(() => { if (fig.isConnected) failPreview(fig); });
   }
@@ -99,6 +109,8 @@ links.addEventListener("click", (event) => {
     fig.classList.add("failed");
     fig.querySelector(".mp-preview-stage").hidden = true;
     fig.querySelector(".mp-preview-pic").hidden = false;
+    const legend = fig.querySelector(".mol-key");
+    if (legend) legend.hidden = true;
     const btn = fig.querySelector(".mp-preview-toggle");
     btn.insertAdjacentHTML("afterend", '<p class="mp-preview-note">3D model unavailable</p>');
     btn.remove();
@@ -112,6 +124,8 @@ links.addEventListener("click", (event) => {
       btn.addEventListener("click", () => {
         const showPic = pic.hidden;
         pic.hidden = !showPic; stage.hidden = showPic;
+        const legend = fig.querySelector(".mol-key");
+        if (legend) legend.hidden = showPic;
         btn.textContent = showPic ? "3D model" : "Picture";
         btn.setAttribute("aria-label", showPic ? `Show the 3D model of ${id}` : `Show the PDB picture of ${id}`);
       });
@@ -2090,12 +2104,15 @@ links.addEventListener("click", (event) => {
 })();
 
 // ---------------------------------------------------------------------------
-// 3D structure viewer (window.mpMol). Draws a protein backbone as a smooth,
-// depth-shaded tube on a plain 2D canvas: the mpstruc.html hero (4MBS from
-// data/4mbs.json, in a lipid bilayer) and small previews of any PDB entry
-// (C-alpha coordinates from the RCSB ModelServer).
+// 3D structure viewer (window.mpMol). Draws proteins as a cartoon in the
+// traditional RCSB/PyMOL style on a plain 2D canvas: alpha-helices as coiled
+// red ribbons, beta-strands as gold arrows, loops as a thin grey tube (colours
+// from the --mol-* tokens in css/style.css). Used by the mpstruc.html hero
+// (4MBS from data/4mbs.json, in a lipid bilayer, with maraviroc) and by small
+// previews of any PDB entry (C-alpha coordinates from the RCSB ModelServer,
+// secondary structure from the RCSB Data API).
 //   mpMol.mount(canvas, model, {autoRotate, membrane, key, tiltKeys}) -> viewer
-//   mpMol.load(pdbId) -> Promise<model>   (cached in memory)
+//   mpMol.load(pdbId) -> Promise<model>   (cached in memory per PDB ID)
 // Each canvas has at most one animation loop; nothing animates offscreen, in a
 // hidden tab or under prefers-reduced-motion (still canvases redraw on drag).
 // ---------------------------------------------------------------------------
@@ -2118,31 +2135,200 @@ links.addEventListener("click", (event) => {
   darkMq.addEventListener("change", retheme);
   reduce.addEventListener("change", () => live.forEach((v) => v.wake()));
 
-  // Catmull-Rom spline through a C-alpha trace, broken at chain changes and at
-  // gaps longer than maxGap (in the model's units).
-  function spline(res, sub, maxGap) {
-    const pts = [];
-    const d = (a, b) => Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1], a.p[2] - b.p[2]);
-    for (let i = 0; i < res.length - 1; i++) {
-      const gap = (j) => j < 0 || j >= res.length || res[j].c !== res[i].c || d(res[j], res[i]) > maxGap * Math.abs(j - i) + 1;
-      const p0 = res[gap(i - 1) ? i : i - 1].p, p1 = res[i].p, p2 = res[i + 1].p, p3 = res[gap(i + 2) ? i + 1 : i + 2].p;
-      if (res[i + 1].c !== res[i].c || d(res[i], res[i + 1]) > maxGap) continue;
-      for (let s = 0; s < sub; s++) {
-        const t = s / sub, t2 = t * t, t3 = t2 * t;
-        const p = [0, 1, 2].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
-                                            + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3));
-        const r = res[i];
-        pts.push({ p, f: i / (res.length - 1), ss: r.ss, part: r.part, tone: r.tone || 0,
-                   brk: s === 0 && pts.length && pts[pts.length - 1].i !== i - 1, i });
+  // ---- small vector helpers ------------------------------------------------
+  const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const mul3 = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
+  const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
+  const unit3 = (a) => { const l = len3(a); return l > 1e-6 ? [a[0] / l, a[1] / l, a[2] / l] : null; };
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+  // ---- cartoon geometry ------------------------------------------------------
+  // Widths in Å: helix ribbon, strand ribbon, arrowhead base, loop tube diameter.
+  const RIB = { H: 2.4, E: 2.0, A: 3.2, C: 0.6, Y: 4.2 };  // Y: helix cylinder diameter
+  const CLS = { H: 0, E: 1, C: 2 };
+  const SUB_MAX = 6;
+
+  // Helices shorter than 3 residues and strands shorter than 2 are drawn as loop.
+  function tidySS(run) {
+    for (let i = 0; i < run.length;) {
+      const s = run[i].ss;
+      let j = i;
+      while (j < run.length && run[j].ss === s) j++;
+      if (!(s === "H" && j - i >= 3) && !(s === "E" && j - i >= 2)) for (let k = i; k < j; k++) run[k].ss = "C";
+      i = j;
+    }
+  }
+
+  // Residues [{p, c, ss, faint}] -> flat primitive lists: ribbon quads (4 corners
+  // each, plus a face normal) and tube segments (2 ends, plus a diameter).
+  // `s` converts Å to model units. With `trace`, every residue step is a single
+  // tube whose width follows the secondary structure (for very large structures).
+  // With `axis`, helices are cylinders along their axis and the rest is ribbon.
+  function cartoon(res, sub, s, trace, axis) {
+    const runs = [];
+    let cur = [];
+    for (const r of res) {
+      const q = cur[cur.length - 1];
+      if (q && (q.c !== r.c || dist(q.p, r.p) > (trace ? 4.5 * trace : 4.5) * s)) { runs.push(cur); cur = []; }
+      cur.push(r);
+    }
+    if (cur.length) runs.push(cur);
+    const out = { qp: [], qn: [], qk: [], tp: [], tw: [], tk: [] };
+    for (const run of runs) {
+      if (run.length < 2) continue;
+      tidySS(run);
+      if (trace) {
+        for (let i = 0; i + 1 < run.length; i++) {
+          const ss = run[i].ss === run[i + 1].ss ? run[i].ss : "C";
+          out.tp.push(...run[i].p, ...run[i + 1].p);
+          out.tw.push((ss === "C" ? RIB.C * 1.6 : RIB[ss]) * s);
+          out.tk.push(CLS[ss] * 2 + (run[i].faint ? 1 : 0));
+        }
+      } else if (axis) {
+        // Split at helices: each helix becomes a cylinder, the pieces between
+        // (sharing the helix's end residues, as loop) stay ribbon and tube.
+        let from = 0;
+        for (let i = 0; i < run.length;) {
+          if (run[i].ss !== "H") { i++; continue; }
+          let j = i;
+          while (j < run.length && run[j].ss === "H") j++;
+          addCylinder(run.slice(i, j), s, out);
+          if (i > from) addRun(run.slice(from, i + 1).map((r, k, a) => (k === a.length - 1 ? { ...r, ss: "C" } : r)), sub, s, out);
+          from = j - 1;
+          i = j;
+        }
+        const rest = run.slice(from).map((r, k) => (k === 0 && from > 0 ? { ...r, ss: "C" } : r));
+        if (rest.length > 1 && (from > 0 || rest[0].ss !== "H")) addRun(rest, sub, s, out);
+      } else addRun(run, sub, s, out);
+    }
+    return out;
+  }
+
+  // A helix as a cylinder: a thick tube through the running mean of C-alpha
+  // i..i+3 (which lies on the helix axis), extended to the first and last
+  // turn, with thin loop tubes to the end C-alphas.
+  function addCylinder(h, s, out) {
+    const n = h.length, P = h.map((r) => r.p), k = h[0].faint ? 1 : 0;
+    let A = [];
+    if (n >= 4) {
+      for (let i = 0; i + 3 < n; i++) A.push(mul3(add3(add3(P[i], P[i + 1]), add3(P[i + 2], P[i + 3])), 0.25));
+      const d0 = unit3(sub3(A[Math.min(1, A.length - 1)], A[0])), d1 = unit3(sub3(A[A.length - 1], A[Math.max(0, A.length - 2)]));
+      const e = 2.25 * s;  // 1.5 residues x 1.5 Å rise
+      if (d0) A.unshift(sub3(A[0], mul3(d0, e)));
+      if (d1) A.push(add3(A[A.length - 1], mul3(d1, e)));
+    } else A = [P[0], P[n - 1]];
+    const tube = (a, b, w, cls) => { out.tp.push(...a, ...b); out.tw.push(w); out.tk.push(CLS[cls] * 2 + k); };
+    tube(P[0], A[0], RIB.C * s, "C");
+    for (let i = 0; i + 1 < A.length; i++) tube(A[i], A[i + 1], RIB.Y * s, "H");
+    tube(A[A.length - 1], P[n - 1], RIB.C * s, "C");
+  }
+
+  function addRun(run, sub, s, out) {
+    const n = run.length, P = run.map((r) => r.p);
+    // Ribbon face normal per residue: from the C-alpha towards the midpoint of
+    // its neighbours (points at the helix axis; the pleat direction in strands).
+    let N = P.map((p, i) => (i > 0 && i < n - 1 ? unit3(sub3(mul3(add3(P[i - 1], P[i + 1]), 0.5), p)) : null));
+    for (let i = 1; i < n; i++) if (!N[i] && N[i - 1]) N[i] = N[i - 1];
+    for (let i = n - 2; i >= 0; i--) if (!N[i] && N[i + 1]) N[i] = N[i + 1];
+    if (!N[0]) {
+      const t = unit3(sub3(P[1], P[0])) || [0, 1, 0];
+      const N0 = unit3(cross3(t, Math.abs(t[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0]));
+      N = P.map(() => N0);
+    }
+    // Strands: the pleat flips sign every residue. Make it consistent, then
+    // smooth it twice so the sheet never twists suddenly.
+    for (let i = 1; i < n; i++) if (run[i].ss === "E" && run[i - 1].ss === "E" && dot3(N[i], N[i - 1]) < 0) N[i] = mul3(N[i], -1);
+    for (let pass = 0; pass < 2; pass++) {
+      N = N.map((v, i) => {
+        if (run[i].ss !== "E") return v;
+        let a = mul3(v, 2);
+        if (i > 0 && run[i - 1].ss === "E") a = add3(a, N[i - 1]);
+        if (i + 1 < n && run[i + 1].ss === "E") a = add3(a, N[i + 1]);
+        return unit3(a) || v;
+      });
+    }
+    const faintOf = (i) => (run[i].faint ? 1 : 0);
+    let prevN = N[0];
+    for (let i = 0; i + 1 < n; i++) {
+      const p0 = P[i > 0 ? i - 1 : i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2 < n ? i + 2 : i + 1];
+      const a = run[i].ss, b = run[i + 1].ss;
+      const strand = a === "E" && b === "E";
+      const arrow = strand && (i + 2 >= n || run[i + 2].ss !== "E");
+      // Width along this residue step (t = 0..1), in Å.
+      const ws = strand ? (arrow ? RIB.A : RIB.E) : a === "H" ? RIB.H : RIB.C;
+      const we = strand ? (arrow ? 0 : RIB.E) : b === "H" ? RIB.H : b === "E" ? RIB.E : RIB.C;
+      const tube = !strand && ws === RIB.C && we === RIB.C;
+      const width = (t) => (arrow ? RIB.A * (1 - t) : ws + (we - ws) * t * t * (3 - 2 * t));
+      // Ramps between a loop and a ribbon keep the ribbon's own orientation.
+      let na = N[i], nb = N[i + 1];
+      if (a === "C" || (a === "E" && b !== "E")) na = nb;
+      if (b === "C") nb = na;
+      if (dot3(na, nb) < -0.2 && strand) nb = mul3(nb, -1);
+      const faint = faintOf(i);
+      const pts = [];
+      for (let k = 0; k <= sub; k++) {
+        const t = k / sub, t2 = t * t, t3 = t2 * t;
+        const pos = [0, 1, 2].map((c) => 0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2
+                                               + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t3));
+        if (tube) { pts.push({ pos }); continue; }
+        const der = [0, 1, 2].map((c) => 0.5 * ((-p0[c] + p2[c]) + 2 * (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t
+                                               + 3 * (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t2));
+        const T = unit3(der) || unit3(sub3(p2, p1)) || [0, 1, 0];
+        const m = add3(mul3(na, 1 - t), mul3(nb, t));
+        let nrm = unit3(sub3(m, mul3(T, dot3(m, T))));
+        if (!nrm) nrm = unit3(sub3(prevN, mul3(T, dot3(prevN, T)))) || prevN;
+        prevN = nrm;
+        pts.push({ pos, side: cross3(T, nrm), nrm, w: width(t) * s * 0.5 });
+      }
+      for (let k = 0; k < sub; k++) {
+        const A = pts[k], B = pts[k + 1];
+        if (tube) {
+          out.tp.push(...A.pos, ...B.pos); out.tw.push(RIB.C * s); out.tk.push(CLS.C * 2 + faint);
+          continue;
+        }
+        // Each quad reaches a little into the next one, so no hairline seams show.
+        const ext = k + 1 < sub || i + 2 < n ? 0.2 : 0;
+        const Bp = add3(B.pos, mul3(sub3(B.pos, A.pos), ext));
+        const tm = (k + 0.5) / sub;
+        const cls = a === "C" || (a === "E" && b !== "E") ? b : b === "C" ? a : tm < 0.5 ? a : b;
+        out.qp.push(...add3(A.pos, mul3(A.side, A.w)), ...add3(Bp, mul3(B.side, B.w)),
+                    ...sub3(Bp, mul3(B.side, B.w)), ...sub3(A.pos, mul3(A.side, A.w)));
+        out.qn.push(...(unit3(add3(A.nrm, B.nrm)) || A.nrm));
+        out.qk.push(CLS[cls] * 2 + faint);
       }
     }
-    return pts;
+  }
+
+  // Pack the primitive lists (and any ligand atoms) into typed arrays: one
+  // point list, quads first (4 points each), then tubes (2), then atoms (1).
+  const ELEM = { C: 0, N: 1, O: 2, F: 3 };
+  function pack(geo, lig) {
+    const nq = geo.qk.length, nt = geo.tk.length, nl = lig.length;
+    const P = new Float32Array((nq * 4 + nt * 2 + nl) * 3);
+    P.set(geo.qp, 0); P.set(geo.tp, nq * 12);
+    lig.forEach((l, i) => P.set(l.p, (nq * 4 + nt * 2 + i) * 3));
+    let zr = 1;
+    for (let i = 0; i < P.length; i += 3) zr = Math.max(zr, Math.hypot(P[i], P[i + 1], P[i + 2]));
+    return { nq, nt, nl, P, QN: new Float32Array(geo.qn), QK: Uint8Array.from(geo.qk), TW: new Float32Array(geo.tw),
+             TK: Uint8Array.from(geo.tk), LE: Uint8Array.from(lig, (l) => ELEM[l.e] ?? 0), zr };
   }
 
   // The hero's own file: residues already oriented (membrane normal = y), with
-  // secondary structure and the crystallisation partner marked.
+  // secondary structure from the PDB file and the crystallisation partner marked.
+  // data/4mbs.json marks 227-313 as one helix (HELIX 7 of the PDB file runs
+  // 203-1001, across the rubredoxin insert, and was read by number). The HELIX
+  // records give 228-265, 268-289 and 292-313, so 227, ECL3 (266-267) and the
+  // TM7 / helix 8 kink (290-291) are loop.
+  const HERO_COIL = { "4MBS": new Set([227, 266, 267, 290, 291]) };
   function fromHero(d) {
-    return { kind: "hero", pts: spline(d.residues, 5, 4.5), lig: d.ligand || [], unit: 1, id: d.pdb };
+    const coil = HERO_COIL[String(d.pdb).toUpperCase()];
+    const res = d.residues.map((r) => ({ p: r.p, c: d.chain || "A", ss: coil && coil.has(r.n) ? "C" : r.ss || "C",
+                                        faint: r.part !== "ccr5" }));
+    const geo = pack(cartoon(res, 6, 1), d.ligand || []);
+    return { kind: "hero", geo, s: 1, id: d.pdb, ssSource: "pdb" };
   }
 
   // ---- mmCIF (C-alpha only) ------------------------------------------------
@@ -2208,32 +2394,87 @@ links.addEventListener("click", (event) => {
     return [[A[0][0], A[1][1], A[2][2]], V];
   }
 
-  const MAX_CA = 8000;
-  // C-alpha list -> drawable model: helices estimated from CA(i)-CA(i+3)
-  // distances, very large structures sampled, oriented by PCA (longest axis
+  // Fallback secondary structure from C-alpha geometry alone, per chain:
+  // helix where d(i,i+3) is 4.6-6.0 Å and d(i,i+4) 5.6-7.2 Å (runs of 4+
+  // residues). Strand only where the chain is extended (d(i-1,i+1) > 6.1 Å)
+  // AND paired: some other extended stretch (3+ residues away, or in another
+  // chain) has a C-alpha within 5.5 Å, as in a real sheet. Runs of 3+ such
+  // residues (one unpaired residue between paired ones is allowed). Extended
+  // loops with no partner stay loop, so no arrows appear where there is no sheet.
+  function estimateSS(all) {
+    const n = all.length, ss = new Array(n).fill("C");
+    const linked = (i, j) => i >= 0 && j < n && all[j].c === all[i].c && all[j].n - all[i].n === j - i;
+    const hit = new Uint8Array(n);
+    for (let i = 0; i + 4 < n; i++) {
+      if (!linked(i, i + 4)) continue;
+      const d3 = dist(all[i].p, all[i + 3].p), d4 = dist(all[i].p, all[i + 4].p);
+      hit[i] = d3 >= 4.6 && d3 <= 6.0 && d4 >= 5.6 && d4 <= 7.2 ? 1 : 0;
+    }
+    // Two overlapping windows in a row, so single tight turns are not called helix.
+    for (let i = 0; i + 1 < n; i++) if (hit[i] && hit[i + 1]) for (let k = i; k <= i + 5 && k < n; k++) ss[k] = "H";
+    for (let i = 0; i < n;) {
+      let j = i;
+      while (j < n && ss[j] === ss[i] && all[j].c === all[i].c) j++;
+      if (ss[i] === "H" && j - i < 4) for (let k = i; k < j; k++) ss[k] = "C";
+      i = j;
+    }
+    const ext = new Uint8Array(n);
+    for (let i = 1; i + 1 < n; i++) {
+      if (ss[i] === "C" && linked(i - 1, i + 1) && dist(all[i - 1].p, all[i + 1].p) > 6.1) ext[i] = 1;
+    }
+    // Partner search on a 6 Å grid of the extended residues.
+    const G = 6, grid = new Map(), cellOf = (p) => p.map((x) => Math.floor(x / G));
+    for (let i = 0; i < n; i++) {
+      if (!ext[i]) continue;
+      const k = cellOf(all[i].p).join();
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(i);
+    }
+    const strandy = (j) => (linked(j - 1, j) && ext[j - 1]) || (linked(j, j + 1) && ext[j + 1]);
+    const paired = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      if (!ext[i]) continue;
+      const [x, y, z] = cellOf(all[i].p);
+      search: for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        for (const j of grid.get(`${x + dx},${y + dy},${z + dz}`) || []) {
+          if (all[j].c === all[i].c && Math.abs(all[j].n - all[i].n) < 3) continue;
+          if (strandy(j) && dist(all[i].p, all[j].p) <= 5.5) { paired[i] = 1; break search; }
+        }
+      }
+    }
+    const core = (i) => paired[i] || (ext[i] && paired[i - 1] && paired[i + 1] && linked(i - 1, i + 1));
+    for (let i = 0; i < n;) {
+      if (!core(i)) { i++; continue; }
+      let j = i + 1;
+      while (j < n && core(j) && linked(j - 1, j)) j++;
+      if (j - i >= 3) for (let k = i; k < j; k++) ss[k] = "E";
+      i = j;
+    }
+    for (let i = 0; i < n; i++) all[i].ss = ss[i];
+  }
+
+  // Residues drawn as a cartoon (more are sampled to a trace); ribbon quads per
+  // structure. Ribbons always get 3-6 quads per residue step so helices coil;
+  // above BUDGET / 3 residues, helices become cylinders along their axis.
+  const MAX_CA = 8000, BUDGET = 16000, SUB_MIN = 3;
+  // C-alpha list -> drawable model: secondary structure from `ssMap` (RCSB) or
+  // estimated, very large structures sampled, oriented by PCA (longest axis
   // vertical), centred and scaled to a radius of 50 units.
-  function fromCa(all, id) {
+  function fromCa(all, id, ssMap) {
     if (all.length < 2) throw new Error("too few residues");
     const n0 = all.length;
-    const hit = new Uint8Array(n0);
-    for (let i = 0; i + 3 < n0; i++) {
-      const a = all[i], b = all[i + 3];
-      if (a.c === b.c && b.n - a.n === 3 && Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1], a.p[2] - b.p[2]) < 6.0) hit[i] = 1;
-    }
-    // Two overlapping i,i+3 hits in a row (five residues) count as helix.
-    for (let i = 0; i + 1 < n0; i++) if (hit[i] && hit[i + 1]) for (let k = i; k <= i + 4 && k < n0; k++) all[k].ss = "H";
-    // Draw helices as rods: inside a helix, the mean of four consecutive C-alphas lies on its axis.
-    const axis = all.map((r, k) => {
-      if (r.ss !== "H" || k < 1 || k + 2 >= n0) return null;
-      const q = [all[k - 1], r, all[k + 1], all[k + 2]];
-      if (q.some((x) => x.ss !== "H" || x.c !== r.c)) return null;
-      return [0, 1, 2].map((j) => (q[0].p[j] + q[1].p[j] + q[2].p[j] + q[3].p[j]) / 4);
-    });
-    axis.forEach((p, k) => { if (p) all[k].p = p; });
+    let source = "estimate";
+    if (ssMap && ssMap.size) {
+      const chainsWith = new Set();
+      for (const r of all) { const x = ssMap.get(`${r.c}:${r.n}`); if (x) { r.ss = x; chainsWith.add(r.c); } }
+      const missing = all.filter((r) => !chainsWith.has(r.c));
+      if (chainsWith.size) source = "rcsb";
+      all.forEach((r) => { if (chainsWith.has(r.c)) r.ss = r.ss || "C"; });
+      if (missing.length) estimateSS(missing);
+    } else estimateSS(all);
     const step = n0 > MAX_CA ? Math.ceil(n0 / MAX_CA) : 1;
     const res = step > 1 ? all.filter((_, i) => i % step === 0) : all;
-    const chains = new Map();
-    res.forEach((r) => { if (!chains.has(r.c)) chains.set(r.c, chains.size); r.tone = chains.get(r.c); r.ss = r.ss || "C"; });
+    const chains = new Set(res.map((r) => r.c));
     const m = [0, 1, 2].map((k) => res.reduce((s, r) => s + r.p[k], 0) / res.length);
     const cov = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
     for (const r of res) {
@@ -2243,19 +2484,82 @@ links.addEventListener("click", (event) => {
     const [vals, V] = eigen(cov);
     const order = [0, 1, 2].sort((a, b) => vals[b] - vals[a]);
     const col = (k) => [V[0][k], V[1][k], V[2][k]];
-    const ey = col(order[0]), ex = col(order[1]);
-    const ez = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];  // keeps handedness
-    let R = 0;
-    for (const r of res) {
-      const q = [r.p[0] - m[0], r.p[1] - m[1], r.p[2] - m[2]];
-      r.p = [ex, ey, ez].map((e) => q[0] * e[0] + q[1] * e[1] + q[2] * e[2]);
-      R = Math.max(R, Math.hypot(...r.p));
+    let ey = col(order[0]), ex = col(order[1]), tilt;
+    // Mainly beta (a barrel, say): make the vertical the mean strand direction
+    // (principal axis of the strand vectors, sign-free), which for a barrel is
+    // its axis, and have large previews start looking part-way down it.
+    const nE = res.filter((r) => r.ss === "E").length, nH = res.filter((r) => r.ss === "H").length;
+    if (step === 1 && nE >= 40 && nE > 0.3 * res.length && nE > nH) {
+      const st = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      for (let i = 1; i + 1 < res.length; i++) {
+        if (res[i].ss !== "E" || res[i - 1].c !== res[i].c || res[i + 1].c !== res[i].c) continue;
+        const d = unit3(sub3(res[i + 1].p, res[i - 1].p));
+        if (d) for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) st[a][b] += d[a] * d[b];
+      }
+      const [sv, SV] = eigen(st), top = [0, 1, 2].sort((a, b) => sv[b] - sv[a])[0];
+      const ax = [SV[0][top], SV[1][top], SV[2][top]];
+      const base = Math.abs(dot3(ax, ey)) > 0.9 ? ex : ey;
+      const ox = unit3(sub3(base, mul3(ax, dot3(base, ax))));
+      if (ox) { ey = ax; ex = ox; tilt = 1.1; }
     }
+    const ez = cross3(ex, ey);  // keeps handedness
+    let R = 0;
+    const pts = res.map((r) => {
+      const q = sub3(r.p, m);
+      const p = [dot3(q, ex), dot3(q, ey), dot3(q, ez)];
+      R = Math.max(R, len3(p));
+      return { p, c: r.c, ss: r.ss || "C", faint: false };
+    });
     const s = 50 / (R || 1);
-    res.forEach((r) => { r.p = r.p.map((v) => v * s); });
-    const sub = Math.max(1, Math.min(5, Math.floor(9000 / res.length)));
-    return { kind: "fit", pts: spline(res, sub, 4.5 * step * s), lig: [], unit: Math.min(1.4, s), id,
-             residues: n0, chains: chains.size, sampled: step };
+    pts.forEach((r) => { r.p = mul3(r.p, s); });
+    const sub = Math.max(SUB_MIN, Math.min(SUB_MAX, Math.floor(BUDGET / pts.length)));
+    const axis = step === 1 && pts.length * SUB_MIN > BUDGET;
+    const geo = pack(cartoon(pts, sub, s, step > 1 ? step : 0, axis), []);
+    return { kind: "fit", geo, s, id, residues: n0, chains: chains.size, sampled: step, ssSource: source, tilt, sub,
+             helixAxis: axis };
+  }
+
+  // Secondary structure as assigned by the RCSB (HELIX_P and SHEET features
+  // of each polymer instance, numbered by label_asym_id and label_seq_id, the
+  // same numbering the ModelServer atoms carry). Resolves to null on failure
+  // (retried on the next call), to an empty map for an entry with no features.
+  const ssCache = new Map();
+  function loadSS(id) {
+    if (!ssCache.has(id)) {
+      const q = `{entry(entry_id:"${id.toUpperCase()}"){polymer_entities{polymer_entity_instances{rcsb_id `
+        + "rcsb_polymer_entity_instance_container_identifiers{asym_id} "
+        + "rcsb_polymer_instance_feature{type feature_positions{beg_seq_id end_seq_id}}}}}}";
+      const ctl = "AbortController" in window ? new AbortController() : null;
+      const timer = ctl && setTimeout(() => ctl.abort(), 10000);
+      const p = fetch(`https://data.rcsb.org/graphql?query=${encodeURIComponent(q)}`, ctl ? { signal: ctl.signal } : {})
+        .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        .then((j) => {
+          const map = new Map();
+          for (const ent of (j && j.data && j.data.entry && j.data.entry.polymer_entities) || []) {
+            for (const inst of ent.polymer_entity_instances || []) {
+              const ids = inst.rcsb_polymer_entity_instance_container_identifiers;
+              const asym = (ids && ids.asym_id) || String(inst.rcsb_id || "").split(".")[1];
+              if (!asym) continue;
+              for (const f of inst.rcsb_polymer_instance_feature || []) {
+                const ss = f.type === "HELIX_P" ? "H" : f.type === "SHEET" ? "E" : null;
+                if (!ss) continue;
+                for (const fp of f.feature_positions || []) {
+                  for (let k = fp.beg_seq_id; k <= fp.end_seq_id; k++) {
+                    const key = `${asym}:${k}`;
+                    if (ss === "E" || !map.has(key)) map.set(key, ss);
+                  }
+                }
+              }
+            }
+          }
+          return map;
+        })
+        .catch(() => null)
+        .finally(() => clearTimeout(timer));
+      p.then((m) => { if (!m) ssCache.delete(id); });  // retry next time
+      ssCache.set(id, p);
+    }
+    return ssCache.get(id);
   }
 
   const cache = new Map();
@@ -2274,14 +2578,88 @@ links.addEventListener("click", (event) => {
     if (!/^[a-z0-9_]{4,12}$/.test(id)) return Promise.reject(new Error("Not a PDB ID"));
     if (!cache.has(id)) {
       const url = `https://models.rcsb.org/v1/${encodeURIComponent(id)}/atoms?label_atom_id=CA&encoding=cif&copy_all_categories=false`;
-      const p = limited(() => fetch(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); }))
-        .then((t) => fromCa(parseCif(t), id.toUpperCase()));
-      p.then((m) => { p.model = m; }, () => {});
+      const p = limited(() => Promise.all([
+        fetch(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); }),
+        loadSS(id),
+      ])).then(([t, ss]) => {
+        const m = fromCa(parseCif(t), id.toUpperCase(), ss);
+        if (!ss) { m.ssFailed = true; p.text = t; }  // estimated because the request failed
+        return m;
+      });
+      p.then((m) => { p.model = m; }, () => cache.delete(id));
       cache.set(id, p);
-    }
+    } else retrySS(id);
     return cache.get(id);
   }
+  // A model whose secondary-structure request failed is drawn from the
+  // estimate; on each later load() ask again and, once it works, rebuild the
+  // model with the RCSB assignment, cache it and swap it into open viewers.
+  function retrySS(id) {
+    const p = cache.get(id);
+    if (!p || !p.model || !p.model.ssFailed || p.retrying) return;
+    p.retrying = loadSS(id).then((ss) => {
+      p.retrying = null;
+      if (!ss || cache.get(id) !== p) return;
+      const m = fromCa(parseCif(p.text), id.toUpperCase(), ss), np = Promise.resolve(m);
+      np.model = m;
+      cache.set(id, np);
+      live.forEach((v) => { if (v.model === p.model) v.setModel(m); });
+    });
+  }
   const peek = (pdb) => { const p = cache.get(String(pdb || "").toLowerCase()); return p && p.model; };
+
+  // ---- theme -----------------------------------------------------------------
+  const SHADES = 16, FOGS = 6, LAYERS = 48;
+  const TILT = 1.5;  // rad; almost straight down the vertical axis (e.g. into a barrel)
+  const LIGHT = unit3([-0.38, 0.58, 0.72]);
+  const probe = document.createElement("canvas").getContext("2d");
+  function rgbOf(str, fallback) {
+    probe.fillStyle = "#000"; probe.fillStyle = fallback; probe.fillStyle = str || fallback;
+    const c = probe.fillStyle;  // normalised to #rrggbb or rgba(...)
+    if (c[0] === "#") return [1, 3, 5].map((k) => parseInt(c.slice(k, k + 2), 16));
+    const m = c.match(/[\d.]+/g) || [0, 0, 0];
+    return [+m[0], +m[1], +m[2]];
+  }
+  // The colour the canvas is drawn on: the first ancestor with a solid background.
+  function backdrop(el) {
+    for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
+      const bg = getComputedStyle(e).backgroundColor, m = bg.match(/[\d.]+/g);
+      if (m && (m.length < 4 || +m[3] > 0.5)) return [+m[0], +m[1], +m[2]];
+    }
+    return darkMq.matches ? [22, 22, 22] : [255, 255, 255];
+  }
+  const mix = (a, b, t) => [0, 1, 2].map((k) => a[k] + (b[k] - a[k]) * t);
+  const hex = (c) => `rgb(${c.map((x) => Math.round(Math.max(0, Math.min(255, x)))).join(",")})`;
+  // Colour table: [class*2+faint][shade][fog] -> CSS colour. Lambert shading
+  // (dark to lit, with a little white lift on the brightest faces), then depth
+  // fog towards the backdrop. Faint = the crystallisation partner, desaturated.
+  function colourTable(bases, bg) {
+    const tab = [];
+    bases.forEach((base) => {
+      for (const faint of [0, 1]) {
+        const grey = (base[0] * 0.3 + base[1] * 0.59 + base[2] * 0.11);
+        const b0 = faint ? mix(mix(base, [grey, grey, grey], 0.45), bg, 0.42) : base;
+        for (let s = 0; s < SHADES; s++) {
+          const lam = s / (SHADES - 1);
+          let c = mul3(b0, 0.56 + 0.44 * lam);
+          if (lam > 0.75) c = mix(c, [255, 255, 255], (lam - 0.75) / 0.25 * (faint ? 0.1 : 0.26));
+          for (let f = 0; f < FOGS; f++) tab.push(hex(mix(c, bg, (f / (FOGS - 1)) * 0.4)));
+        }
+      }
+    });
+    return tab;
+  }
+  // Shaded sphere sprite for one ligand atom.
+  function sphere(rgb) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 64;
+    const g = c.getContext("2d"), grad = g.createRadialGradient(24, 22, 2, 32, 32, 31);
+    grad.addColorStop(0, hex(mix(rgb, [255, 255, 255], 0.65)));
+    grad.addColorStop(0.35, hex(rgb));
+    grad.addColorStop(1, hex(mul3(rgb, 0.45)));
+    g.fillStyle = grad; g.beginPath(); g.arc(32, 32, 31, 0, Math.PI * 2); g.fill();
+    return c;
+  }
 
   function mount(canvas, model, opts = {}) {
     const old = byCanvas.get(canvas);
@@ -2299,17 +2677,19 @@ links.addEventListener("click", (event) => {
     v.request = () => { if (canvas.isConnected) schedule(); };
     v.wake = () => { if (running()) { v.last = 0; schedule(); } };
 
-    // Theme comes from CSS custom properties; read once per resize or colour-scheme change, not per segment.
+    // Theme comes from CSS custom properties; read once per resize or colour-scheme change, not per primitive.
     v.readTheme = () => {
       const num = (name, fallback) => { const x = parseFloat(css(name, "")); return Number.isFinite(x) ? x : fallback; };
-      const tones = css("--mol-chain-tones", "0 0.3 0.55 0.15").split(/[\s,]+/).map(Number).filter(Number.isFinite);
+      const bg = backdrop(canvas);
+      const atom = (name, fb) => sphere(rgbOf(css(name, fb), fb));
       v.theme = {
-        h0: num("--mol-hue-start", 195), h1: num("--mol-hue-end", 330),
-        heads: css("--mol-membrane", "rgba(120,140,200,0.35)"), ligand: css("--mol-ligand", "#f2b33d"),
-        bandHead: css("--mol-band-head", "rgba(110,200,255,0.30)"), bandCore: css("--mol-band-core", "rgba(60,120,200,0.07)"),
-        cx: hero ? num("--mol-cx", 0.5) : 0.5, glow: hero ? num("--mol-glow", 0) : 0,
-        sat: num("--mol-sat", 84), far: num("--mol-light-far", 40), near: num("--mol-light-near", 70),
-        tones: tones.length ? tones : [0],
+        heads: css("--mol-membrane", "rgba(120,140,200,0.35)"),
+        bandHead: css("--mol-band-head", "transparent"), bandCore: css("--mol-band-core", "transparent"),
+        cx: hero ? num("--mol-cx", 0.5) : 0.5,
+        tab: colourTable([rgbOf(css("--mol-helix", "#d6455d"), "#d6455d"), rgbOf(css("--mol-strand", "#e3ac1e"), "#e3ac1e"),
+                          rgbOf(css("--mol-coil", "#8a8a8a"), "#8a8a8a")], bg),
+        atoms: v.model.geo.nl ? [atom("--mol-atom-c", "#808080"), atom("--mol-atom-n", "#3a5bd9"),
+                               atom("--mol-atom-o", "#e0301e"), atom("--mol-atom-f", "#3fa32a")] : [],
       };
     };
     v.resize = () => {
@@ -2325,7 +2705,9 @@ links.addEventListener("click", (event) => {
       if (!canvas.isConnected) { v.destroy(); return; }
       const dt = v.last ? Math.min(t - v.last, 50) : 0;
       if (auto && !v.dragging && !reduce.matches) v.angle += dt * speed;
+      const t0 = performance.now();
       draw(v, ctx, opts);
+      v.drawMs = performance.now() - t0;
       if (opts.key) views.set(opts.key, { angle: v.angle, tilt: v.tilt });
       if (running()) { v.last = t; schedule(); } else v.last = 0;
     }
@@ -2334,14 +2716,14 @@ links.addEventListener("click", (event) => {
     const move = (e) => {
       if (!v.dragging) return;
       v.angle = v.dragging.a + (e.clientX - v.dragging.x) * 0.01;
-      v.tilt = Math.max(-0.9, Math.min(0.9, v.dragging.t + (e.clientY - v.dragging.y) * 0.006));
+      v.tilt = Math.max(-TILT, Math.min(TILT, v.dragging.t + (e.clientY - v.dragging.y) * 0.006));
       schedule();
     };
     const up = () => { v.dragging = null; };
     const key = (e) => {
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") v.angle += e.key === "ArrowLeft" ? -0.15 : 0.15;
       else if (opts.tiltKeys && (e.key === "ArrowUp" || e.key === "ArrowDown"))
-        v.tilt = Math.max(-0.9, Math.min(0.9, v.tilt + (e.key === "ArrowUp" ? -0.12 : 0.12)));
+        v.tilt = Math.max(-TILT, Math.min(TILT, v.tilt + (e.key === "ArrowUp" ? -0.12 : 0.12)));
       else return;
       schedule(); e.preventDefault();
     };
@@ -2359,6 +2741,7 @@ links.addEventListener("click", (event) => {
       live.delete(v); byCanvas.delete(canvas);
     };
     v.isRunning = () => !!v.raf && running();
+    v.setModel = (m) => { v.model = m; v.buf = null; v.readTheme(); v.request(); };
 
     byCanvas.set(canvas, v);
     live.add(v);
@@ -2372,59 +2755,55 @@ links.addEventListener("click", (event) => {
   // Viewers whose canvas has left the page (the router replaced the view).
   function sweep() { live.forEach((v) => { if (!v.canvas.isConnected) v.destroy(); }); }
 
+  // One frame: project every point, then paint primitives back to front
+  // (painter's algorithm). Primitives are bucketed into thin depth layers and,
+  // inside a layer, grouped by colour, so each group is one fill and one
+  // stroke instead of one per quad.
+  const KEY_SPAN = 131072;  // > max primitives per structure
   function draw(v, ctx, opts) {
     const { model, theme, canvas } = v;
     if (!model || !theme) return;
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     ctx.clearRect(0, 0, w, h);
-    const hero = model.kind === "hero";
+    const hero = model.kind === "hero", g = model.geo, s = model.s;
     const scale = hero ? Math.min(w / 1.05, h) / 112 : Math.min(w, h) / 132;
     const ca = Math.cos(v.angle), sa = Math.sin(v.angle), ct = Math.cos(v.tilt), st = Math.sin(v.tilt);
-    // The hero structure spans about y = -45 (rubredoxin) to +33 A; centre it. Fitted models are centred already.
-    const yOff = hero ? 6 : 0;
+    // The hero structure spans about y = -45 (rubredoxin) to +33 Å; centre it. Fitted models are centred already.
+    const yOff = hero ? 6 : 0, cx = w * theme.cx, cy = h / 2;
     const project = (p) => {
       const x = p[0] * ca + p[2] * sa, z0 = -p[0] * sa + p[2] * ca;
       const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
       const persp = 260 / (260 - z);
-      return [w * theme.cx + x * scale * persp, h / 2 - (y + yOff) * scale * persp, z, persp];
+      return [cx + x * scale * persp, cy - (y + yOff) * scale * persp, z, persp];
     };
-    // Colour: the hero runs from --mol-hue-start to --mol-hue-end along the chain (grey at --mol-sat 0),
-    // with its crystallisation partner faint; previews give each chain one of the --mol-chain-tones
-    // greys. Both are shaded by depth from --mol-light-far to --mol-light-near.
-    const hueOf = (pt) => theme.h0 + (theme.h1 - theme.h0) * pt.f;
-    const colour = (pt, light) => {
-      const l = theme.far + (theme.near - theme.far) * light;
-      if (hero) {
-        if (pt.part !== "ccr5") return `hsl(0 0% ${l}% / 0.32)`;
-        return `hsl(${hueOf(pt)} ${theme.sat}% ${l}%)`;
-      }
-      const tone = theme.tones[pt.tone % theme.tones.length];
-      return `hsl(0 0% ${l + (theme.far - l) * tone}%)`;
-    };
+    // Lipid head groups as rings of dots; one path per opacity step.
     const ring = (y, front) => {
       ctx.fillStyle = theme.heads;
+      const steps = 5, paths = Array.from({ length: steps }, () => new Path2D());
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 26) {
         for (const r of [28, 35, 42]) {
           const q = project([Math.cos(a + r) * r, y, Math.sin(a + r) * r]);
           if ((q[2] > 0) !== front) continue;
-          ctx.beginPath(); ctx.globalAlpha = 0.22 + 0.4 * (q[2] + 46) / 92;
-          ctx.arc(q[0], q[1], 2.2 * scale * q[3] * 0.4, 0, Math.PI * 2); ctx.fill();
+          const k = Math.max(0, Math.min(steps - 1, Math.floor((q[2] + 46) / 92 * steps)));
+          const rad = 2.2 * scale * q[3] * 0.4;
+          paths[k].moveTo(q[0] + rad, q[1]); paths[k].arc(q[0], q[1], rad, 0, Math.PI * 2);
         }
       }
+      paths.forEach((p, k) => { ctx.globalAlpha = 0.22 + 0.4 * (k + 0.5) / steps; ctx.fill(p); });
       ctx.globalAlpha = 1;
     };
     if (opts.membrane) {
-      // The bilayer as a band: head-group layers at +-16 A around a faint hydrophobic core,
+      // The bilayer as a band: head-group layers at +-16 Å around a faint hydrophobic core,
       // fading out towards the left where the hero text sits.
       const a = project([0, 16, 0])[1], b = project([0, -16, 0])[1];
       const pad = 5 * scale, y0 = Math.min(a, b) - pad, y1 = Math.max(a, b) + pad;
-      const g = ctx.createLinearGradient(0, y0, 0, y1);
-      g.addColorStop(0, "rgba(0,0,0,0)");
-      g.addColorStop(0.1, theme.bandHead); g.addColorStop(0.24, theme.bandCore);
-      g.addColorStop(0.76, theme.bandCore); g.addColorStop(0.9, theme.bandHead);
-      g.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = g; ctx.fillRect(0, y0, w, y1 - y0);
+      const gr = ctx.createLinearGradient(0, y0, 0, y1);
+      gr.addColorStop(0, "rgba(0,0,0,0)");
+      gr.addColorStop(0.1, theme.bandHead); gr.addColorStop(0.24, theme.bandCore);
+      gr.addColorStop(0.76, theme.bandCore); gr.addColorStop(0.9, theme.bandHead);
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = gr; ctx.fillRect(0, y0, w, y1 - y0);
       const fx = ctx.createLinearGradient(0, 0, w, 0), c = Math.max(0.05, Math.min(0.95, theme.cx));
       fx.addColorStop(0, "rgba(0,0,0,0.25)"); fx.addColorStop(c, "rgba(0,0,0,1)"); fx.addColorStop(1, "rgba(0,0,0,0.35)");
       ctx.globalCompositeOperation = "destination-in";
@@ -2432,73 +2811,110 @@ links.addEventListener("click", (event) => {
       ctx.globalCompositeOperation = "source-over";
       ring(16, false); ring(-16, false);
     }
-    const pts = model.pts, P = pts.map((pt) => project(pt.p));
-    const segs = [];
-    for (let i = 1; i < P.length; i++) {
-      if (pts[i].brk || pts[i].i - pts[i - 1].i > 1) continue;
-      segs.push(i);
+
+    // Project all points.
+    const { nq, nt, nl, P } = g, np = P.length / 3, total = nq + nt + nl;
+    let buf = v.buf;
+    if (!buf || buf.np !== np) {
+      buf = v.buf = { np, X: new Float32Array(np), Y: new Float32Array(np), Z: new Float32Array(np),
+                      R: new Float32Array(np), K: new Float64Array(total) };
     }
-    ctx.lineCap = "round";
-    if (theme.glow > 0) {
-      // Soft glow: a few wide, faint strokes, one path per hue bucket so overlaps do not stack up.
-      const buckets = 10, paths = Array.from({ length: buckets }, () => new Path2D());
-      for (const i of segs) {
-        const pt = pts[i];
-        if (pt.part !== "ccr5") continue;
-        const path = paths[Math.min(buckets - 1, Math.floor(pt.f * buckets))];
-        path.moveTo(P[i - 1][0], P[i - 1][1]); path.lineTo(P[i][0], P[i][1]);
+    const { X, Y, Z, R, K } = buf, sc = scale;
+    for (let i = 0, j = 0; i < np; i++, j += 3) {
+      const x = P[j], y = P[j + 1], zz = P[j + 2];
+      const x1 = x * ca + zz * sa, z0 = -x * sa + zz * ca;
+      const y1 = y * ct - z0 * st, z1 = y * st + z0 * ct;
+      const pr = 260 / (260 - z1);
+      X[i] = cx + x1 * sc * pr; Y[i] = cy - (y1 + yOff) * sc * pr; Z[i] = z1; R[i] = pr;
+    }
+    // Sort keys: depth layer, then colour group, then primitive index.
+    const zr = g.zr, layerOf = (z) => Math.max(0, Math.min(LAYERS - 1, Math.floor((z + zr) / (2 * zr) * LAYERS)));
+    const QN = g.QN, QK = g.QK, Lx = LIGHT[0], Ly = LIGHT[1], Lz = LIGHT[2];
+    for (let q = 0; q < nq; q++) {
+      const b = q * 4, z = (Z[b] + Z[b + 1] + Z[b + 2] + Z[b + 3]) * 0.25;
+      const nx = QN[q * 3], ny = QN[q * 3 + 1], nz = QN[q * 3 + 2];
+      const nx1 = nx * ca + nz * sa, nz0 = -nx * sa + nz * ca;
+      const ny1 = ny * ct - nz0 * st, nz1 = ny * st + nz0 * ct;
+      const lam = Math.abs(nx1 * Lx + ny1 * Ly + nz1 * Lz);  // two-sided Lambert
+      const key = QK[q] * SHADES + Math.round(lam * (SHADES - 1));
+      K[q] = (layerOf(z) * 512 + key) * KEY_SPAN + q;
+    }
+    const tb = nq * 4;
+    for (let t = 0; t < nt; t++) {
+      const b = tb + t * 2;
+      K[nq + t] = (layerOf((Z[b] + Z[b + 1]) * 0.5) * 512 + 100 + g.TK[t]) * KEY_SPAN + nq + t;
+    }
+    const lb = tb + nt * 2;
+    for (let a = 0; a < nl; a++) K[nq + nt + a] = (layerOf(Z[lb + a]) * 512 + 120 + g.LE[a]) * KEY_SPAN + nq + nt + a;
+    K.sort();
+
+    const tab = theme.tab, px = sc * s;  // pixels per Å (before perspective)
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    for (let i = 0; i < total;) {
+      const kk = Math.floor(K[i] / KEY_SPAN);
+      let j = i + 1;
+      while (j < total && Math.floor(K[j] / KEY_SPAN) === kk) j++;
+      const layer = Math.floor(kk / 512), key = kk % 512;
+      // Mild depth fog over the back two-thirds.
+      const fog = Math.max(0, Math.min(FOGS - 1, Math.round((1 - (layer + 0.5) / LAYERS) * 1.5 * (FOGS - 1) - 1)));
+      const first = K[i] % KEY_SPAN;
+      if (key < 100) {
+        const cf = Math.floor(key / SHADES), sh = key % SHADES;
+        ctx.fillStyle = tab[(cf * SHADES + sh) * FOGS + fog];
+        ctx.beginPath();
+        for (let m = i; m < j; m++) {
+          const b = (K[m] % KEY_SPAN) * 4;
+          ctx.moveTo(X[b], Y[b]); ctx.lineTo(X[b + 1], Y[b + 1]); ctx.lineTo(X[b + 2], Y[b + 2]); ctx.lineTo(X[b + 3], Y[b + 3]);
+          ctx.closePath();
+        }
+        ctx.fill();
+        // Darker long edges give the ribbon a visible thickness, also edge-on.
+        ctx.strokeStyle = tab[(cf * SHADES + Math.max(0, sh - 8)) * FOGS + fog];
+        ctx.lineWidth = Math.max(0.6, Math.min(1.8, 0.32 * px * R[first * 4]));
+        ctx.beginPath();
+        for (let m = i; m < j; m++) {
+          const b = (K[m] % KEY_SPAN) * 4;
+          ctx.moveTo(X[b], Y[b]); ctx.lineTo(X[b + 1], Y[b + 1]);
+          ctx.moveTo(X[b + 3], Y[b + 3]); ctx.lineTo(X[b + 2], Y[b + 2]);
+        }
+        ctx.stroke();
+      } else if (key < 120) {
+        const cf = key - 100, t0 = first - nq, lw = Math.max(1, g.TW[t0] * sc * R[tb + t0 * 2]);
+        ctx.beginPath();
+        for (let m = i; m < j; m++) {
+          const b = tb + (K[m] % KEY_SPAN - nq) * 2;
+          ctx.moveTo(X[b], Y[b]); ctx.lineTo(X[b + 1], Y[b + 1]);
+        }
+        if (cf >> 1 === CLS.H && lw > 2) {
+          // Helix cylinders: dark rim, body, lit core, so they read as round.
+          ctx.strokeStyle = tab[(cf * SHADES + 4) * FOGS + fog]; ctx.lineWidth = lw; ctx.stroke();
+          ctx.strokeStyle = tab[(cf * SHADES + 11) * FOGS + fog]; ctx.lineWidth = lw * 0.78; ctx.stroke();
+          ctx.strokeStyle = tab[(cf * SHADES + 15) * FOGS + fog]; ctx.lineWidth = lw * 0.32; ctx.stroke();
+        } else {
+          ctx.strokeStyle = tab[(cf * SHADES + 12) * FOGS + fog]; ctx.lineWidth = lw; ctx.stroke();
+        }
+      } else {
+        const spr = theme.atoms[key - 120] || theme.atoms[0];
+        for (let m = i; m < j; m++) {
+          const b = lb + (K[m] % KEY_SPAN - nq - nt), r = Math.max(1.5, 0.78 * px * R[b]);
+          ctx.drawImage(spr, X[b] - r, Y[b] - r, r * 2, r * 2);
+        }
       }
-      ctx.globalCompositeOperation = "lighter";
-      for (const [width, alpha] of [[14, 0.05], [8, 0.08]]) {
-        ctx.lineWidth = width * scale; ctx.globalAlpha = alpha * theme.glow;
-        paths.forEach((path, k) => { ctx.strokeStyle = `hsl(${theme.h0 + (theme.h1 - theme.h0) * (k + 0.5) / buckets} 100% 60%)`; ctx.stroke(path); });
-      }
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
+      i = j;
     }
-    segs.sort((a, b) => P[a][2] - P[b][2]);
-    const unit = model.unit, shine = hero || segs.length < 6000;
-    for (const i of segs) {
-      const a = P[i - 1], b = P[i], pt = pts[i];
-      const light = Math.max(0, Math.min(1, (b[2] + 40) / 80));
-      const rad = pt.ss === "H" ? (hero ? 2.4 : 2.1) : pt.ss === "E" ? 1.7 : 0.9;
-      const lw = hero ? rad * 2 * scale * b[3] : Math.max(0.8, rad * 2 * unit * scale * b[3]);
-      ctx.strokeStyle = colour(pt, light);
-      ctx.lineWidth = lw;
-      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-      // Specular highlight along the top of the tube (light from above).
-      if (shine && (hero ? pt.part === "ccr5" : lw > 2) && light > 0.35) {
-        const o = lw * 0.22;
-        ctx.strokeStyle = hero ? `hsl(${hueOf(pt)} ${theme.sat}% 92% / ${0.06 + 0.16 * light})` : `hsl(0 0% 92% / ${0.06 + 0.16 * light})`;
-        ctx.lineWidth = lw * 0.26;
-        ctx.beginPath(); ctx.moveTo(a[0] - o * 0.4, a[1] - o); ctx.lineTo(b[0] - o * 0.4, b[1] - o); ctx.stroke();
-      }
-    }
-    // Ligand (maraviroc in the hero) as small atoms, with a soft halo marking the binding site.
-    const L = model.lig.map((l) => [project(l.p), l.e]);
-    if (L.length && theme.glow > 0) {
-      const cx = L.reduce((s, [q]) => s + q[0], 0) / L.length, cy = L.reduce((s, [q]) => s + q[1], 0) / L.length;
-      const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14 * scale);
-      halo.addColorStop(0, theme.ligand); halo.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.globalAlpha = 0.28 * theme.glow; ctx.fillStyle = halo;
-      ctx.fillRect(cx - 14 * scale, cy - 14 * scale, 28 * scale, 28 * scale); ctx.globalAlpha = 1;
-    }
-    L.sort((a, b) => a[0][2] - b[0][2]).forEach(([q]) => {
-      ctx.beginPath(); ctx.fillStyle = theme.ligand;
-      ctx.arc(q[0], q[1], 1.15 * scale * q[3], 0, Math.PI * 2); ctx.fill();
-    });
     if (opts.membrane) { ring(16, true); ring(-16, true); }
   }
 
   // running(): how many canvases have an animation loop going right now (for tests and debugging).
   const running = () => [...live].filter((v) => v.isRunning()).length;
-  window.mpMol = { mount, load, peek, sweep, running, fromHero, fromCa, parseCif };
+  const viewers = () => [...live];
+  window.mpMol = { mount, load, peek, sweep, running, viewers, fromHero, fromCa, parseCif, loadSS, estimateSS };
 
   // The hero: one [data-molecule] canvas with a pre-oriented model in data/<id>.json.
   const heroCanvas = document.querySelector("canvas[data-molecule]");
   if (heroCanvas) {
     fetch(`data/${heroCanvas.dataset.molecule}.json`).then((r) => r.json())
       .then((d) => mount(heroCanvas, fromHero(d), { autoRotate: true, membrane: true, angle: 0.6, tilt: 0.18 }))
-      .catch(() => heroCanvas.remove());
+      .catch(() => { const key = document.querySelector(".mp-hero .mol-key"); if (key) key.hidden = true; heroCanvas.remove(); });
   }
 })();
