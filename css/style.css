@@ -748,6 +748,8 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 }
 .mp-draft { margin: 4px 0 8px; }
 .mp-pdbtitle { font-size: 0.85rem; color: var(--color-muted); margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--color-border-strong); overflow-wrap: anywhere; }
+.mp-dl-note:empty { display: none; }
+.mp-dl-note { color: var(--color-text); font-weight: 500; }
 .mp-form-note { flex-basis: 100%; margin: 0; color: var(--color-error-text); font-weight: 600; font-family: var(--font-ui); text-transform: none; letter-spacing: 0; }
 .mp-form-note:empty { display: none; }
 .mp-edit input:disabled { opacity: 0.5; }

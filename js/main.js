@@ -679,7 +679,8 @@ links.addEventListener("click", (event) => {
       </form>
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
-        <button type="button" class="mp-btn secondary" id="mp-dl-xml"${counts.approved ? "" : " disabled"}>Download approved as mpstruc XML</button></span></div>
+        <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
       <p class="mp-summary">Decisions are saved in this browser only. Download them to send to the mpstruc maintainers.
         ${older ? `${older} earlier ${older === 1 ? "decision is" : "decisions are"} no longer in this week's list but still included in the downloads.` : ""}</p>
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
@@ -756,7 +757,28 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
-  function download(name, text, type) {
+  // Save a generated file. On the website this is an ordinary browser download.
+  // Inside the Claude preview the page cannot download directly, so it asks the
+  // viewer through Claude's downloads permission, which only accepts some file
+  // types: an .xml file is offered as .txt there (same content).
+  function dlNote(text) {
+    const el = document.getElementById("mp-dl-note");
+    if (el) el.textContent = text;
+  }
+
+  async function download(name, text, type) {
+    const viaClaude = window.claude && typeof window.claude.use === "function"
+      ? await window.claude.use("downloads").catch(() => null) : null;
+    if (viaClaude) {
+      const filename = /\.(csv|txt|json)$/.test(name) ? name : name.replace(/\.\w+$/, ".txt");
+      try {
+        await viaClaude.save({ filename, data: text });
+        dlNote(filename === name ? `Saved ${filename}.` : `Saved ${filename} (the mpstruc XML, as a .txt file in this preview).`);
+      } catch (e) {
+        if (e && e.code !== "declined") dlNote("This preview could not save the file. Open the page on the website to download it.");
+      }
+      return;
+    }
     const blob = new Blob([text], { type });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -764,6 +786,7 @@ links.addEventListener("click", (event) => {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    dlNote(`Downloaded ${name}.`);
   }
 
   const xmlEsc = (v) => String(v ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
@@ -854,9 +877,18 @@ links.addEventListener("click", (event) => {
       form.addEventListener("submit", (ev) => { ev.preventDefault(); update(); });
     }
     const csvBtn = document.getElementById("mp-dl-csv");
-    if (csvBtn) csvBtn.addEventListener("click", () => download("mpstruc_decisions.csv", decisionsCsv(), "text/csv"));
+    if (csvBtn) csvBtn.addEventListener("click", () => {
+      if (!Object.keys(decisions).length) { dlNote("Nothing to download yet: approve, change or reject a suggestion first."); return; }
+      download("mpstruc_decisions.csv", decisionsCsv(), "text/csv");
+    });
     const xmlBtn = document.getElementById("mp-dl-xml");
-    if (xmlBtn) xmlBtn.addEventListener("click", () => download("mpstruc_approved.xml", approvedXml(), "application/xml"));
+    if (xmlBtn) xmlBtn.addEventListener("click", () => {
+      if (!Object.values(decisions).some((d) => d.status === "approved")) {
+        dlNote("Approve at least one suggestion first (click Approve on a card), then download.");
+        return;
+      }
+      download("mpstruc_approved.xml", approvedXml(), "application/xml");
+    });
     app.querySelectorAll(".mp-cand [data-act]").forEach((btn) => btn.addEventListener("click", () => {
       const pdb = btn.dataset.pdb || btn.closest("form")?.dataset.pdb;
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
