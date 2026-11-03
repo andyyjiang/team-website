@@ -30,15 +30,21 @@ links.addEventListener("click", (event) => {
   if (!app) return;
 
   const PAGE = 50;
+  const CUR_PATH = "data/curation.json";
   // Presentation hook: CSS shows the full hero on the overview and a compact one elsewhere.
   const heroMode = (kind) => { document.body.dataset.mpView = kind || "home"; };
   heroMode(location.hash.replace(/^#\/?/, "").split("/")[0]);
   const state = { data: null, byKey: new Map(), byPdb: new Map(), all: [], sgOf: new Map(),
-                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "" } };
+                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "" },
+                  newRel: new Map(), nNew: 0, unplaced: [], merged: [] };
 
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // strip() turns markup into plain text and DECODES &lt; &gt; &amp;, so its output
+  // is not safe HTML. Rule: never put strip() output into markup directly; use
+  // asText() (strip, then escape) instead, or textContent.
   const strip = (h) => String(h ?? "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  const asText = (h) => esc(strip(h));
   const rcsb = (id) => `https://www.rcsb.org/structure/${encodeURIComponent(id)}`;
   // The PDB's own picture of a structure (as on rcsb.org). Falls back to the
   // model image, then disappears, if the PDB has no assembly picture.
@@ -55,11 +61,82 @@ links.addEventListener("click", (event) => {
     `<img class="${cls}" loading="lazy" decoding="async" src="${thumbSrc(id)}" data-pdb="${esc(id)}"
       alt="3D structure of PDB ${esc(id)} (image: RCSB PDB)" onerror="mpThumbFallback(this)">`;
   const fmtRes = (v) => (v == null ? "" : `${Number(v).toFixed(2).replace(/0$/, "")} Å`);
+  // Interactive 3D preview of a structure (C-alpha trace from the RCSB
+  // ModelServer, drawn by window.mpMol below), with the PDB's own picture one
+  // click away and as the fallback. "sm" previews (Automation cards) are still
+  // and load when scrolled near; "lg" previews (entry and PDB pages) turn slowly.
+  const preview = (id, size = "sm", cls = "") => {
+    const ID = esc(String(id).toUpperCase());
+    const keys = size === "lg" ? "Drag, or use the arrow keys, to turn it." : "Drag, or use the arrow keys, to rotate it.";
+    return `<figure class="mp-preview mp-preview-${size}${cls ? ` ${cls}` : ""} loading" data-preview="${ID}" data-size="${size}">
+      <div class="mp-preview-stage">
+        <canvas tabindex="0" role="img" aria-label="3D model of PDB ${ID}: backbone trace${size === "lg" ? ", slowly turning" : ""}. ${keys}"></canvas>
+        <p class="mp-preview-msg">Loading 3D model…</p>
+      </div>
+      <div class="mp-preview-pic" hidden>${thumb(id, size === "lg" ? "mp-figure" : "mp-thumb")}</div>
+      <button type="button" class="mp-preview-toggle" aria-label="Show the PDB picture of ${ID}">Picture</button>
+    </figure>`;
+  };
+  const previewIo = "IntersectionObserver" in window
+    ? new IntersectionObserver((entries) => entries.forEach((e) => {
+        if (e.isIntersecting) { previewIo.unobserve(e.target); startPreview(e.target); }
+      }), { rootMargin: "300px 0px" })
+    : null;
+  function startPreview(fig) {
+    const id = fig.dataset.preview, lg = fig.dataset.size === "lg";
+    const canvas = fig.querySelector("canvas"), msg = fig.querySelector(".mp-preview-msg");
+    if (!window.mpMol) { failPreview(fig); return; }
+    window.mpMol.load(id).then((model) => {
+      if (!canvas.isConnected) return;
+      fig.classList.remove("loading");
+      msg.hidden = true;
+      window.mpMol.mount(canvas, model, { autoRotate: lg, key: `${id}:${fig.dataset.size}`, tiltKeys: true });
+      fig.dataset.ready = "1";
+    }).catch(() => { if (fig.isConnected) failPreview(fig); });
+  }
+  function failPreview(fig) {
+    fig.classList.remove("loading");
+    fig.classList.add("failed");
+    fig.querySelector(".mp-preview-stage").hidden = true;
+    fig.querySelector(".mp-preview-pic").hidden = false;
+    const btn = fig.querySelector(".mp-preview-toggle");
+    btn.insertAdjacentHTML("afterend", '<p class="mp-preview-note">3D model unavailable</p>');
+    btn.remove();
+  }
+  function mountPreviews() {
+    if (window.mpMol) window.mpMol.sweep();
+    if (previewIo) previewIo.disconnect();
+    app.querySelectorAll("figure[data-preview]").forEach((fig) => {
+      const btn = fig.querySelector(".mp-preview-toggle"), stage = fig.querySelector(".mp-preview-stage"),
+            pic = fig.querySelector(".mp-preview-pic"), id = fig.dataset.preview;
+      btn.addEventListener("click", () => {
+        const showPic = pic.hidden;
+        pic.hidden = !showPic; stage.hidden = showPic;
+        btn.textContent = showPic ? "3D model" : "Picture";
+        btn.setAttribute("aria-label", showPic ? `Show the 3D model of ${id}` : `Show the PDB picture of ${id}`);
+      });
+      const cached = window.mpMol && window.mpMol.peek(id);
+      if (cached || fig.dataset.size === "lg" || !previewIo) startPreview(fig);
+      else previewIo.observe(fig);
+    });
+  }
 
   // ---- data loading and indexes -------------------------------------------
-  fetch("data/mpstruc.json")
-    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((data) => { index(data); window.addEventListener("hashchange", route); route(); })
+  // The shared curation record (data/curation.json) and the weekly job's run
+  // log (data/import_log.json) load alongside the database; neither is required.
+  const optionalJson = (path) => fetch(path, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  Promise.all([fetch("data/mpstruc.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }),
+               optionalJson(CUR_PATH), optionalJson("data/import_log.json")])
+    .then(([data, shared, runs]) => {
+      index(data);
+      snapshotBase();
+      remote = normaliseCuration(shared);
+      importRuns = runs && Array.isArray(runs.runs) ? runs.runs : [];
+      refreshView();
+      window.addEventListener("hashchange", route);
+      route();
+      resumeSession();
+    })
     .catch((err) => { app.innerHTML = `<p class="mp-empty">Could not load the database (${esc(err.message)}).</p>`; });
 
   function addPdb(id, ref) {
@@ -68,8 +145,11 @@ links.addEventListener("click", (event) => {
     state.byPdb.get(k).push(ref);
   }
 
+  // Called once on load and again whenever curator additions change (see
+  // applyCuration), so it rebuilds every index from scratch.
   function index(data) {
     state.data = data;
+    state.byKey = new Map(); state.byPdb = new Map(); state.all = []; state.sgOf = new Map();
     for (const g of data.groups) {
       for (const sg of g.subgroups) {
         sg.group = g;
@@ -211,7 +291,8 @@ links.addEventListener("click", (event) => {
     const chips = e.rel.map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
       const tip = x ? `From PDB: ${x.method || ""}${x.res ? `, ${fmtRes(x.res)}` : ""}. ${x.title || ""}` : "Not found in the PDB";
-      return `<a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}" title="${esc(tip)}">${esc(id)}</a>`;
+      const fresh = state.newRel.get(id.toUpperCase());
+      return `<a class="mp-chip${fresh ? " new" : ""}" href="#/pdb/${esc(id.toUpperCase())}" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
     }).join("");
     return `<div class="mp-chips"><span class="mp-badge related">Related</span>${chips}</div>`;
   }
@@ -228,6 +309,7 @@ links.addEventListener("click", (event) => {
     const body = `
       <div class="mp-entry-head">
         <span class="mp-badge${isD ? " daughter" : ""}">${isD ? "Daughter" : "Parent"}</span>
+        ${newBadge(e)}
         <a class="mp-pdb" href="#/entry/${e.k}">${esc(e.pdb)}</a>
         <a href="${rcsb(e.pdb)}" rel="noopener" class="mp-of">RCSB ↗</a>
         ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a></span>` : ""}
@@ -258,6 +340,11 @@ links.addEventListener("click", (event) => {
     }
     const pic = opts.noThumb ? "" : thumb(e.pdb);
     return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
+  }
+
+  // Entries curators approved on the Automation tab (built by applyCuration).
+  function newBadge(e) {
+    return e.isNew ? `<span class="mp-badge new">New · added ${esc(fmtDate(e.newAt))} by ${esc(e.newBy)}</span>` : "";
   }
 
   function csvButton() {
@@ -334,7 +421,8 @@ links.addEventListener("click", (event) => {
     const fc = m.flagCounts;
     return `<div class="mp-view">
       <h2>Overview</h2>
-      <p class="mp-summary">Snapshot of ${esc(m.timestamp)} · last new protein ${esc((m.lastNewProtein || "").slice(0, 10))}</p>
+      <p class="mp-summary">Snapshot of ${esc(m.timestamp)} · last new protein ${esc((m.lastNewProtein || "").slice(0, 10))}${state.nNew
+        ? ` · <a href="#/search/${encodeURIComponent("*new")}">${state.nNew} ${state.nNew === 1 ? "structure" : "structures"} added by curators since</a>` : ""}</p>
       <div class="mp-stats">
         <div class="mp-stat"><b>${c.parents.toLocaleString()}</b><span>parent proteins</span></div>
         <div class="mp-stat"><b>${c.daughters.toLocaleString()}</b><span>daughter structures
@@ -388,11 +476,12 @@ links.addEventListener("click", (event) => {
   function viewSearch(q) {
     let pool;
     if (q === "*issues") pool = state.all.filter((e) => e.issues);
+    else if (q === "*new") pool = state.all.filter((e) => e.isNew || (e.rel || []).some((r) => state.newRel.has(r.toUpperCase())));
     else {
       const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
       pool = state.all.filter((e) => terms.every((t) => e.text.includes(t)));
     }
-    const title = q === "*issues" ? "Entries with data issues" : `Search: “${esc(q)}”`;
+    const title = q === "*issues" ? "Entries with data issues" : q === "*new" ? "Added by curators" : `Search: “${esc(q)}”`;
     return { pool, filename: "mpstruc_search",
              html: listView(title, '<a href="#/">Database</a>', `${pool.length} matching structures`, pool, null, false) };
   }
@@ -412,7 +501,7 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
-      ${thumb(id, "mp-figure mp-figure-inline")}
+      ${preview(id, "lg", "mp-preview-inline")}
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
       ${x ? `<p class="mp-frompdb">From PDB: ${esc(x.title || "")} · ${esc(x.method || "")}${x.res ? ` · ${fmtRes(x.res)}` : ""}${x.released ? ` · released ${esc(x.released)}` : ""}</p>` : ""}
@@ -440,10 +529,10 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › ${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>
         ${e.parent ? ` › <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}</p>
-      <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${strip(e.name)}</h2>
+      <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${asText(e.name)}</h2>
       <div class="mp-entry-top">
         ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true })}
-        ${thumb(e.pdb, "mp-figure")}
+        ${preview(e.pdb, "lg")}
       </div>
       <p class="mp-links">
         <a href="${rcsb(e.pdb)}" rel="noopener">RCSB PDB (3D viewer) ↗</a>
@@ -452,6 +541,8 @@ links.addEventListener("click", (event) => {
         ${e.sg.group.topology === "Monotopic" ? "" : `<a href="https://pdbtm.unitmp.org/entry/${esc(lower)}" rel="noopener">PDBTM ↗</a>`}
       </p>
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
+      ${e.isNew ? `<p class="mp-newnote">Added by ${esc(e.newBy)} on ${esc(fmtDate(e.newAt))} from the Automation tab. It is in this site's shared
+        curation record (<code>data/curation.json</code>) and in the downloads for the mpstruc maintainers, but not yet in the official mpstruc file.</p>` : ""}
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
       ${relRows ? `<h3>Related entries (${e.rel.length})</h3><p class="mp-frompdb">Details below come from the PDB; mpstruc records only the IDs.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
@@ -463,17 +554,23 @@ links.addEventListener("click", (event) => {
   // ---- automation tab ------------------------------------------------------
   // Suggestions come from data/candidates.json (written weekly by
   // `python -m mpstruc.automation run`) and accuracy from data/backtest.json.
-  // Curator decisions are kept in this browser (localStorage) and leave it
-  // only as downloaded files for the mpstruc maintainers.
+  // Curator decisions are shared: they live in data/curation.json in the
+  // repository, written through the GitHub API by signed-in curators (see
+  // "curators" below). Decisions made before sign-in existed were kept in
+  // this browser (localStorage); curators are offered to upload them.
   const auto = { cands: null, backtest: null, error: null, loading: false,
                  view: { min: null, placement: "", status: "undecided", q: "", age: "" }, editing: null, rejecting: null };
   const REJECT_REASONS = ["Not a membrane protein", "Peripheral, not integral", "Only a soluble domain resolved",
                           "Not notable enough for mpstruc", "Already listed under another ID", "Other"];
   const DECISIONS_KEY = "mpstruc-decisions-v1";
-  let decisions = {};
-  try { decisions = JSON.parse(localStorage.getItem(DECISIONS_KEY) || "{}") || {}; } catch { decisions = {}; }
-  function saveDecisions() {
-    try { localStorage.setItem(DECISIONS_KEY, JSON.stringify(decisions)); } catch { /* storage unavailable: keep in memory */ }
+  let decisions = {}; // curation.entries: what everyone sees, including this browser's unsaved changes
+  let localDecisions = {};
+  try { localDecisions = JSON.parse(localStorage.getItem(DECISIONS_KEY) || "{}") || {}; } catch { localDecisions = {}; }
+  function saveLocalDecisions() {
+    try {
+      if (Object.keys(localDecisions).length) localStorage.setItem(DECISIONS_KEY, JSON.stringify(localDecisions));
+      else localStorage.removeItem(DECISIONS_KEY);
+    } catch { /* storage unavailable */ }
   }
 
   function loadAutomation() {
@@ -505,7 +602,7 @@ links.addEventListener("click", (event) => {
   // What a decision remembers about its structure, so it can still be exported
   // after the structure drops out of a later week's suggestions.
   function snapshot(c) {
-    return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, pmid: c.pmid, doi: c.doi, mp: c.mp,
+    return { title: c.title, released: c.released, organism: (c.organisms || [])[0] || "", res: c.res, method: c.method, pmid: c.pmid, doi: c.doi, mp: c.mp,
              suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", membrane: c.membrane };
   }
 
@@ -552,12 +649,18 @@ links.addEventListener("click", (event) => {
   function candidateCard(c) {
     const d = decisionOf(c);
     const editing = auto.editing === c.pdb;
-    const status = d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>` : `<span class="mp-badge related">Rejected</span>`) : "";
+    const saving = optimistic.has(c.pdb);
+    const status = (d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>` : `<span class="mp-badge related">Rejected</span>`) : "")
+      + (saving ? '<span class="mp-saving">Saving…</span>' : "");
+    const who = d && (d.byName || d.by) ? ` <span class="mp-of">by ${esc(d.byName || d.by)}${d.at ? `, ${esc(fmtDate(d.at))}` : ""}</span>` : "";
     const finalText = d && d.status === "approved"
-      ? `<p class="mp-final"><b>Decision:</b> ${esc(PLACEMENT_LABEL[d.placement] || d.placement)}${d.owner ? ` of ${esc(d.owner)}` : ""} in ${esc(sgName(d.subgroup))}${d.edited ? " (changed by curator)" : ""}</p>`
-      : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || "")}</p>` : "";
+      ? `<p class="mp-final"><b>Decision:</b> ${esc(PLACEMENT_LABEL[d.placement] || d.placement)}${d.owner ? ` of ${esc(d.owner)}` : ""} in ${esc(sgName(d.subgroup))}${d.edited ? " (changed by curator)" : ""}${who}
+          ${!saving && d.placement !== "related" && state.byKey.has(`NEW-${c.pdb}`) ? ` · <a href="#/entry/NEW-${esc(c.pdb)}">View in the database</a>` : ""}</p>`
+      : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || "")}${who}</p>` : "";
+    const can = signedIn() && !saving;
+    const off = can ? "" : " disabled";
     const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
-      `<option value="${sg.k}"${sg.k === (d?.subgroup || c.subgroup) ? " selected" : ""}>${esc(strip(sg.name))}</option>`).join("")}</optgroup>`).join("");
+      `<option value="${sg.k}"${sg.k === (d?.subgroup || c.subgroup) ? " selected" : ""}>${asText(sg.name)}</option>`).join("")}</optgroup>`).join("");
     const editPlacement = d?.placement || (c.placement === "review" ? "daughter" : c.placement);
     const editForm = editing ? `<form class="mp-edit" data-pdb="${esc(c.pdb)}" novalidate>
         <label>Placement<select name="placement">${["parent", "daughter", "related"].map((p) =>
@@ -576,7 +679,7 @@ links.addEventListener("click", (event) => {
       </form>` : "";
     const lowConf = c.confidence < 0.7;
     const alts = (c.alternatives || []).map((a) => `<li>${esc(a.name)} <span class="mp-count">${pct(a.score)}</span></li>`).join("");
-    return `<article class="mp-entry mp-cand has-thumb${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">${thumb(c.pdb)}
+    return `<article class="mp-entry mp-cand has-thumb${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">${preview(c.pdb, "sm")}
       <div class="mp-entry-head">
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
@@ -600,10 +703,11 @@ links.addEventListener("click", (event) => {
       ${finalText}
       ${editForm}${rejectForm}
       ${editing || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
-        <button class="mp-btn" type="button" data-act="approve" data-pdb="${esc(c.pdb)}"${c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Change'" : ""}>Approve</button>
-        <button class="mp-btn secondary" type="button" data-act="edit" data-pdb="${esc(c.pdb)}">${c.placement === "review" ? "Decide" : "Change"}</button>
-        <button class="mp-btn secondary" type="button" data-act="reject" data-pdb="${esc(c.pdb)}">Reject</button>
-        ${d ? `<button class="mp-btn secondary" type="button" data-act="undo" data-pdb="${esc(c.pdb)}">Undo</button>` : ""}
+        <button class="mp-btn" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : ""}>Approve</button>
+        <button class="mp-btn secondary" type="button" id="act-edit-${esc(c.pdb)}" data-act="edit" data-pdb="${esc(c.pdb)}"${off}>${c.placement === "review" ? "Decide" : "Change"}</button>
+        <button class="mp-btn secondary" type="button" id="act-reject-${esc(c.pdb)}" data-act="reject" data-pdb="${esc(c.pdb)}"${off}>Reject</button>
+        ${d ? `<button class="mp-btn secondary" type="button" id="act-undo-${esc(c.pdb)}" data-act="undo" data-pdb="${esc(c.pdb)}"${off}>Undo</button>` : ""}
+        ${signedIn() ? "" : '<p class="mp-signin-note">Sign in on the <a href="#/curators">Curators tab</a> to decide</p>'}
       </div>`}
     </article>`;
   }
@@ -681,8 +785,14 @@ links.addEventListener("click", (event) => {
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
-      <p class="mp-summary">Decisions are saved in this browser only. Download them to send to the mpstruc maintainers.
-        ${older ? `${older} earlier ${older === 1 ? "decision is" : "decisions are"} no longer in this week's list but still included in the downloads.` : ""}</p>
+      ${uploadOffer()}
+      <p class="mp-summary">Decisions are shared: each one is saved to the repository by the curator who made it, and approved structures
+        appear in the <a href="#/">Database</a> tab straight away. Download them to send to the mpstruc maintainers.
+        ${older ? `${older} earlier ${older === 1 ? "decision is" : "decisions are"} no longer in this week's list but still included in the downloads.` : ""}
+        ${state.unplaced.length ? `<br><b>${state.unplaced.length} approved ${state.unplaced.length === 1 ? "structure is" : "structures are"} not shown in the
+          database</b> because the entry ${state.unplaced.length === 1 ? "it is" : "they are"} placed under is not listed: ${state.unplaced.map(esc).join(", ")}.` : ""}</p>
+      ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve, change or reject them,
+        <a href="#/curators">sign in on the Curators tab</a>.</p>`}
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
       ${shown.map(candidateCard).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
       ${more(shown.length, list.length)}
@@ -796,6 +906,10 @@ links.addEventListener("click", (event) => {
     const out = [`<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`];
     // Draft mp fields are already mpstruc markup (escaped); anything else is escaped here.
     const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${raw}</${tag}>`);
+    // Every value put in a comment goes through cm(): comments cannot contain "--",
+    // and names, owners and subfamilies come from curation.json and GitHub profiles.
+    const cm = (v) => xmlEsc(v).replace(/-{2,}/g, "-");
+    const by = (d) => (d.byName || d.by ? `, approved by ${cm(d.byName || d.by)}` : "");
     const approved = Object.entries(decisions).filter(([, d]) => d.status === "approved");
     // Related entries approved under a structure that is itself approved here go
     // inside its <relatedPdbEntries>, as in mpstruc's own file.
@@ -805,12 +919,12 @@ links.addEventListener("click", (event) => {
     for (const [pdb, d] of approved) {
       if (d.placement === "related" && newHere.has(d.owner)) continue;
       const live = auto.cands.candidates.find((x) => x.pdb === pdb);
-      const m = (live && live.mp) || d.mp || {};
+      const m = (live && live.mp) || safeMp(d.mp);
       const b = m.bibliography || {};
       const sgRec = state.sgOf.get(d.subgroup);
       const where = `${sgRec ? sgRec.group.name : ""} : ${sgName(d.subgroup)} (${d.subgroup})`;
       if (d.placement === "related") {
-        out.push(`<!-- Related: add to <relatedPdbEntries> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, `<pdbCode>${xmlEsc(pdb)}</pdbCode>`);
+        out.push(`<!-- Related: add to <relatedPdbEntries> of ${cm(d.owner)} in ${cm(where)}${by(d)} -->`, `<pdbCode>${xmlEsc(pdb)}</pdbCode>`);
         continue;
       }
       const fields = [`<pdbCode>${xmlEsc(pdb)}</pdbCode>`];
@@ -825,23 +939,25 @@ links.addEventListener("click", (event) => {
                   ...(relatedOf[pdb] ? ["<relatedPdbEntries>", ...relatedOf[pdb].sort().map((r) => `<pdbCode>${xmlEsc(r)}</pdbCode>`), "</relatedPdbEntries>"]
                                      : ["<relatedPdbEntries/>"]));
       if (d.placement === "parent") {
-        out.push(`<!-- New parent in ${xmlEsc(where)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
+        out.push(`<!-- New parent in ${cm(where)}${by(d)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
       } else {
-        out.push(`<!-- Daughter: add to <memberProteins> of ${xmlEsc(d.owner)} in ${xmlEsc(where)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
+        out.push(`<!-- Daughter: add to <memberProteins> of ${cm(d.owner)} in ${cm(where)}${by(d)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
       }
     }
     return out.join("\n") + "\n";
   }
 
   function decisionsCsv() {
-    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    // Names, reasons and PDB titles come from people: keep spreadsheets from reading
+    // them as formulas (OWASP: a leading = + - @ tab or CR gets a ' in front).
+    const q = (v) => `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
     const cols = ["PDB ID", "Title", "Released", "Decision", "Placement", "Subfamily", "Group", "Parent or owner", "Changed from suggestion",
-                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Membrane protein (%)", "Decided at"];
+                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Membrane protein (%)", "Decided at", "Decided by"];
     const rows = Object.entries(decisions).map(([pdb, d]) => {
       const c = auto.cands.candidates.find((x) => x.pdb === pdb) || {};
       return [pdb, c.title ?? d.title, c.released ?? d.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "",
               d.edited ? "yes" : "", d.reason || "", c.placement ?? d.suggested, sgName(c.subgroup ?? d.suggestedSubgroup), c.ownerPdb ?? d.suggestedOwner ?? "",
-              Math.round(100 * (c.membrane ?? d.membrane ?? 0)), d.at].map(q).join(",");
+              Math.round(100 * (c.membrane ?? d.membrane ?? 0)), d.at, d.byName ? `${d.byName} (${d.by})` : d.by || ""].map(q).join(",");
     });
     return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
   }
@@ -856,11 +972,9 @@ links.addEventListener("click", (event) => {
     window.scrollTo(0, y);
     const card = document.getElementById(`c-${pdb}`)
       || (idx >= 0 && cards.slice(idx + 1).map((id) => document.getElementById(id)).find(Boolean));
-    const target = card ? (card.querySelector(selector) || card) : app.querySelector(".mp-view h2");
-    if (target) {
-      if (!target.matches("button, select, input, a")) target.setAttribute("tabindex", "-1");
-      target.focus({ preventScroll: true });
-    }
+    const usable = (sel) => card.querySelector(sel.split(",").map((x) => `${x.trim()}:not([disabled])`).join(","));
+    const target = card ? (usable(selector) || usable("[data-act]") || card) : app.querySelector(".mp-view h2");
+    if (target) focusEl(target);
   }
 
   function wireAutomation() {
@@ -889,35 +1003,34 @@ links.addEventListener("click", (event) => {
       }
       download("mpstruc_approved.xml", approvedXml(), "application/xml");
     });
+    wireUploadOffer();
     app.querySelectorAll(".mp-cand [data-act]").forEach((btn) => btn.addEventListener("click", () => {
       const pdb = btn.dataset.pdb || btn.closest("form")?.dataset.pdb;
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
       const act = btn.dataset.act;
-      if (act === "approve" && c) {
-        decisions[pdb] = { status: "approved", placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "",
-                           at: new Date().toISOString(), ...snapshot(c) };
-      } else if (act === "reject" && c) {
-        auto.rejecting = pdb;
-      } else if (act === "undo") {
-        delete decisions[pdb];
-      } else if (act === "edit") {
-        auto.editing = pdb;
-      } else if (act === "cancel") {
+      if (act === "cancel") {
         auto.editing = null;
         auto.rejecting = null;
+        afterAction(pdb);
+        return;
       }
-      saveDecisions();
-      if (act !== "edit") auto.editing = null;
-      if (act !== "reject") auto.rejecting = null;
-      afterAction(pdb, act === "edit" || act === "reject" ? "select" : "[data-act]");
+      if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+      if (!c) return;
+      auto.editing = act === "edit" ? pdb : null;
+      auto.rejecting = act === "reject" ? pdb : null;
+      if (act === "approve") {
+        approve(c, { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" }, false);
+      } else if (act === "undo") {
+        undoDecision(pdb);
+      } else {
+        afterAction(pdb, "select");
+      }
     }));
     app.querySelectorAll("form.mp-reject").forEach((f) => f.addEventListener("submit", (ev) => {
       ev.preventDefault();
       const rc = auto.cands.candidates.find((x) => x.pdb === f.dataset.pdb);
-      decisions[f.dataset.pdb] = { status: "rejected", reason: f.elements.reason.value, at: new Date().toISOString(), ...(rc ? snapshot(rc) : {}) };
-      saveDecisions();
       auto.rejecting = null;
-      afterAction(f.dataset.pdb);
+      if (rc && signedIn()) reject(rc, f.elements.reason.value);
     }));
     app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => f.addEventListener("submit", (ev) => {
       ev.preventDefault();
@@ -936,13 +1049,18 @@ links.addEventListener("click", (event) => {
           return;
         }
         sg = check.subgroup;
+        if (check.moved) {
+          // The entry must share its owner's subfamily: show where it will go and
+          // let the curator confirm with a second Save.
+          f.elements.subgroup.value = sg;
+          note.textContent = `${owner} is in ${sgName(sg)} (${groupOf(sg)}), so ${pdb} will go there. The Subfamily has been changed to match: press Save decision again to confirm.`;
+          return;
+        }
       }
-      decisions[pdb] = { status: "approved", placement, subgroup: sg, owner: placement === "parent" ? "" : owner, at: new Date().toISOString(),
-                         edited: placement !== c.placement || sg !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")),
-                         ...snapshot(c) };
-      saveDecisions();
+      if (!c || !signedIn()) return;
       auto.editing = null;
-      afterAction(pdb);
+      approve(c, { placement, subgroup: sg, owner: placement === "parent" ? "" : owner },
+              placement !== c.placement || sg !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")));
     }));
     app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => {
       const owner = f.elements.owner, note = f.querySelector(".mp-form-note");
@@ -955,6 +1073,874 @@ links.addEventListener("click", (event) => {
     });
   }
 
+  // ---- curators: GitHub sign-in, shared decisions, activity log -----------
+  // Curators sign in with a fine-grained GitHub token (Contents: read and
+  // write on this repository only). Each decision is a commit to
+  // data/curation.json made through the GitHub Contents API, so every visitor
+  // sees it: approved structures are placed in the Database tab by
+  // applyCuration(), and every change is a line in the activity log.
+  // The token is sent only to api.github.com and never goes into the page, the
+  // URL or the record. By default it is kept in memory only (gone on reload);
+  // it is written to localStorage only when the curator ticks "Keep me signed
+  // in", because web storage is shared by every page on andyyjiang.github.io.
+  const GH_API = "https://api.github.com", REPO = "andyyjiang/team-website", BRANCH = "main";
+  const TOKEN_KEY = "mpstruc-curator-token-v1", OFFER_KEY = "mpstruc-upload-offered-v1";
+  const PDB_RE = /^[0-9][A-Z0-9]{3}$/;
+  const cur = { token: null, user: null, verifying: false, error: "", signingIn: false, note: "", focusToken: false };
+  let remote = emptyCuration();   // the record as last read from (or written to) the repository
+  let curation = emptyCuration(); // what the page shows: remote plus changes still being saved
+  let remoteSha = null, importRuns = [], logLoaded = null, logBusy = false, logFilter = "";
+  const optimistic = new Map();   // PDB -> entry (or null for an undo) while its commit is in flight
+
+  function emptyCuration() { return { version: 1, entries: {}, log: [] }; }
+  // The page's view of the record: only well-formed entries are shown (the file
+  // is public and edited by people). This is for display only; commits change
+  // the file as read (see commit()), so nothing filtered out here is lost.
+  const isObj = (v) => Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  function usableEntry(d) {
+    if (!isObj(d)) return false;
+    if (d.status === "rejected") return true;
+    if (d.status !== "approved" || !state.sgOf.has(d.subgroup)) return false;
+    if (d.placement === "parent") return true;
+    return (d.placement === "daughter" || d.placement === "related") && PDB_RE.test(String(d.owner || ""));
+  }
+  function normaliseCuration(doc) {
+    const out = emptyCuration();
+    if (!isObj(doc)) return out;
+    for (const [pdb, d] of Object.entries(isObj(doc.entries) ? doc.entries : {})) {
+      if (PDB_RE.test(pdb) && usableEntry(d)) out.entries[pdb] = d;
+    }
+    out.log = Array.isArray(doc.log) ? doc.log.filter(isObj) : [];
+    return out;
+  }
+
+  const signedIn = () => Boolean(cur.token && cur.user);
+  const pad = (n) => String(n).padStart(2, "0");
+  function fmtStamp(iso) {
+    const t = new Date(iso);
+    if (Number.isNaN(t.getTime())) return "----------  --:--:--";
+    return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
+  }
+  function fmtDate(iso) {
+    const t = new Date(iso);
+    return Number.isNaN(t.getTime()) ? "" : t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  // Curated markup copied into curation.json is re-checked before it is shown:
+  // only <br>, <sub>, <sup>, <em>, <i>, <b> and entities survive, as in mpstruc.json.
+  // Inline tags must also be balanced, so an unclosed <i> cannot italicise the
+  // rest of the page or make the XML export ill-formed: unmatched ones are escaped.
+  const safeMarkup = (v) => balanceInline(String(v ?? "").replace(
+    /<(\/?)(br|sub|sup|em|i|b)\s*\/?>|[<>"']|&(?!(?:[a-z][a-z0-9]{1,11}|#\d{1,7}|#x[0-9a-f]{1,6});)/gi,
+    (m, slash, tag) => (tag ? (tag.toLowerCase() === "br" ? "<br />" : `<${slash}${tag.toLowerCase()}>`) : esc(m))));
+  function balanceInline(html) {
+    const parts = html.split(/(<\/?(?:sub|sup|em|i|b)>)/);
+    const open = [];
+    for (let i = 1; i < parts.length; i += 2) {
+      const [, slash, tag] = /^<(\/?)(\w+)>$/.exec(parts[i]);
+      if (!slash) open.push([tag, i]);
+      else if (open.length && open[open.length - 1][0] === tag) open.pop();
+      else parts[i] = esc(parts[i]);
+    }
+    for (const [, i] of open) parts[i] = esc(parts[i]);
+    return parts.join("");
+  }
+  function safeMp(mp) {
+    if (!mp || typeof mp !== "object") return {};
+    const out = {};
+    for (const [k, v] of Object.entries(mp)) out[k] = v && typeof v === "object" ? safeMp(v) : v == null ? v : safeMarkup(v);
+    return out;
+  }
+  const plain = (v) => (v == null ? "" : String(v));
+
+  // ---- token storage ----
+  // Only a token the curator chose to keep is read back (older versions of this
+  // page kept it in sessionStorage too: that copy is removed, not used).
+  function readToken() {
+    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+    try { return localStorage.getItem(TOKEN_KEY) || null; } catch { return null; }
+  }
+  function forgetToken() {
+    for (const kind of ["localStorage", "sessionStorage"]) {
+      try { window[kind].removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+    }
+  }
+  function keepToken(token, persist) {
+    forgetToken();
+    if (!persist) return; // memory only (cur.token): signed out on reload or when the tab closes
+    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* kept in memory for this page only */ }
+  }
+  cur.token = readToken();
+
+  // ---- GitHub API ----
+  class GhError extends Error {
+    constructor(status, message, extra) { super(message); this.status = status; Object.assign(this, extra); }
+  }
+  async function gh(path, { method = "GET", body, token = cur.token } = {}) {
+    let r;
+    try {
+      r = await fetch(GH_API + path, {
+        method, cache: "no-store",
+        headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28",
+                   ...(body ? { "Content-Type": "application/json" } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new GhError(0, "Could not reach GitHub. Check your connection and try again.");
+    }
+    if (!r.ok) {
+      let message = "";
+      try { message = (await r.json()).message || ""; } catch { /* not JSON */ }
+      throw new GhError(r.status, message || `GitHub answered ${r.status}`);
+    }
+    return r.status === 204 ? null : r.json();
+  }
+  // UTF-8 safe base64 (btoa/atob work on bytes, not characters).
+  function toB64(text) {
+    const bytes = new TextEncoder().encode(text);
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function fromB64(b64) {
+    const bin = atob(String(b64 || "").replace(/\s+/g, ""));
+    return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)));
+  }
+  function explain(e) {
+    if (e.status === 401) return "GitHub did not accept this token. Check that you copied all of it and that it has not expired.";
+    if (e.code === "nosee") return `This token cannot see ${REPO}. When creating it, choose “Only select repositories” and pick team-website.`;
+    if (e.code === "nopush") return "This GitHub account cannot edit the repository. Ask the repository owner to add you as a collaborator.";
+    if (e.status === 403) return "GitHub refused the change. The token needs “Contents: Read and write” on this repository (it may only have read access).";
+    if (e.code === "stale") return e.message;
+    if (e.status === 409 || e.status === 422) return "Another curator saved at the same moment several times in a row. Please try again.";
+    return e.status ? `GitHub could not save this (${e.status}: ${e.message}).` : e.message;
+  }
+
+  async function verify(token) {
+    const user = await gh("/user", { token });
+    let repo;
+    try { repo = await gh(`/repos/${REPO}`, { token }); } catch (e) {
+      if (e.status === 404 || e.status === 403) throw new GhError(e.status, "nosee", { code: "nosee" });
+      throw e;
+    }
+    if (!repo || !repo.permissions || repo.permissions.push !== true) throw new GhError(403, "nopush", { code: "nopush" });
+    const login = String(user.login || "");
+    return { login, name: String(user.name || login), avatar: /^https:\/\//.test(user.avatar_url || "") ? String(user.avatar_url) : "",
+             url: /^https:\/\//.test(user.html_url || "") ? String(user.html_url) : "" };
+  }
+
+  // Read data/curation.json fresh from the repository. Files over 1 MB come
+  // back without content, so those are read through the blob API.
+  async function readRemote() {
+    let f;
+    try { f = await gh(`/repos/${REPO}/contents/${CUR_PATH}?ref=${BRANCH}`); } catch (e) {
+      if (e.status === 404) return { raw: emptyCuration(), doc: emptyCuration(), sha: null };
+      throw e;
+    }
+    let body = f.encoding === "base64" && f.content ? fromB64(f.content) : null;
+    if (body == null) body = fromB64((await gh(`/repos/${REPO}/git/blobs/${f.sha}`)).content);
+    let raw;
+    try { raw = JSON.parse(body); } catch { throw new GhError(0, `${CUR_PATH} in the repository is not valid JSON; fix it before saving decisions.`); }
+    return { raw, doc: normaliseCuration(raw), sha: f.sha };
+  }
+
+  // Read-modify-write of data/curation.json. apply(raw, view) changes the file
+  // exactly as freshly read (raw), adding or replacing only its own keys and
+  // appending to the log; view is the normalised copy, for checks. Anything
+  // else in the file (other fields, entries this page cannot show, old log
+  // lines) is written back untouched. When someone else committed in between
+  // (409/422) it is re-read and the change re-applied, up to 3 retries.
+  // Commits run one at a time.
+  let commitQueue = Promise.resolve();
+  function commit(message, apply) {
+    const run = async () => {
+      for (let attempt = 0; attempt <= 3; attempt++) {
+        const { raw, doc, sha } = await readRemote();
+        const keep = () => { remote = doc; remoteSha = sha; };
+        if (!isObj(raw) || (raw.entries !== undefined && !isObj(raw.entries)) || (raw.log !== undefined && !Array.isArray(raw.log))) {
+          keep();
+          throw new GhError(0, `${CUR_PATH} in the repository does not have the expected shape (an object with "entries" and a "log" list); fix it by hand before saving decisions.`);
+        }
+        raw.entries ||= {};
+        raw.log ||= [];
+        try { apply(raw, doc); } catch (e) { keep(); throw e; }
+        try {
+          const res = await gh(`/repos/${REPO}/contents/${CUR_PATH}`, {
+            method: "PUT",
+            body: { message, content: toB64(JSON.stringify(raw, null, 1) + "\n"), branch: BRANCH, ...(sha ? { sha } : {}) },
+          });
+          remote = normaliseCuration(raw);
+          remoteSha = res && res.content ? res.content.sha : null;
+          return remote;
+        } catch (e) {
+          if ((e.status === 409 || e.status === 422) && attempt < 3) continue;
+          throw e;
+        }
+      }
+      throw new GhError(409, "conflict");
+    };
+    const p = commitQueue.then(run, run);
+    commitQueue = p.catch(() => {});
+    return p;
+  }
+
+  // The page's view of the record, and the database built from it.
+  function refreshView() {
+    curation = { ...remote, entries: { ...remote.entries } };
+    for (const [pdb, entry] of optimistic) {
+      if (entry) curation.entries[pdb] = entry; else delete curation.entries[pdb];
+    }
+    decisions = curation.entries;
+    applyCuration();
+  }
+
+  // ---- placing approved structures in the database ----
+  const base = { counts: null, listed: new Set(), related: new Set(), relPdb: [] };
+  function snapshotBase() {
+    base.counts = { ...state.data.meta.counts };
+    for (const g of state.data.groups) for (const sg of g.subgroups) sg.n0 = sg.n;
+    for (const e of state.all) {
+      e.rel0 = e.rel;
+      base.listed.add(e.pdb.toUpperCase());
+      (e.rel || []).forEach((r) => base.related.add(r.toUpperCase()));
+    }
+  }
+
+  const METHOD = { "ELECTRON MICROSCOPY": "Cryo-EM", "X-RAY DIFFRACTION": "X-ray Diffraction", "SOLUTION NMR": "Solution NMR",
+                   "SOLID-STATE NMR": "Solid-State NMR", "ELECTRON CRYSTALLOGRAPHY": "Electron Crystallography" };
+  // An approved suggestion in the shape the database renderer uses.
+  function newEntry(pdb, d, kind) {
+    const m = safeMp(d.mp), b = m.bibliography || {};
+    const host = strip(m.expressedInSpecies || "");
+    const resText = plain(m.resolution) || (d.res != null ? String(d.res) : "");
+    const method = METHOD[String(d.method || "").toUpperCase()] || plain(d.method);
+    return {
+      k: `NEW-${pdb}`, pdb, kind, isNew: true, newBy: plain(d.byName || d.by), newAt: d.at,
+      name: m.name || esc(d.title || pdb), species: m.species || "", domain: strip(m.taxonomicDomain || ""),
+      host, hostN: host || "Not stated", res: strip(resText), resV: Number.parseFloat(strip(resText)) || null,
+      year: Number(strip(b.year || "")) || Number(String(d.released || "").slice(0, 4)) || null,
+      desc: m.description || "",
+      bib: b.title || b.authors ? [{ authors: strip(b.authors || ""), year: strip(b.year || ""), title: b.title || "", journal: strip(b.journal || ""),
+                                    volume: strip(b.volume || ""), issue: strip(b.issue || ""), pages: strip(b.pages || ""),
+                                    doi: strip(b.doi || "") || plain(d.doi), pmid: strip(b.pubMedId || "") || plain(d.pmid) }] : [],
+      x: { title: plain(d.title), method, res: Number(d.res) || null, released: plain(d.released) },
+      ...(kind === "p" ? { d: [] } : {}),
+    };
+  }
+
+  // The entry an approved daughter or related entry hangs off, preferring the
+  // chosen subfamily. Returns [entry, its subfamily] or null.
+  function findOwner(id, sg, parentOnly) {
+    const hit = (s) => {
+      for (const p of s.parents) {
+        if (p.pdb.toUpperCase() === id) return [p, s];
+        if (!parentOnly) for (const d of p.d || []) if (d.pdb.toUpperCase() === id) return [d, s];
+      }
+      return null;
+    };
+    if (sg) { const r = hit(sg); if (r) return r; }
+    for (const g of state.data.groups) for (const s of g.subgroups) { const r = s !== sg && hit(s); if (r) return r; }
+    return null;
+  }
+
+  function applyCuration() {
+    const data = state.data;
+    if (!data || !base.counts) return;
+    // Take out what the previous call added.
+    for (const g of data.groups) for (const sg of g.subgroups) {
+      sg.parents = sg.parents.filter((p) => !p.isNew);
+      for (const p of sg.parents) {
+        if (p.d) p.d = p.d.filter((d) => !d.isNew);
+        for (const e of [p, ...(p.d || [])]) e.rel = e.rel0;
+      }
+      sg.n = sg.n0;
+    }
+    base.relPdb.forEach((id) => delete data.relPdb[id]);
+    base.relPdb = [];
+    state.newRel = new Map(); state.unplaced = []; state.merged = [];
+    // Parents first, then daughters (which may hang off a new parent), then related entries.
+    const order = { parent: 0, daughter: 1, related: 2 };
+    const approved = Object.entries(curation.entries)
+      .filter(([, d]) => d.status === "approved" && order[d.placement] != null && state.sgOf.has(d.subgroup))
+      .sort((a, b) => order[a[1].placement] - order[b[1].placement] || String(a[1].at).localeCompare(String(b[1].at)));
+    const add = { parent: 0, daughter: 0, related: 0 };
+    for (const [pdb, d] of approved) {
+      const sg = state.sgOf.get(d.subgroup);
+      // Already in the official file (the maintainers have added it): nothing to add.
+      if (base.listed.has(pdb) || base.related.has(pdb)) { state.merged.push(pdb); continue; }
+      let target = sg;
+      if (d.placement === "parent") {
+        sg.parents.push(newEntry(pdb, d, "p"));
+      } else {
+        const found = findOwner(String(d.owner || "").toUpperCase(), sg, d.placement === "daughter");
+        if (!found) { state.unplaced.push(pdb); continue; }
+        const owner = found[0];
+        target = found[1];
+        if (d.placement === "daughter") {
+          owner.d = [...(owner.d || []), newEntry(pdb, d, "d")];
+        } else {
+          owner.rel = [...(owner.rel || []), pdb];
+          state.newRel.set(pdb, d);
+          if (!data.relPdb[pdb]) {
+            data.relPdb[pdb] = { title: plain(d.title), method: METHOD[String(d.method || "").toUpperCase()] || plain(d.method),
+                                 res: Number(d.res) || null, released: plain(d.released) };
+            base.relPdb.push(pdb);
+          }
+        }
+      }
+      target.n++;
+      add[d.placement]++;
+    }
+    const c = data.meta.counts, b0 = base.counts;
+    c.parents = b0.parents + add.parent;
+    c.daughtersListed = b0.daughtersListed + add.daughter;
+    c.daughtersRelated = b0.daughtersRelated + add.related;
+    c.daughters = c.daughtersListed + c.daughtersRelated;
+    c.structures = b0.structures + add.parent + add.daughter + add.related;
+    c.listings = b0.listings + add.parent + add.daughter + add.related;
+    state.nNew = add.parent + add.daughter + add.related;
+    index(data);
+  }
+
+  // ---- decisions ----
+  function where(d) {
+    const sg = `${sgName(d.subgroup)} (${d.subgroup})`;
+    if (d.placement === "parent") return `as a new parent in ${sg}`;
+    if (d.placement === "daughter") return `as a daughter of ${d.owner} in ${sg}`;
+    return `as a related entry of ${d.owner} in ${sg}`;
+  }
+  function shortWhere(d) {
+    if (d.placement === "parent") return `as new parent in ${d.subgroup}`;
+    return `as ${d.placement === "daughter" ? "daughter" : "related entry"} of ${d.owner}`;
+  }
+  function role(d) {
+    if (d.placement === "parent") return "as a new parent";
+    return `as ${d.placement === "daughter" ? "a daughter" : "a related entry"} of ${d.owner}`;
+  }
+  function staleError(pdb, now) {
+    return new GhError(-1, now
+      ? `${pdb} was just ${now.status} by ${now.byName || now.by || "another curator"}; the list now shows their decision.`
+      : `${pdb} was just undone by another curator; the list now shows that.`, { code: "stale" });
+  }
+
+  // Show the change at once, save it, then confirm or put the page back.
+  function decide({ pdb, entry, action, detail, message, done }) {
+    const prev = curation.entries[pdb] || null;
+    const expect = prev ? prev.at || null : null;
+    const event = { at: new Date().toISOString(), by: cur.user.login, byName: cur.user.name, action, pdb, detail };
+    optimistic.set(pdb, entry);
+    refreshView();
+    if (lastRoute.startsWith("automation")) afterAction(pdb); else render();
+    commit(message, (raw, view) => {
+      const now = view.entries[pdb] || null;
+      if ((now ? now.at || null : null) !== expect) throw staleError(pdb, now);
+      if (entry) raw.entries[pdb] = entry; else delete raw.entries[pdb];
+      raw.log.push(event);
+    }).then(() => {
+      optimistic.delete(pdb);
+      refreshView();
+      rerender();
+      done();
+    }).catch((e) => {
+      optimistic.delete(pdb);
+      if (e.status === 401) signOut(true);
+      refreshView();
+      rerender();
+      toast(`Could not save the decision on ${pdb}. ${explain(e)}`, { kind: "error" });
+    });
+  }
+
+  // Re-render without moving the reader: keep scroll and the focused control.
+  function rerender() {
+    const y = window.scrollY;
+    render();
+    window.scrollTo(0, y);
+  }
+
+  function stamp() { return { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() }; }
+
+  function approve(c, choice, edited) {
+    const prev = curation.entries[c.pdb];
+    const entry = { status: "approved", placement: choice.placement, subgroup: choice.subgroup, owner: choice.owner || "",
+                    ...(edited ? { edited: true } : {}), ...stamp(), ...snapshot(c) };
+    const action = prev || edited ? "change" : "approve";
+    const was = prev ? (prev.status === "approved" ? ` (was ${where(prev).replace(/^as /, "")})` : " (had been rejected)")
+      : edited ? ` (suggested: ${c.placement === "review" ? "curator to decide" : where({ placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb }).replace(/^as /, "")})` : "";
+    decide({
+      pdb: c.pdb, entry, action,
+      detail: `Added ${c.pdb} ${where(entry)}${was}`,
+      message: `Curator ${cur.user.login}: ${action} ${c.pdb} ${shortWhere(entry)}`,
+      done: () => {
+        const placed = !state.unplaced.includes(c.pdb) && !state.merged.includes(c.pdb);
+        noteDecision(c.pdb, entry, toast((placed ? `Approved ${c.pdb}: added to ${sgName(entry.subgroup)} ${role(entry)}.`
+                     : `Approved ${c.pdb} ${role(entry)}. It is saved, but ${state.merged.includes(c.pdb) ? "mpstruc already lists it" : `${entry.owner} is not listed in the database, so it is not shown there yet`}.`)
+                     + " Alt+Z undoes it.", {
+          kind: "success",
+          actions: [
+            ...(placed ? [{ label: "View", run: () => { location.hash = entry.placement === "related" ? `#/pdb/${c.pdb}` : `#/entry/NEW-${c.pdb}`; } }] : []),
+            { label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) },
+          ],
+        }));
+      },
+    });
+  }
+
+  function reject(c, reason) {
+    const prev = curation.entries[c.pdb];
+    const entry = { status: "rejected", reason, ...stamp(), ...snapshot(c) };
+    decide({
+      pdb: c.pdb, entry, action: prev ? "change" : "reject",
+      detail: `Rejected ${c.pdb}: ${reason}${prev && prev.status === "approved" ? ` (was approved ${where(prev).replace(/^as /, "")})` : ""}`,
+      message: `Curator ${cur.user.login}: reject ${c.pdb} (${reason})`,
+      done: () => noteDecision(c.pdb, entry, toast(`Rejected ${c.pdb}: ${reason}. Alt+Z undoes it.`,
+        { actions: [{ label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) }] })),
+    });
+  }
+
+  function undoDecision(pdb) {
+    const prev = curation.entries[pdb];
+    if (!prev) return;
+    if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+    if (lastDecision && lastDecision.pdb === pdb) lastDecision = null;
+    // Approved entries hung off this one (a new parent or daughter) lose their
+    // place when it goes, unless mpstruc itself lists it: say which.
+    const orphans = prev.status === "approved" && prev.placement !== "related" && !base.listed.has(pdb)
+      ? Object.entries(curation.entries).filter(([p, d]) => p !== pdb && d.status === "approved" && d.owner === pdb)
+          .map(([p, d]) => `${p} (${d.placement === "related" ? "related entry" : "daughter"} of ${pdb})`) : [];
+    const stranded = orphans.length
+      ? `${orphans.join(", ")} ${orphans.length === 1 ? "stays approved but is" : "stay approved but are"} now not shown in the database` : "";
+    decide({
+      pdb, entry: null, action: "undo",
+      detail: (prev.status === "approved" ? `Undid the approval of ${pdb} (was ${where(prev).replace(/^as /, "")}); back in To decide`
+                                           : `Undid the rejection of ${pdb}; back in To decide`) + (stranded ? `; ${stranded}` : ""),
+      message: `Curator ${cur.user.login}: undo ${prev.status === "approved" ? "approval" : "rejection"} of ${pdb}`,
+      done: () => toast(`Undid the decision on ${pdb}: it is back in To decide${prev.status === "approved" ? " and out of the database" : ""}.`
+        + (stranded ? ` ${stranded[0].toUpperCase()}${stranded.slice(1)}: approve ${pdb} again, or change ${orphans.length === 1 ? "it" : "them"}.` : ""),
+        { timeout: stranded ? 12000 : undefined }),
+    });
+  }
+
+  // Alt+Z undoes the latest decision this curator made here, so keyboard users
+  // do not have to reach the notification before it closes.
+  let lastDecision = null; // { pdb, at, close }
+  function noteDecision(pdb, entry, t) { lastDecision = { pdb, at: entry.at, close: t.close }; }
+  document.addEventListener("keydown", (ev) => {
+    if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.code !== "KeyZ") return;
+    ev.preventDefault();
+    const d = lastDecision;
+    if (!d || !curation.entries[d.pdb] || curation.entries[d.pdb].at !== d.at || optimistic.has(d.pdb)) {
+      toast("Nothing to undo: Alt+Z undoes your latest approval or rejection on this page.");
+      return;
+    }
+    lastDecision = null;
+    d.close();
+    undoDecision(d.pdb);
+  });
+
+  // ---- decisions made in this browser before sign-in existed ----
+  function localOnly() {
+    return Object.entries(localDecisions).filter(([pdb, d]) => PDB_RE.test(pdb) && d && (d.status === "approved" || d.status === "rejected")
+      && !curation.entries[pdb]);
+  }
+  function offered() { try { return localStorage.getItem(OFFER_KEY) === "1"; } catch { return false; } }
+  function uploadOffer() {
+    const n = signedIn() ? localOnly().length : 0;
+    if (!n || offered()) return "";
+    return `<div class="mp-offer" role="region" aria-label="Decisions saved in this browser">
+      <p><b>${n} ${n === 1 ? "decision" : "decisions"} saved only in this browser.</b> They were made before curators could sign in.
+        Upload them to the shared record so other curators see them and approved structures appear in the database?</p>
+      <div class="mp-actions"><button class="mp-btn" type="button" data-offer="upload">Upload ${n} ${n === 1 ? "decision" : "decisions"}</button>
+        <button class="mp-btn secondary" type="button" data-offer="dismiss">Not now</button></div></div>`;
+  }
+  function wireUploadOffer() {
+    app.querySelectorAll("[data-offer]").forEach((btn) => btn.addEventListener("click", () => {
+      try { localStorage.setItem(OFFER_KEY, "1"); } catch { /* shown again next time */ }
+      if (btn.dataset.offer === "upload") uploadLocal(); else rerender();
+    }));
+  }
+  function uploadLocal() {
+    const items = localOnly();
+    if (!items.length || !signedIn()) return;
+    const who = { by: cur.user.login, byName: cur.user.name };
+    let added = [];
+    commit(`Curator ${cur.user.login}: upload ${items.length} ${items.length === 1 ? "decision" : "decisions"} saved in this browser`, (doc) => {
+      added = [];
+      const now = new Date().toISOString();
+      for (const [pdb, d] of items) {
+        if (doc.entries[pdb] !== undefined) continue; // someone decided it meanwhile (or it is hand-edited): theirs stands
+        const entry = { ...d, ...who, at: d.at || now };
+        doc.entries[pdb] = entry;
+        added.push(pdb);
+        const when = d.at ? ` (decided in this browser on ${fmtDate(d.at)}, uploaded)` : " (uploaded from this browser)";
+        doc.log.push({ at: now, ...who, action: d.status === "approved" ? "approve" : "reject", pdb,
+                       detail: d.status === "approved" && order3(d) ? `Added ${pdb} ${where(d)}${when}` : `Rejected ${pdb}: ${d.reason || "no reason given"}${when}` });
+      }
+      if (!added.length) throw new GhError(-1, "Every one of these structures has been decided by another curator already.", { code: "stale" });
+    }).then(() => {
+      added.forEach((pdb) => delete localDecisions[pdb]);
+      saveLocalDecisions();
+      refreshView();
+      rerender();
+      toast(`Uploaded ${added.length} ${added.length === 1 ? "decision" : "decisions"} from this browser.`, { kind: "success" });
+    }).catch((e) => {
+      refreshView();
+      rerender();
+      toast(`Could not upload the decisions. ${explain(e)}`, { kind: "error" });
+    });
+  }
+  const order3 = (d) => ["parent", "daughter", "related"].includes(d.placement) && d.subgroup;
+
+  // ---- sign-in and sign-out ----
+  function updateWho() {
+    const who = document.getElementById("mp-whoami");
+    const logTab = document.querySelector('.mp-tabs a[data-tab="log"]');
+    if (logTab) logTab.hidden = !signedIn();
+    if (!who) return;
+    who.hidden = !signedIn();
+    who.innerHTML = signedIn()
+      ? `${cur.user.avatar ? `<img src="${esc(cur.user.avatar)}" alt="" width="22" height="22">` : ""}<span>${esc(cur.user.login)}</span>`
+      : "";
+    who.setAttribute("aria-label", signedIn() ? `Signed in as ${cur.user.name} (${cur.user.login}): curator account` : "");
+  }
+
+  async function resumeSession() {
+    if (!cur.token) return;
+    cur.verifying = true;
+    render();
+    try {
+      cur.user = await verify(cur.token);
+      await loadRemote();
+    } catch (e) {
+      if (e.status === 401 || e.code) {
+        forgetToken();
+        cur.token = null;
+        cur.user = null;
+        toast(`You have been signed out. ${explain(e)}`, { kind: "error" });
+      } else {
+        cur.error = explain(e);
+      }
+    }
+    cur.verifying = false;
+    updateWho();
+    refreshView();
+    rerender();
+  }
+
+  async function loadRemote() {
+    const { doc, sha } = await readRemote();
+    remote = doc;
+    remoteSha = sha;
+    logLoaded = new Date();
+  }
+
+  async function signIn(token, persist) {
+    cur.signingIn = true;
+    cur.note = "";
+    render();
+    try {
+      const user = await verify(token);
+      cur.token = token;
+      cur.user = user;
+      cur.error = "";
+      keepToken(token, persist);
+      try { await loadRemote(); } catch (e) { toast(`Signed in, but could not read the shared record. ${explain(e)}`, { kind: "error" }); }
+      refreshView();
+      toast(`Signed in as ${user.name}${user.name !== user.login ? ` (${user.login})` : ""}.`, { kind: "success" });
+    } catch (e) {
+      cur.note = explain(e);
+    }
+    cur.signingIn = false;
+    updateWho();
+    rerender();
+    const target = signedIn() ? app.querySelector(".mp-view h2") : document.getElementById("mp-token");
+    if (target) { if (target.tagName === "H2") target.setAttribute("tabindex", "-1"); target.focus({ preventScroll: true }); }
+  }
+
+  function signOut(expired) {
+    forgetToken();
+    const name = cur.user ? cur.user.login : "";
+    cur.token = null;
+    cur.user = null;
+    cur.error = "";
+    cur.focusToken = lastRoute.startsWith("log") || lastRoute.startsWith("curators");
+    updateWho();
+    logTimer(false);
+    if (expired) toast("GitHub no longer accepts your token, so you have been signed out. Sign in again on the Curators tab.", { kind: "error" });
+    else toast(`Signed out${name ? ` ${name}` : ""}. Your token has been removed from this browser.`);
+    if (lastRoute.startsWith("log")) location.hash = "#/curators"; else rerender();
+  }
+
+  // ---- Curators tab ----
+  function curatorTable() {
+    const by = new Map();
+    for (const x of curation.log) {
+      if (!x.by) continue;
+      const r = by.get(x.by) || { name: x.byName || x.by, n: 0, last: "" };
+      r.n++;
+      if (String(x.at) > r.last) r.last = String(x.at);
+      by.set(x.by, r);
+    }
+    if (!by.size) return '<p class="mp-summary">No curator has saved a decision yet.</p>';
+    const rows = [...by].sort((a, b) => b[1].last.localeCompare(a[1].last)).map(([login, r]) =>
+      `<tr><td>${esc(r.name)} <span class="mp-of">${esc(login)}</span></td><td>${r.n}</td><td>${esc(fmtDate(r.last))}</td></tr>`).join("");
+    return `<div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Curator</th><th>Changes</th><th>Last active</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  }
+
+  function viewCurators() {
+    if (cur.verifying) return '<div class="mp-view"><h2>Curators</h2><p class="mp-loading">Checking your sign-in with GitHub…</p></div>';
+    if (signedIn()) {
+      const u = cur.user;
+      const mine = Object.values(curation.entries).filter((d) => d.by === u.login).length;
+      return `<div class="mp-view mp-narrow">
+        <h2>Curators</h2>
+        ${uploadOffer()}
+        <div class="mp-curator">
+          ${u.avatar ? `<img class="mp-avatar" src="${esc(u.avatar)}" alt="" width="56" height="56">` : ""}
+          <div><b>${esc(u.name)}</b><span class="mp-of">${u.url ? `<a href="${esc(u.url)}" rel="noopener">${esc(u.login)} on GitHub ↗</a>` : esc(u.login)}</span>
+            <span class="mp-of">Signed in as a curator of ${esc(REPO)}</span></div>
+          <button class="mp-btn secondary" type="button" id="mp-signout">Sign out</button>
+        </div>
+        <p>Your approvals and rejections on the <a href="#/automation">Automation</a> tab are saved as commits to
+          <code>${esc(CUR_PATH)}</code> on the ${esc(BRANCH)} branch, and approved structures appear in the <a href="#/">Database</a> tab
+          straight away. Every change is listed in the <a href="#/log">Activity log</a>. ${mine ? `You have ${mine} current ${mine === 1 ? "decision" : "decisions"}.` : ""}</p>
+        <h3>Curators</h3>
+        ${curatorTable()}
+      </div>`;
+    }
+    return `<div class="mp-view mp-narrow">
+      <h2>Curators</h2>
+      ${cur.error ? `<p class="mp-flags error">${esc(cur.error)}</p>` : ""}
+      <p>Curators sign in with a GitHub <a href="https://github.com/settings/personal-access-tokens/new" rel="noopener">fine-grained personal access token ↗</a>.
+        Create one with access to only the <code>${esc(REPO)}</code> repository and the permission <b>Contents: Read and write</b>
+        (nothing else), with a short expiry such as 30 days, then paste it below.
+        Each decision you make is then saved to the repository under your GitHub name, so every curator sees it.
+        The token is sent only to GitHub.</p>
+      <form class="mp-signin" id="mp-signin" novalidate>
+        <label for="mp-token">GitHub token</label>
+        <input id="mp-token" name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"
+          aria-describedby="mp-signin-note"${cur.note ? ' aria-invalid="true"' : ""}${cur.signingIn ? " disabled" : ""}>
+        <label class="mp-check"><input type="checkbox" name="keep" aria-describedby="mp-keep-warn"> Keep me signed in on this device</label>
+        <p class="mp-summary mp-keep-warn" id="mp-keep-warn"><b>Only on your own computer.</b> Unticked, the token is kept in this page's memory
+          and you are signed out when you reload or close it. Ticked, it is saved in this browser for the whole <code>andyyjiang.github.io</code>
+          site, where any other GitHub Pages site of that account could read it.</p>
+        <p class="mp-form-note" id="mp-signin-note" aria-live="polite">${esc(cur.note)}</p>
+        <div class="mp-actions"><button class="mp-btn" type="submit"${cur.signingIn ? " disabled" : ""}>${cur.signingIn ? "Signing in…" : "Sign in"}</button></div>
+      </form>
+      <h3>Curators</h3>
+      ${curatorTable()}
+    </div>`;
+  }
+
+  function wireCurators() {
+    wireUploadOffer();
+    const form = document.getElementById("mp-signin");
+    if (form) form.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const input = form.elements.token;
+      const token = input.value.trim();
+      input.value = ""; // never leave the token in the page
+      if (!token) { cur.note = "Paste your GitHub token first."; rerender(); document.getElementById("mp-token")?.focus(); return; }
+      signIn(token, form.elements.keep.checked);
+    });
+    const out = document.getElementById("mp-signout");
+    if (out) out.addEventListener("click", () => signOut(false));
+  }
+
+  // ---- Activity log tab ----
+  function parseSnapshotTime(s) {
+    const m = /^\w{3} (\w{3}) (\d{1,2}) (\d\d:\d\d:\d\d) (\w+) (\d{4})$/.exec(String(s || "").trim());
+    if (!m) return null;
+    const zones = { PDT: "-07:00", PST: "-08:00", UTC: "Z", GMT: "Z" };
+    const mon = "JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(m[1]) / 3 + 1;
+    if (mon < 1) return null;
+    return `${m[5]}-${pad(mon)}-${pad(m[2])}T${m[3]}${zones[m[4]] || "Z"}`;
+  }
+
+  function logLines() {
+    const lines = curation.log.map((x) => ({
+      at: x.at, who: plain(x.by), act: plain(x.action).toUpperCase(), pdb: PDB_RE.test(x.pdb || "") ? x.pdb : "", msg: plain(x.detail),
+    }));
+    for (const r of importRuns) {
+      const w = Array.isArray(r.window) ? r.window : [];
+      lines.push({ at: r.at, who: "weekly-job", act: "IMPORT", pdb: "", msg:
+        `Checked ${Number(r.released || 0).toLocaleString()} PDB releases from ${plain(w[0])} to ${plain(w[1])}: `
+        + `${Number(r.candidates || 0).toLocaleString()} suggestions, ${Number(r.membrane50 || 0).toLocaleString()} at least 50% likely to be membrane proteins`
+        + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "") });
+    }
+    // The snapshot the database was built from goes in its place in time
+    // (normally the oldest line, at the bottom, like a terminal's first line).
+    const m = state.data.meta, c = base.counts;
+    lines.push({ at: parseSnapshotTime(m.timestamp) || m.lastEdit, who: "mpstruc", act: "SNAPSHOT", pdb: "", snapshot: true,
+      msg: `Database snapshot of ${m.timestamp}: ${c.parents.toLocaleString()} parents, ${c.daughters.toLocaleString()} daughter structures, `
+        + `${c.subgroups} subfamilies${state.nNew ? `; ${state.nNew} added by curators since` : ""}` });
+    lines.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
+    return lines;
+  }
+
+  function termHtml() {
+    const terms = logFilter.toLowerCase().split(/\s+/).filter(Boolean);
+    const all = logLines();
+    const shown = all.filter((l) => {
+      const t = `${fmtStamp(l.at)} ${l.who} ${l.act} ${l.pdb} ${l.msg}`.toLowerCase();
+      return terms.every((x) => t.includes(x));
+    });
+    const max = 500;
+    const rows = shown.slice(0, max).map((l) => `<li class="mp-term-line act-${esc(l.act.toLowerCase())}${l.snapshot ? " snapshot" : ""}">`
+      + `<time datetime="${esc(l.at || "")}">${esc(fmtStamp(l.at))}</time>`
+      + `<span class="who">${esc(l.who || "-")}</span><span class="act">${esc(l.act || "-")}</span>`
+      + `<span class="pdb">${l.pdb ? `<a href="#/pdb/${esc(l.pdb)}">${esc(l.pdb)}</a>` : "----"}</span>`
+      + `<span class="msg">${esc(l.msg)}</span></li>`).join("");
+    return {
+      count: `${shown.length === all.length ? `${all.length} lines` : `${shown.length} of ${all.length} lines match`}`
+        + (shown.length > max ? ` · showing the newest ${max}` : ""),
+      html: rows || '<li class="mp-term-line empty"><span class="msg">No lines match the filter.</span></li>',
+    };
+  }
+
+  function viewLog() {
+    if (cur.verifying) return '<div class="mp-view"><h2>Activity log</h2><p class="mp-loading">Checking your sign-in with GitHub…</p></div>';
+    if (!signedIn()) {
+      return `<div class="mp-view"><h2>Activity log</h2>
+        <p class="mp-empty">The activity log is for curators. <a href="#/curators">Sign in on the Curators tab</a> to see it.</p></div>`;
+    }
+    const t = termHtml();
+    return `<div class="mp-view">
+      <h2>Activity log</h2>
+      <p class="mp-summary">Every decision saved by a curator, each weekly check for new PDB releases, and the database snapshot, newest first.
+        It refreshes every minute while this tab is open.</p>
+      <form class="mp-filters mp-log-tools" id="mp-log-tools" role="search" aria-label="Filter the activity log">
+        <label>Filter<input type="search" name="q" id="mp-log-q" value="${esc(logFilter)}" placeholder="PDB ID, curator, approve, import…" autocomplete="off"></label>
+        <button type="button" class="mp-btn secondary" id="mp-log-refresh" aria-disabled="${logBusy}">${logBusy ? "Refreshing…" : "Refresh"}</button>
+      </form>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-log-count">${t.count}</p>
+        <p class="mp-summary" id="mp-log-updated">${logLoaded ? `Updated ${esc(fmtStamp(logLoaded.toISOString()).slice(11))}` : ""}</p></div>
+      <div class="mp-term" tabindex="0" role="region" aria-label="Activity log lines"><ol id="mp-term">${t.html}</ol></div>
+    </div>`;
+  }
+
+  function paintLog() {
+    const list = document.getElementById("mp-term");
+    if (!list) return;
+    const t = termHtml();
+    list.innerHTML = t.html;
+    document.getElementById("mp-log-count").textContent = t.count;
+    const up = document.getElementById("mp-log-updated");
+    if (up && logLoaded) up.textContent = `Updated ${fmtStamp(logLoaded.toISOString()).slice(11)}`;
+    const btn = document.getElementById("mp-log-refresh");
+    // aria-disabled, not disabled: disabling the focused button would drop keyboard focus.
+    if (btn) { btn.setAttribute("aria-disabled", String(logBusy)); btn.textContent = logBusy ? "Refreshing…" : "Refresh"; }
+  }
+
+  function wireLog() {
+    const form = document.getElementById("mp-log-tools");
+    if (!form) return;
+    form.addEventListener("submit", (ev) => ev.preventDefault());
+    form.elements.q.addEventListener("input", () => { logFilter = form.elements.q.value; paintLog(); });
+    document.getElementById("mp-log-refresh").addEventListener("click", () => refreshLog(true));
+  }
+
+  async function refreshLog(byHand) {
+    if (!signedIn() || logBusy) return;
+    logBusy = true;
+    paintLog();
+    try {
+      const [, runs] = await Promise.all([loadRemote(), optionalJson("data/import_log.json")]);
+      if (runs && Array.isArray(runs.runs)) importRuns = runs.runs;
+      refreshView();
+    } catch (e) {
+      if (e.status === 401) { logBusy = false; signOut(true); return; }
+      if (byHand) toast(`Could not refresh the log. ${explain(e)}`, { kind: "error" });
+    }
+    logBusy = false;
+    paintLog();
+    if (byHand) document.getElementById("mp-status").textContent = document.getElementById("mp-log-count")?.textContent || "";
+  }
+
+  let logInterval = 0;
+  function logTimer(on) {
+    clearInterval(logInterval);
+    logInterval = on ? setInterval(() => { if (!document.hidden) refreshLog(false); }, 60000) : 0;
+  }
+
+  // ---- notifications ----
+  const toastBox = document.createElement("div");
+  toastBox.className = "mp-toasts";
+  toastBox.setAttribute("aria-live", "polite");
+  toastBox.setAttribute("aria-label", "Notifications");
+  document.body.appendChild(toastBox);
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  const toastLive = new Set();
+  const toastHeld = () => toastBox.matches(":hover") || toastBox.contains(document.activeElement);
+  toastBox.addEventListener("mouseenter", () => toastLive.forEach((t) => t.pause()));
+  toastBox.addEventListener("mouseleave", () => { if (!toastHeld()) toastLive.forEach((t) => t.resume()); });
+  toastBox.addEventListener("focusin", () => toastLive.forEach((t) => t.pause()));
+  toastBox.addEventListener("focusout", (ev) => {
+    if (!toastBox.contains(ev.relatedTarget) && !toastBox.matches(":hover")) toastLive.forEach((t) => t.resume());
+  });
+  function toast(message, { kind = "info", actions = [], timeout } = {}) {
+    // Where keyboard focus goes back to if it is in this toast when it closes.
+    const returnId = app.contains(document.activeElement) ? document.activeElement.id : "";
+    if (timeout == null) timeout = kind === "error" ? 10000 : 6000;
+    const el = document.createElement("div");
+    el.className = `mp-toast ${kind}`;
+    if (kind === "error") el.setAttribute("role", "alert");
+    const msg = document.createElement("p");
+    msg.className = "mp-toast-msg";
+    msg.textContent = message;
+    el.appendChild(msg);
+    const row = document.createElement("div");
+    row.className = "mp-toast-actions";
+    for (const a of actions) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "mp-btn secondary";
+      b.textContent = a.label;
+      if (a.keys) b.setAttribute("aria-keyshortcuts", a.keys);
+      b.addEventListener("click", () => { close(); a.run(); });
+      row.appendChild(b);
+    }
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "mp-toast-close";
+    x.setAttribute("aria-label", "Dismiss notification");
+    x.textContent = "×";
+    x.addEventListener("click", () => close());
+    row.appendChild(x);
+    el.appendChild(row);
+    // Auto-dismiss, paused for every toast while the pointer or keyboard focus is
+    // anywhere in the stack (so one closing and the stack shifting cannot pull
+    // the toast being read out from under the pointer).
+    let left = timeout, started = Date.now(), timer = 0, closed = false;
+    const ctl = {
+      pause: () => { if (timer) { clearTimeout(timer); timer = 0; left -= Date.now() - started; } },
+      resume: () => { if (!timer && !closed) { started = Date.now(); timer = setTimeout(close, Math.max(left, 1500)); } },
+    };
+    toastLive.add(ctl);
+    if (toastHeld()) left = Math.max(left, 1500); else timer = setTimeout(close, left);
+    function close() {
+      if (closed) return;
+      closed = true;
+      toastLive.delete(ctl);
+      clearTimeout(timer);
+      const hadFocus = el.contains(document.activeElement);
+      const gone = () => {
+        el.remove();
+        if (hadFocus && !app.contains(document.activeElement)) {
+          const back = returnId && document.getElementById(returnId);
+          const h = back && !back.disabled && app.contains(back) ? back : app.querySelector(".mp-view h2");
+          if (h) focusEl(h);
+        }
+      };
+      if (reduceMotion.matches) gone();
+      else { el.classList.add("leaving"); setTimeout(gone, 180); }
+    }
+    toastBox.appendChild(el);
+    while (toastBox.children.length > 4) toastBox.firstElementChild.remove();
+    return { close };
+  }
+
   // ---- router -------------------------------------------------------------
   let lastRoute = "";
   function route() {
@@ -962,6 +1948,7 @@ links.addEventListener("click", (event) => {
     if (h !== lastRoute) state.limit = PAGE;
     state.focusHeading = lastRoute !== "" || h !== "";
     lastRoute = h;
+    logTimer(h.split("/")[0] === "log");
     // Presentation only: the view fade-in runs on navigation, not on every filter or search re-render.
     app.classList.remove("mp-enter");
     void app.offsetWidth;
@@ -981,6 +1968,27 @@ links.addEventListener("click", (event) => {
     try { renderNow(); } finally { rendering = false; }
   }
 
+  // Put keyboard focus back after the view's HTML was replaced: on the same
+  // control (by id or name), else on the view heading, so it never drops to <body>.
+  function focusEl(el) {
+    if (!el.matches("a[href], button, select, input, textarea, summary, [tabindex]")) el.setAttribute("tabindex", "-1");
+    el.focus({ preventScroll: true });
+    return document.activeElement === el;
+  }
+  function restoreFocus(focusName, hadFocus, head) {
+    let ok = false;
+    if (focusName) {
+      let el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
+      // A card that had focus while saving: move to its first usable control.
+      if (el && el.matches(".mp-cand")) el = el.querySelector("[data-act]:not([disabled])") || el;
+      if (el && !el.disabled) ok = focusEl(el);
+    } else if (state.focusHeading && head) {
+      ok = focusEl(head);
+    }
+    if (!ok && hadFocus && head && !app.contains(document.activeElement)) focusEl(head);
+    state.focusHeading = false;
+  }
+
   function renderNow() {
     const [kind, ...rest] = lastRoute.split("/");
     heroMode(kind);
@@ -988,23 +1996,35 @@ links.addEventListener("click", (event) => {
     try { arg = decodeURIComponent(rest.join("/")); } catch { arg = rest.join("/"); }
     // Remember which control had focus, so re-rendering does not drop keyboard users.
     const active = document.activeElement;
-    const focusName = active && app.contains(active) ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
-    document.querySelectorAll(".mp-tabs a").forEach((a) =>
-      a.classList.toggle("active", a.dataset.tab === (kind === "automation" ? "automation" : "database")));
-    if (kind === "automation") {
-      app.innerHTML = viewAutomation(arg);
-      wireAutomation();
+    const hadFocus = Boolean(active && app.contains(active));
+    const focusName = hadFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
+    const tab = ["automation", "curators", "log"].includes(kind) ? kind : "database";
+    document.querySelectorAll(".mp-tabs a[data-tab]").forEach((a) => {
+      a.classList.toggle("active", a.dataset.tab === tab);
+      if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    // If the tab bar is ever wider than the screen, keep the current tab in view
+    // (scrolling only the bar, never the page).
+    const bar = document.querySelector(".mp-tabs"), on = bar && bar.querySelector("a.active");
+    if (on && bar.scrollWidth > bar.clientWidth) {
+      const l = on.offsetLeft - bar.offsetLeft, r = l + on.offsetWidth;
+      if (l < bar.scrollLeft) bar.scrollLeft = l;
+      else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth;
+    }
+    if (kind === "automation" || kind === "curators" || kind === "log") {
+      if (kind === "automation") { app.innerHTML = viewAutomation(arg); wireAutomation(); }
+      else if (kind === "curators") { app.innerHTML = viewCurators(); wireCurators(); }
+      else { app.innerHTML = viewLog(); wireLog(); }
+      mountPreviews();
       const st = document.getElementById("mp-status");
       const sum = app.querySelector(".mp-toolbar .mp-summary"), head = app.querySelector(".mp-view h2");
       if (st) st.textContent = sum ? sum.textContent : (head ? head.textContent : "");
-      if (focusName) {
-        const el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
-        if (el) el.focus();
-      } else if (state.focusHeading && head) {
-        head.setAttribute("tabindex", "-1");
-        head.focus({ preventScroll: true });
+      restoreFocus(focusName, hadFocus, head);
+      if (cur.focusToken && kind === "curators") {
+        cur.focusToken = false;
+        const t = document.getElementById("mp-token");
+        if (t) t.focus({ preventScroll: true });
       }
-      state.focusHeading = false;
       const moreA = document.getElementById("mp-more");
       if (moreA) moreA.addEventListener("click", () => {
         const before = app.querySelectorAll(".mp-cand").length;
@@ -1038,8 +2058,9 @@ links.addEventListener("click", (event) => {
     } else {
       main = viewHome();
     }
-    const q = kind === "search" && arg !== "*issues" ? arg : "";
+    const q = kind === "search" && !arg.startsWith("*") ? arg : "";
     app.innerHTML = `<div class="mp-layout">${sidebar(currentSg)}<div>${searchBox(q)}${main}</div></div>`;
+    mountPreviews();
     wireSearch();
     wireFilters();
     if (csv) wireCsv(csv[0], csv[1]);
@@ -1059,130 +2080,333 @@ links.addEventListener("click", (event) => {
     const summary = app.querySelector(".mp-toolbar .mp-summary");
     const h2 = app.querySelector(".mp-view h2");
     if (status) status.textContent = summary ? summary.textContent : (h2 ? h2.textContent : "");
-    if (focusName) {
-      const el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
-      if (el) el.focus();
-    } else if (state.focusHeading && h2) {
-      h2.setAttribute("tabindex", "-1");
-      h2.focus({ preventScroll: true });
-    }
-    state.focusHeading = false;
+    restoreFocus(focusName, hadFocus, h2);
     const side = app.querySelector(".mp-side > details");
     if (side && window.matchMedia("(max-width: 860px)").matches && kind) side.open = false;
-    const cur = app.querySelector(".mp-side a.current");
+    const curLink = app.querySelector(".mp-side a.current");
     const sideBox = app.querySelector(".mp-side");
-    if (cur && sideBox) sideBox.scrollTop = cur.offsetTop - sideBox.clientHeight / 2;
+    if (curLink && sideBox) sideBox.scrollTop = curLink.offsetTop - sideBox.clientHeight / 2;
   }
 })();
 
 // ---------------------------------------------------------------------------
-// Animated 3D structure (mpstruc.html hero). Draws a protein backbone from
-// data/<id>.json (C-alpha coordinates, oriented so the membrane normal is the
-// y axis) as a smooth ribbon inside a lipid bilayer, on a plain 2D canvas.
-// Runs only where a [data-molecule] canvas exists.
+// 3D structure viewer (window.mpMol). Draws a protein backbone as a smooth,
+// depth-shaded tube on a plain 2D canvas: the mpstruc.html hero (4MBS from
+// data/4mbs.json, in a lipid bilayer) and small previews of any PDB entry
+// (C-alpha coordinates from the RCSB ModelServer).
+//   mpMol.mount(canvas, model, {autoRotate, membrane, key, tiltKeys}) -> viewer
+//   mpMol.load(pdbId) -> Promise<model>   (cached in memory)
+// Each canvas has at most one animation loop; nothing animates offscreen, in a
+// hidden tab or under prefers-reduced-motion (still canvases redraw on drag).
 // ---------------------------------------------------------------------------
 (function () {
-  const canvas = document.querySelector("canvas[data-molecule]");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const css = (name, fallback) => getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
-  let model = null, angle = 0.6, tilt = 0.18, dragging = null, visible = true, last = 0, theme = null;
-  // One animation loop at most: raf holds the pending frame, onScreen tracks the IntersectionObserver.
-  let raf = 0, onScreen = true;
-  const schedule = () => { if (!raf) raf = requestAnimationFrame(frame); };
+  const darkMq = window.matchMedia("(prefers-color-scheme: dark)");
+  const live = new Set();
+  const views = new Map();  // remembered rotation per key, so a re-render keeps the view
+  const byCanvas = new WeakMap();
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    const v = byCanvas.get(e.target);
+    if (v) { v.onScreen = e.isIntersecting; v.wake(); }
+  }));
+  const ro = new ResizeObserver((entries) => entries.forEach((e) => {
+    const v = byCanvas.get(e.target);
+    if (v) { v.resize(); v.request(); }
+  }));
+  document.addEventListener("visibilitychange", () => live.forEach((v) => v.wake()));
+  const retheme = () => live.forEach((v) => { v.readTheme(); v.request(); });
+  darkMq.addEventListener("change", retheme);
+  reduce.addEventListener("change", () => live.forEach((v) => v.wake()));
 
-  // Theme comes from CSS custom properties; read once per resize, not per segment.
-  function readTheme() {
-    const num = (name, fallback) => { const v = parseFloat(css(name, "")); return Number.isFinite(v) ? v : fallback; };
-    theme = {
-      h0: num("--mol-hue-start", 195), h1: num("--mol-hue-end", 330),
-      heads: css("--mol-membrane", "rgba(120,140,200,0.35)"), ligand: css("--mol-ligand", "#f2b33d"),
-      bandHead: css("--mol-band-head", "rgba(110,200,255,0.30)"), bandCore: css("--mol-band-core", "rgba(60,120,200,0.07)"),
-      cx: num("--mol-cx", 0.5), glow: num("--mol-glow", 0),
-      sat: num("--mol-sat", 84), far: num("--mol-light-far", 40), near: num("--mol-light-near", 70),
-    };
-  }
-
-  fetch(`data/${canvas.dataset.molecule}.json`).then((r) => r.json()).then((d) => { model = build(d); resize(); frame(0); })
-    .catch(() => canvas.remove());
-
-  // Catmull-Rom spline through the C-alpha trace, broken at chain gaps.
-  function build(d) {
-    const res = d.residues, pts = [];
-    const sub = 5;
+  // Catmull-Rom spline through a C-alpha trace, broken at chain changes and at
+  // gaps longer than maxGap (in the model's units).
+  function spline(res, sub, maxGap) {
+    const pts = [];
+    const d = (a, b) => Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1], a.p[2] - b.p[2]);
     for (let i = 0; i < res.length - 1; i++) {
-      const gap = (j) => j < 0 || j >= res.length || Math.hypot(...res[j].p.map((v, k) => v - res[i].p[k])) > 4.5 * Math.abs(j - i) + 1;
+      const gap = (j) => j < 0 || j >= res.length || res[j].c !== res[i].c || d(res[j], res[i]) > maxGap * Math.abs(j - i) + 1;
       const p0 = res[gap(i - 1) ? i : i - 1].p, p1 = res[i].p, p2 = res[i + 1].p, p3 = res[gap(i + 2) ? i + 1 : i + 2].p;
-      if (Math.hypot(p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]) > 4.5) continue;
+      if (res[i + 1].c !== res[i].c || d(res[i], res[i + 1]) > maxGap) continue;
       for (let s = 0; s < sub; s++) {
         const t = s / sub, t2 = t * t, t3 = t2 * t;
         const p = [0, 1, 2].map((k) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2
                                             + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3));
         const r = res[i];
-        pts.push({ p, f: i / (res.length - 1), ss: r.ss, part: r.part, brk: s === 0 && pts.length && pts[pts.length - 1].i !== i - 1, i });
+        pts.push({ p, f: i / (res.length - 1), ss: r.ss, part: r.part, tone: r.tone || 0,
+                   brk: s === 0 && pts.length && pts[pts.length - 1].i !== i - 1, i });
       }
     }
-    return { pts, lig: d.ligand || [] };
+    return pts;
   }
 
-  function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    readTheme();
+  // The hero's own file: residues already oriented (membrane normal = y), with
+  // secondary structure and the crystallisation partner marked.
+  function fromHero(d) {
+    return { kind: "hero", pts: spline(d.residues, 5, 4.5), lig: d.ligand || [], unit: 1, id: d.pdb };
   }
 
-  function project(p, w, h, scale) {
-    const ca = Math.cos(angle), sa = Math.sin(angle), ct = Math.cos(tilt), st = Math.sin(tilt);
-    const x = p[0] * ca + p[2] * sa, z0 = -p[0] * sa + p[2] * ca;
-    const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
-    const persp = 260 / (260 - z);
-    // The structure spans about y = -45 (rubredoxin) to +33 A; centre it.
-    return [w * theme.cx + x * scale * persp, h / 2 - (y + 6) * scale * persp, z, persp];
+  // ---- mmCIF (C-alpha only) ------------------------------------------------
+  function parseCif(text) {
+    const lines = text.split(/\r?\n/);
+    let i = lines.findIndex((l) => l.startsWith("_atom_site."));
+    if (i < 1 || !/^loop_\s*$/.test(lines[i - 1])) throw new Error("no atom_site loop");
+    const cols = [];
+    for (; i < lines.length && lines[i].startsWith("_atom_site."); i++) cols.push(lines[i].trim().slice(11));
+    const c = (n) => cols.indexOf(n);
+    const X = c("Cartn_x"), Y = c("Cartn_y"), Z = c("Cartn_z"), SEQ = c("label_seq_id"), MOD = c("pdbx_PDB_model_num");
+    const CH = c("label_asym_id") >= 0 ? c("label_asym_id") : c("auth_asym_id");
+    const ATOM = c("label_atom_id"), EL = c("type_symbol");
+    if (X < 0 || Y < 0 || Z < 0 || CH < 0) throw new Error("missing columns");
+    const tok = /'[^']*'(?=\s|$)|"[^"]*"(?=\s|$)|\S+/g;
+    const out = [], seen = new Set();
+    let model = null;
+    for (; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line || line[0] === "#" || line[0] === "_" || line.startsWith("loop_")) break;
+      const f = line.match(tok);
+      if (!f || f.length < cols.length) continue;
+      if (MOD >= 0) { if (model === null) model = f[MOD]; else if (f[MOD] !== model) continue; }
+      if (ATOM >= 0 && f[ATOM].replace(/['"]/g, "") !== "CA") continue;
+      if (EL >= 0 && f[EL] !== "C") continue;  // calcium ions are also called CA
+      const seq = SEQ >= 0 ? f[SEQ] : String(out.length);
+      if (seq === "." || seq === "?") continue;
+      const ch = f[CH].replace(/^['"]|['"]$/g, ""), key = `${ch}:${seq}`;
+      if (seen.has(key)) continue;  // alternate locations: keep the first
+      seen.add(key);
+      const p = [+f[X], +f[Y], +f[Z]];
+      if (p.some((v) => !Number.isFinite(v))) continue;
+      out.push({ p, c: ch, n: +seq });
+    }
+    return out;
   }
 
-  // Colour along the chain: hue from --mol-hue-start to --mol-hue-end at --mol-sat
-  // saturation, shaded by depth from --mol-light-far to --mol-light-near; the
-  // crystallisation partner (rubredoxin) is drawn faint.
-  function hueOf(pt) { return theme.h0 + (theme.h1 - theme.h0) * pt.f; }
-  function colour(pt, light) {
-    const l = theme.far + (theme.near - theme.far) * light;
-    if (pt.part !== "ccr5") return `hsl(0 0% ${l}% / 0.32)`;
-    return `hsl(${hueOf(pt)} ${theme.sat}% ${l}%)`;
+  // Symmetric 3x3 eigen-decomposition (Jacobi). Returns [values, vectors as columns].
+  function eigen(a) {
+    const A = a.map((r) => r.slice()), V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+    for (let sweep = 0; sweep < 30; sweep++) {
+      const off = Math.abs(A[0][1]) + Math.abs(A[0][2]) + Math.abs(A[1][2]);
+      if (off < 1e-9) break;
+      for (const [p, q] of [[0, 1], [0, 2], [1, 2]]) {
+        if (Math.abs(A[p][q]) < 1e-12) continue;
+        const th = (A[q][q] - A[p][p]) / (2 * A[p][q]);
+        const t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1));
+        const cs = 1 / Math.sqrt(t * t + 1), sn = t * cs;
+        for (let k = 0; k < 3; k++) {
+          const akp = A[k][p], akq = A[k][q];
+          A[k][p] = cs * akp - sn * akq; A[k][q] = sn * akp + cs * akq;
+        }
+        for (let k = 0; k < 3; k++) {
+          const apk = A[p][k], aqk = A[q][k];
+          A[p][k] = cs * apk - sn * aqk; A[q][k] = sn * apk + cs * aqk;
+        }
+        for (let k = 0; k < 3; k++) {
+          const vkp = V[k][p], vkq = V[k][q];
+          V[k][p] = cs * vkp - sn * vkq; V[k][q] = sn * vkp + cs * vkq;
+        }
+      }
+    }
+    return [[A[0][0], A[1][1], A[2][2]], V];
   }
 
-  // The bilayer as a luminous band: bright head-group layers at +-16 A around a
-  // faint hydrophobic core, fading out towards the left where the text sits.
-  function band(w, h, scale) {
-    const a = project([0, 16, 0], w, h, scale)[1], b = project([0, -16, 0], w, h, scale)[1];
-    const pad = 5 * scale, y0 = Math.min(a, b) - pad, y1 = Math.max(a, b) + pad;
-    const g = ctx.createLinearGradient(0, y0, 0, y1);
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(0.1, theme.bandHead); g.addColorStop(0.24, theme.bandCore);
-    g.addColorStop(0.76, theme.bandCore); g.addColorStop(0.9, theme.bandHead);
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = g; ctx.fillRect(0, y0, w, y1 - y0);
-    const fx = ctx.createLinearGradient(0, 0, w, 0), c = Math.max(0.05, Math.min(0.95, theme.cx));
-    fx.addColorStop(0, "rgba(0,0,0,0.25)"); fx.addColorStop(c, "rgba(0,0,0,1)"); fx.addColorStop(1, "rgba(0,0,0,0.35)");
-    ctx.globalCompositeOperation = "destination-in";
-    ctx.fillStyle = fx; ctx.fillRect(0, 0, w, h);
-    ctx.globalCompositeOperation = "source-over";
+  const MAX_CA = 8000;
+  // C-alpha list -> drawable model: helices estimated from CA(i)-CA(i+3)
+  // distances, very large structures sampled, oriented by PCA (longest axis
+  // vertical), centred and scaled to a radius of 50 units.
+  function fromCa(all, id) {
+    if (all.length < 2) throw new Error("too few residues");
+    const n0 = all.length;
+    const hit = new Uint8Array(n0);
+    for (let i = 0; i + 3 < n0; i++) {
+      const a = all[i], b = all[i + 3];
+      if (a.c === b.c && b.n - a.n === 3 && Math.hypot(a.p[0] - b.p[0], a.p[1] - b.p[1], a.p[2] - b.p[2]) < 6.0) hit[i] = 1;
+    }
+    // Two overlapping i,i+3 hits in a row (five residues) count as helix.
+    for (let i = 0; i + 1 < n0; i++) if (hit[i] && hit[i + 1]) for (let k = i; k <= i + 4 && k < n0; k++) all[k].ss = "H";
+    // Draw helices as rods: inside a helix, the mean of four consecutive C-alphas lies on its axis.
+    const axis = all.map((r, k) => {
+      if (r.ss !== "H" || k < 1 || k + 2 >= n0) return null;
+      const q = [all[k - 1], r, all[k + 1], all[k + 2]];
+      if (q.some((x) => x.ss !== "H" || x.c !== r.c)) return null;
+      return [0, 1, 2].map((j) => (q[0].p[j] + q[1].p[j] + q[2].p[j] + q[3].p[j]) / 4);
+    });
+    axis.forEach((p, k) => { if (p) all[k].p = p; });
+    const step = n0 > MAX_CA ? Math.ceil(n0 / MAX_CA) : 1;
+    const res = step > 1 ? all.filter((_, i) => i % step === 0) : all;
+    const chains = new Map();
+    res.forEach((r) => { if (!chains.has(r.c)) chains.set(r.c, chains.size); r.tone = chains.get(r.c); r.ss = r.ss || "C"; });
+    const m = [0, 1, 2].map((k) => res.reduce((s, r) => s + r.p[k], 0) / res.length);
+    const cov = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+    for (const r of res) {
+      const q = [r.p[0] - m[0], r.p[1] - m[1], r.p[2] - m[2]];
+      for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) cov[a][b] += q[a] * q[b];
+    }
+    const [vals, V] = eigen(cov);
+    const order = [0, 1, 2].sort((a, b) => vals[b] - vals[a]);
+    const col = (k) => [V[0][k], V[1][k], V[2][k]];
+    const ey = col(order[0]), ex = col(order[1]);
+    const ez = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]];  // keeps handedness
+    let R = 0;
+    for (const r of res) {
+      const q = [r.p[0] - m[0], r.p[1] - m[1], r.p[2] - m[2]];
+      r.p = [ex, ey, ez].map((e) => q[0] * e[0] + q[1] * e[1] + q[2] * e[2]);
+      R = Math.max(R, Math.hypot(...r.p));
+    }
+    const s = 50 / (R || 1);
+    res.forEach((r) => { r.p = r.p.map((v) => v * s); });
+    const sub = Math.max(1, Math.min(5, Math.floor(9000 / res.length)));
+    return { kind: "fit", pts: spline(res, sub, 4.5 * step * s), lig: [], unit: Math.min(1.4, s), id,
+             residues: n0, chains: chains.size, sampled: step };
   }
 
-  function draw() {
+  const cache = new Map();
+  let active = 0;
+  const queue = [];
+  const pump = () => {
+    while (active < 3 && queue.length) {
+      const [fn, ok, fail] = queue.shift();
+      active++;
+      fn().then(ok, fail).finally(() => { active--; pump(); });
+    }
+  };
+  const limited = (fn) => new Promise((ok, fail) => { queue.push([fn, ok, fail]); pump(); });
+  function load(pdb) {
+    const id = String(pdb || "").trim().toLowerCase();
+    if (!/^[a-z0-9_]{4,12}$/.test(id)) return Promise.reject(new Error("Not a PDB ID"));
+    if (!cache.has(id)) {
+      const url = `https://models.rcsb.org/v1/${encodeURIComponent(id)}/atoms?label_atom_id=CA&encoding=cif&copy_all_categories=false`;
+      const p = limited(() => fetch(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); }))
+        .then((t) => fromCa(parseCif(t), id.toUpperCase()));
+      p.then((m) => { p.model = m; }, () => {});
+      cache.set(id, p);
+    }
+    return cache.get(id);
+  }
+  const peek = (pdb) => { const p = cache.get(String(pdb || "").toLowerCase()); return p && p.model; };
+
+  function mount(canvas, model, opts = {}) {
+    const old = byCanvas.get(canvas);
+    if (old) old.destroy();
+    sweep();
+    const ctx = canvas.getContext("2d");
+    const css = (name, fallback) => getComputedStyle(canvas).getPropertyValue(name).trim() || fallback;
+    const saved = opts.key && views.get(opts.key);
+    const v = { canvas, model, onScreen: true, raf: 0, last: 0, dragging: null, theme: null,
+                angle: saved ? saved.angle : opts.angle ?? 0.6, tilt: saved ? saved.tilt : opts.tilt ?? 0.18 };
+    const auto = !!opts.autoRotate, speed = opts.speed || 0.00022, hero = model.kind === "hero";
+    const visible = () => v.onScreen && !document.hidden && canvas.isConnected;
+    const running = () => auto && !reduce.matches && visible();
+    const schedule = () => { if (!v.raf) v.raf = requestAnimationFrame(frame); };
+    v.request = () => { if (canvas.isConnected) schedule(); };
+    v.wake = () => { if (running()) { v.last = 0; schedule(); } };
+
+    // Theme comes from CSS custom properties; read once per resize or colour-scheme change, not per segment.
+    v.readTheme = () => {
+      const num = (name, fallback) => { const x = parseFloat(css(name, "")); return Number.isFinite(x) ? x : fallback; };
+      const tones = css("--mol-chain-tones", "0 0.3 0.55 0.15").split(/[\s,]+/).map(Number).filter(Number.isFinite);
+      v.theme = {
+        h0: num("--mol-hue-start", 195), h1: num("--mol-hue-end", 330),
+        heads: css("--mol-membrane", "rgba(120,140,200,0.35)"), ligand: css("--mol-ligand", "#f2b33d"),
+        bandHead: css("--mol-band-head", "rgba(110,200,255,0.30)"), bandCore: css("--mol-band-core", "rgba(60,120,200,0.07)"),
+        cx: hero ? num("--mol-cx", 0.5) : 0.5, glow: hero ? num("--mol-glow", 0) : 0,
+        sat: num("--mol-sat", 84), far: num("--mol-light-far", 40), near: num("--mol-light-near", 70),
+        tones: tones.length ? tones : [0],
+      };
+    };
+    v.resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      v.readTheme();
+    };
+
+    function frame(t) {
+      v.raf = 0;
+      if (!canvas.isConnected) { v.destroy(); return; }
+      const dt = v.last ? Math.min(t - v.last, 50) : 0;
+      if (auto && !v.dragging && !reduce.matches) v.angle += dt * speed;
+      draw(v, ctx, opts);
+      if (opts.key) views.set(opts.key, { angle: v.angle, tilt: v.tilt });
+      if (running()) { v.last = t; schedule(); } else v.last = 0;
+    }
+
+    const down = (e) => { v.dragging = { x: e.clientX, y: e.clientY, a: v.angle, t: v.tilt }; canvas.setPointerCapture(e.pointerId); };
+    const move = (e) => {
+      if (!v.dragging) return;
+      v.angle = v.dragging.a + (e.clientX - v.dragging.x) * 0.01;
+      v.tilt = Math.max(-0.9, Math.min(0.9, v.dragging.t + (e.clientY - v.dragging.y) * 0.006));
+      schedule();
+    };
+    const up = () => { v.dragging = null; };
+    const key = (e) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") v.angle += e.key === "ArrowLeft" ? -0.15 : 0.15;
+      else if (opts.tiltKeys && (e.key === "ArrowUp" || e.key === "ArrowDown"))
+        v.tilt = Math.max(-0.9, Math.min(0.9, v.tilt + (e.key === "ArrowUp" ? -0.12 : 0.12)));
+      else return;
+      schedule(); e.preventDefault();
+    };
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointermove", move);
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", up);
+    canvas.addEventListener("keydown", key);
+    v.destroy = () => {
+      cancelAnimationFrame(v.raf); v.raf = 0;
+      io.unobserve(canvas); ro.unobserve(canvas);
+      canvas.removeEventListener("pointerdown", down); canvas.removeEventListener("pointermove", move);
+      canvas.removeEventListener("pointerup", up); canvas.removeEventListener("pointercancel", up);
+      canvas.removeEventListener("keydown", key);
+      live.delete(v); byCanvas.delete(canvas);
+    };
+    v.isRunning = () => !!v.raf && running();
+
+    byCanvas.set(canvas, v);
+    live.add(v);
+    v.resize();
+    ro.observe(canvas);
+    io.observe(canvas);
+    frame(0);
+    return v;
+  }
+
+  // Viewers whose canvas has left the page (the router replaced the view).
+  function sweep() { live.forEach((v) => { if (!v.canvas.isConnected) v.destroy(); }); }
+
+  function draw(v, ctx, opts) {
+    const { model, theme, canvas } = v;
     if (!model || !theme) return;
     const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
     ctx.clearRect(0, 0, w, h);
-    const scale = Math.min(w / 1.05, h) / 112;
-    band(w, h, scale);
-    // Lipid head groups: two planes at +-16 A, drawn as dotted discs behind and in front.
+    const hero = model.kind === "hero";
+    const scale = hero ? Math.min(w / 1.05, h) / 112 : Math.min(w, h) / 132;
+    const ca = Math.cos(v.angle), sa = Math.sin(v.angle), ct = Math.cos(v.tilt), st = Math.sin(v.tilt);
+    // The hero structure spans about y = -45 (rubredoxin) to +33 A; centre it. Fitted models are centred already.
+    const yOff = hero ? 6 : 0;
+    const project = (p) => {
+      const x = p[0] * ca + p[2] * sa, z0 = -p[0] * sa + p[2] * ca;
+      const y = p[1] * ct - z0 * st, z = p[1] * st + z0 * ct;
+      const persp = 260 / (260 - z);
+      return [w * theme.cx + x * scale * persp, h / 2 - (y + yOff) * scale * persp, z, persp];
+    };
+    // Colour: the hero runs from --mol-hue-start to --mol-hue-end along the chain (grey at --mol-sat 0),
+    // with its crystallisation partner faint; previews give each chain one of the --mol-chain-tones
+    // greys. Both are shaded by depth from --mol-light-far to --mol-light-near.
+    const hueOf = (pt) => theme.h0 + (theme.h1 - theme.h0) * pt.f;
+    const colour = (pt, light) => {
+      const l = theme.far + (theme.near - theme.far) * light;
+      if (hero) {
+        if (pt.part !== "ccr5") return `hsl(0 0% ${l}% / 0.32)`;
+        return `hsl(${hueOf(pt)} ${theme.sat}% ${l}%)`;
+      }
+      const tone = theme.tones[pt.tone % theme.tones.length];
+      return `hsl(0 0% ${l + (theme.far - l) * tone}%)`;
+    };
     const ring = (y, front) => {
       ctx.fillStyle = theme.heads;
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 26) {
         for (const r of [28, 35, 42]) {
-          const q = project([Math.cos(a + r) * r, y, Math.sin(a + r) * r], w, h, scale);
+          const q = project([Math.cos(a + r) * r, y, Math.sin(a + r) * r]);
           if ((q[2] > 0) !== front) continue;
           ctx.beginPath(); ctx.globalAlpha = 0.22 + 0.4 * (q[2] + 46) / 92;
           ctx.arc(q[0], q[1], 2.2 * scale * q[3] * 0.4, 0, Math.PI * 2); ctx.fill();
@@ -1190,20 +2414,36 @@ links.addEventListener("click", (event) => {
       }
       ctx.globalAlpha = 1;
     };
-    ring(16, false); ring(-16, false);
-    // Ribbon segments, far to near.
-    const P = model.pts.map((pt) => project(pt.p, w, h, scale));
+    if (opts.membrane) {
+      // The bilayer as a band: head-group layers at +-16 A around a faint hydrophobic core,
+      // fading out towards the left where the hero text sits.
+      const a = project([0, 16, 0])[1], b = project([0, -16, 0])[1];
+      const pad = 5 * scale, y0 = Math.min(a, b) - pad, y1 = Math.max(a, b) + pad;
+      const g = ctx.createLinearGradient(0, y0, 0, y1);
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(0.1, theme.bandHead); g.addColorStop(0.24, theme.bandCore);
+      g.addColorStop(0.76, theme.bandCore); g.addColorStop(0.9, theme.bandHead);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, y0, w, y1 - y0);
+      const fx = ctx.createLinearGradient(0, 0, w, 0), c = Math.max(0.05, Math.min(0.95, theme.cx));
+      fx.addColorStop(0, "rgba(0,0,0,0.25)"); fx.addColorStop(c, "rgba(0,0,0,1)"); fx.addColorStop(1, "rgba(0,0,0,0.35)");
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.fillStyle = fx; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = "source-over";
+      ring(16, false); ring(-16, false);
+    }
+    const pts = model.pts, P = pts.map((pt) => project(pt.p));
     const segs = [];
     for (let i = 1; i < P.length; i++) {
-      if (model.pts[i].brk || model.pts[i].i - model.pts[i - 1].i > 1) continue;
+      if (pts[i].brk || pts[i].i - pts[i - 1].i > 1) continue;
       segs.push(i);
     }
     ctx.lineCap = "round";
-    // Soft glow: a few wide, faint strokes, one path per hue bucket so overlaps do not stack up.
     if (theme.glow > 0) {
+      // Soft glow: a few wide, faint strokes, one path per hue bucket so overlaps do not stack up.
       const buckets = 10, paths = Array.from({ length: buckets }, () => new Path2D());
       for (const i of segs) {
-        const pt = model.pts[i];
+        const pt = pts[i];
         if (pt.part !== "ccr5") continue;
         const path = paths[Math.min(buckets - 1, Math.floor(pt.f * buckets))];
         path.moveTo(P[i - 1][0], P[i - 1][1]); path.lineTo(P[i][0], P[i][1]);
@@ -1217,25 +2457,25 @@ links.addEventListener("click", (event) => {
       ctx.globalAlpha = 1;
     }
     segs.sort((a, b) => P[a][2] - P[b][2]);
+    const unit = model.unit, shine = hero || segs.length < 6000;
     for (const i of segs) {
-      const a = P[i - 1], b = P[i], pt = model.pts[i];
+      const a = P[i - 1], b = P[i], pt = pts[i];
       const light = Math.max(0, Math.min(1, (b[2] + 40) / 80));
-      const rad = pt.ss === "H" ? 2.4 : pt.ss === "E" ? 1.7 : 0.9;
-      const lw = rad * 2 * scale * b[3];
+      const rad = pt.ss === "H" ? (hero ? 2.4 : 2.1) : pt.ss === "E" ? 1.7 : 0.9;
+      const lw = hero ? rad * 2 * scale * b[3] : Math.max(0.8, rad * 2 * unit * scale * b[3]);
       ctx.strokeStyle = colour(pt, light);
       ctx.lineWidth = lw;
       ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
       // Specular highlight along the top of the tube (light from above).
-      if (pt.part === "ccr5" && light > 0.35) {
+      if (shine && (hero ? pt.part === "ccr5" : lw > 2) && light > 0.35) {
         const o = lw * 0.22;
-        ctx.strokeStyle = `hsl(${hueOf(pt)} ${theme.sat}% 92% / ${0.06 + 0.16 * light})`;
+        ctx.strokeStyle = hero ? `hsl(${hueOf(pt)} ${theme.sat}% 92% / ${0.06 + 0.16 * light})` : `hsl(0 0% 92% / ${0.06 + 0.16 * light})`;
         ctx.lineWidth = lw * 0.26;
         ctx.beginPath(); ctx.moveTo(a[0] - o * 0.4, a[1] - o); ctx.lineTo(b[0] - o * 0.4, b[1] - o); ctx.stroke();
       }
     }
-    // Maraviroc as small atoms, with a soft halo marking the binding site.
-    const el = { C: theme.ligand };  // one colour for the whole drug
-    const L = model.lig.map((l) => [project(l.p, w, h, scale), l.e]);
+    // Ligand (maraviroc in the hero) as small atoms, with a soft halo marking the binding site.
+    const L = model.lig.map((l) => [project(l.p), l.e]);
     if (L.length && theme.glow > 0) {
       const cx = L.reduce((s, [q]) => s + q[0], 0) / L.length, cy = L.reduce((s, [q]) => s + q[1], 0) / L.length;
       const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14 * scale);
@@ -1243,44 +2483,22 @@ links.addEventListener("click", (event) => {
       ctx.globalAlpha = 0.28 * theme.glow; ctx.fillStyle = halo;
       ctx.fillRect(cx - 14 * scale, cy - 14 * scale, 28 * scale, 28 * scale); ctx.globalAlpha = 1;
     }
-    L.sort((a, b) => a[0][2] - b[0][2]).forEach(([q, e]) => {
-      ctx.beginPath(); ctx.fillStyle = el[e] || el.C;
+    L.sort((a, b) => a[0][2] - b[0][2]).forEach(([q]) => {
+      ctx.beginPath(); ctx.fillStyle = theme.ligand;
       ctx.arc(q[0], q[1], 1.15 * scale * q[3], 0, Math.PI * 2); ctx.fill();
     });
-    ring(16, true); ring(-16, true);
+    if (opts.membrane) { ring(16, true); ring(-16, true); }
   }
 
-  function frame(t) {
-    raf = 0;
-    if (!model) return;
-    const dt = last ? Math.min(t - last, 50) : 0;
-    last = t;
-    if (!dragging && !reduce.matches) angle += dt * 0.00022;
-    draw();
-    if (visible && !reduce.matches) schedule();
-  }
+  // running(): how many canvases have an animation loop going right now (for tests and debugging).
+  const running = () => [...live].filter((v) => v.isRunning()).length;
+  window.mpMol = { mount, load, peek, sweep, running, fromHero, fromCa, parseCif };
 
-  new ResizeObserver(() => { if (model) { resize(); draw(); } }).observe(canvas);
-  new IntersectionObserver(([e]) => {
-    const was = visible;
-    onScreen = e.isIntersecting;
-    visible = onScreen && !document.hidden;
-    if (visible && !was && model) { last = 0; schedule(); }
-  }).observe(canvas);
-  document.addEventListener("visibilitychange", () => {
-    const was = visible;
-    visible = onScreen && !document.hidden;
-    if (visible && !was && model) { last = 0; schedule(); }
-  });
-  canvas.addEventListener("pointerdown", (e) => { dragging = { x: e.clientX, y: e.clientY, a: angle, t: tilt }; canvas.setPointerCapture(e.pointerId); });
-  canvas.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    angle = dragging.a + (e.clientX - dragging.x) * 0.01;
-    tilt = Math.max(-0.9, Math.min(0.9, dragging.t + (e.clientY - dragging.y) * 0.006));
-    if (reduce.matches) draw();
-  });
-  canvas.addEventListener("pointerup", () => { dragging = null; });
-  canvas.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { angle += e.key === "ArrowLeft" ? -0.15 : 0.15; draw(); e.preventDefault(); }
-  });
+  // The hero: one [data-molecule] canvas with a pre-oriented model in data/<id>.json.
+  const heroCanvas = document.querySelector("canvas[data-molecule]");
+  if (heroCanvas) {
+    fetch(`data/${heroCanvas.dataset.molecule}.json`).then((r) => r.json())
+      .then((d) => mount(heroCanvas, fromHero(d), { autoRotate: true, membrane: true, angle: 0.6, tilt: 0.18 }))
+      .catch(() => heroCanvas.remove());
+  }
 })();

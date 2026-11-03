@@ -37,6 +37,12 @@
   --thumb-blend: multiply;
   --thumb-bg: transparent;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* Activity log ("terminal") and notifications */
+  --term-bg: var(--color-bg-alt);
+  --term-text: var(--color-text);
+  --term-dim: var(--color-muted);
+  --term-accent: var(--color-daughter);
+  --toast-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
   /* The hero is a plain panel in the page's own colours. */
   --hero-bg: var(--color-surface-solid);
   --hero-text: var(--color-text);
@@ -69,6 +75,8 @@
   --mol-ligand: #c2580f;
   --mol-glow: 0;
   --mol-cx: 0.5;
+  /* Structure previews: one grey per chain (0 = full depth shading, 1 = background-faint). */
+  --mol-chain-tones: 0 0.38 0.62 0.2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -102,6 +110,7 @@
     --mol-light-near: 84;
     --mol-membrane: rgba(255, 255, 255, 0.18);
     --mol-ligand: #f0a24a;
+    --toast-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -398,23 +407,34 @@ a { color: var(--color-accent); }
 /* ---- Tabs ----------------------------------------------------------- */
 .mp-tabs {
   position: sticky; top: var(--header-h); z-index: 9;
-  display: flex; gap: 2px; min-height: var(--tabbar-h); margin-bottom: 24px;
+  display: flex; align-items: stretch; gap: 2px; min-height: var(--tabbar-h); margin-bottom: 24px;
+  overflow-x: auto; scrollbar-width: none;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg);
   background: color-mix(in srgb, var(--color-bg) 82%, transparent);
   -webkit-backdrop-filter: saturate(1.4) blur(14px);
   backdrop-filter: saturate(1.4) blur(14px);
 }
+.mp-tabs::-webkit-scrollbar { display: none; }
 .mp-tabs a {
-  position: relative; padding: 12px 16px 13px; text-decoration: none; color: var(--color-muted);
+  position: relative; flex: none; white-space: nowrap; padding: 12px 16px 13px; text-decoration: none; color: var(--color-muted);
   font-family: var(--font-mono); font-size: 0.78rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
 }
 .mp-tabs a:hover { color: var(--color-text); }
 .mp-tabs a.active { color: var(--color-text); }
 .mp-tabs a.active::after {
-  content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 2px; border-radius: 2px;
-  background: linear-gradient(90deg, var(--spec-a), var(--spec-c));
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; border-radius: 2px;
+  background: var(--spec-a);
 }
+.mp-tabs a:focus-visible { outline-offset: -3px; }
+/* Who is signed in, at the end of the tab bar */
+.mp-tabs a.mp-whoami {
+  display: flex; align-items: center; gap: 8px; margin-left: auto; padding: 8px 4px 8px 12px;
+  letter-spacing: 0.04em; text-transform: none; color: var(--color-muted);
+}
+.mp-tabs a.mp-whoami[hidden] { display: none; }
+.mp-whoami img { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--color-border-strong); }
+.mp-whoami span::before { content: "Curator "; color: var(--color-muted); }
 
 /* ---- Layout and sidebar --------------------------------------------- */
 .mp-layout { display: grid; grid-template-columns: 276px minmax(0, 1fr); gap: 32px; align-items: start; }
@@ -484,6 +504,7 @@ a { color: var(--color-accent); }
 .mp-btn.secondary { background: transparent; color: var(--color-text); border-color: var(--color-border-strong); }
 .mp-btn.secondary:hover { border-color: var(--color-accent); color: var(--color-accent); }
 .mp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.mp-btn[aria-disabled="true"] { cursor: progress; }
 .mp-btn:disabled:hover { background: transparent; color: var(--color-text); border-color: var(--color-border-strong); }
 a.mp-btn { display: inline-block; text-decoration: none; }
 
@@ -631,6 +652,40 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 }
 .mp-figure-inline { float: right; max-width: 220px; margin: 0 0 12px 16px; }
 
+/* 3D previews (canvas drawn by window.mpMol): a plain bordered stage, the PDB
+   picture behind a small text toggle. */
+.mp-preview { margin: 0; min-width: 0; }
+.mp-preview-stage {
+  position: relative; aspect-ratio: 1; border: 1px solid var(--color-border); border-radius: 8px;
+  background: var(--color-surface); overflow: hidden;
+}
+.mp-preview-stage[hidden] { display: none; }
+.mp-preview canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: pan-y; }
+.mp-preview canvas:active { cursor: grabbing; }
+.mp-preview canvas:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; border-radius: 8px; }
+.mp-preview-msg {
+  position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 6px; text-align: center;
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.04em; color: var(--color-muted); pointer-events: none;
+}
+.mp-preview-msg[hidden] { display: none; }
+.mp-preview-pic .mp-thumb, .mp-preview-pic .mp-figure {
+  display: block; width: 100%; aspect-ratio: 1; height: auto; object-fit: contain; margin: 0; padding: 4px;
+  border-radius: 8px; background: var(--thumb-bg); mix-blend-mode: var(--thumb-blend); border: 1px solid var(--color-border);
+}
+.mp-preview-toggle {
+  display: block; margin: 4px 0 0 auto; min-height: 24px; padding: 2px 4px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted);
+  text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 3px;
+}
+.mp-preview-toggle:hover { color: var(--color-text); }
+.mp-preview-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; border-radius: 4px; }
+.mp-preview-note { margin: 4px 0 0; text-align: right; font-family: var(--font-mono); font-size: 0.68rem; color: var(--color-muted); }
+.mp-entry.has-thumb > .mp-preview-sm { float: right; width: 132px; margin: 0 0 8px 16px; }
+.mp-preview-inline { float: right; width: 260px; max-width: 45%; margin: 0 0 12px 16px; }
+@media (prefers-color-scheme: dark) {
+  .mp-preview-pic .mp-thumb, .mp-preview-pic .mp-figure { filter: brightness(0.92); }
+}
+
 /* ---- Overview: readouts, chart, families --------------------------- */
 .mp-stats {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; margin: 4px 0 8px;
@@ -754,6 +809,107 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-form-note:empty { display: none; }
 .mp-edit input:disabled { opacity: 0.5; }
 
+/* ---- Curators: sign-in, new entries, upload offer --------------------- */
+.mp-narrow { max-width: 760px; }
+.mp-signin {
+  display: flex; flex-direction: column; gap: 8px; max-width: 520px; margin: 18px 0 8px; padding: 18px;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+}
+.mp-signin > label:first-child { font-family: var(--font-ui); font-size: 0.86rem; font-weight: 600; }
+.mp-signin input[type="password"] {
+  width: 100%; min-width: 0; height: 42px; padding: 0 12px; font-family: var(--font-mono); font-size: 0.88rem;
+  color: var(--color-text); background: var(--color-surface-solid); border: 1px solid var(--color-border-strong); border-radius: 8px;
+}
+.mp-signin input[aria-invalid="true"] { border-color: var(--color-error-text); }
+.mp-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; cursor: pointer; }
+.mp-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--color-daughter); }
+.mp-keep-warn { margin: -4px 0 0 26px; max-width: 60ch; }
+.mp-signin .mp-actions { margin-top: 4px; }
+.mp-signin .mp-summary { margin: 4px 0 0; }
+.mp-curator {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin: 16px 0; padding: 16px 18px;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+}
+.mp-curator > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; min-width: 0; }
+.mp-curator b { font-size: 1.05rem; }
+.mp-curator .mp-of { overflow-wrap: anywhere; }
+.mp-avatar { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--color-border-strong); }
+.mp-offer {
+  margin: 0 0 16px; padding: 14px 16px; border-radius: 10px; font-size: 0.9rem;
+  background: var(--color-warn-bg); color: var(--color-warn-text);
+  border: 1px solid color-mix(in srgb, var(--color-warn-text) 22%, transparent);
+}
+.mp-offer p { margin: 0; }
+.mp-offer .mp-btn.secondary { color: var(--color-warn-text); border-color: color-mix(in srgb, var(--color-warn-text) 45%, transparent); }
+.mp-offer .mp-btn:not(.secondary) { background: var(--color-warn-text); border-color: var(--color-warn-text); color: var(--color-warn-bg); }
+.mp-signin-note { margin: 0; align-self: center; font-size: 0.82rem; color: var(--color-muted); }
+.mp-signin-banner a { color: inherit; font-weight: 600; }
+.mp-saving {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--color-muted);
+}
+.mp-badge.new {
+  color: var(--color-text); background: transparent; border-style: dashed; border-color: var(--color-border-strong);
+  text-transform: none; letter-spacing: 0.02em;
+}
+.mp-badge.new::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--color-daughter); vertical-align: 1px; }
+.mp-chip.new { border-style: dashed; }
+.mp-chip.new::after { content: " new"; font-size: 0.85em; color: var(--color-daughter); }
+.mp-newnote { font-size: 0.88rem; color: var(--color-muted); max-width: 75ch; }
+
+/* ---- Activity log: a plain terminal panel ------------------------------ */
+.mp-log-tools { grid-template-columns: minmax(0, 1fr) auto; }
+.mp-log-tools .mp-btn { height: 36px; padding-top: 0; padding-bottom: 0; }
+.mp-term {
+  max-height: min(70vh, 720px); overflow: auto; padding: 14px 16px; border-radius: 10px;
+  background: var(--term-bg); color: var(--term-text); border: 1px solid var(--color-border-strong);
+  font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.55; font-variant-numeric: tabular-nums;
+}
+.mp-term ol { list-style: none; margin: 0; padding: 0; }
+.mp-term-line {
+  display: grid; grid-template-columns: 19ch 14ch 9ch 5ch minmax(0, 1fr); gap: 0 1.6ch; padding: 1px 0;
+}
+.mp-term-line > * { min-width: 0; overflow-wrap: anywhere; }
+.mp-term-line time, .mp-term-line .who { color: var(--term-dim); }
+.mp-term-line .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-term-line .act { font-weight: 600; }
+.mp-term-line.act-approve .act, .mp-term-line.act-change .act { color: var(--term-accent); }
+.mp-term-line.act-reject .act, .mp-term-line.act-undo .act { color: var(--term-text); }
+.mp-term-line.act-import .act, .mp-term-line.act-snapshot .act { color: var(--term-dim); }
+.mp-term-line.snapshot { padding-top: 6px; margin-top: 6px; border-top: 1px dashed var(--color-border-strong); }
+.mp-term-line .pdb a { color: var(--term-text); }
+.mp-term-line.empty { display: block; color: var(--term-dim); }
+.mp-term:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
+/* ---- Notifications ----------------------------------------------------- */
+.mp-toasts {
+  position: fixed; right: 16px; bottom: 16px; z-index: 50; width: min(400px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.mp-toast {
+  position: relative; pointer-events: auto; padding: 12px 44px 12px 16px; border-radius: 10px; font-size: 0.9rem; line-height: 1.45;
+  background: var(--color-surface-solid); color: var(--color-text);
+  border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-text); box-shadow: var(--toast-shadow);
+}
+.mp-toast.success { border-left-color: var(--color-daughter); }
+.mp-toast.error { background: var(--color-error-bg); color: var(--color-error-text); border-left-color: var(--color-error-text); }
+.mp-toast-msg { margin: 0; overflow-wrap: anywhere; }
+.mp-toast-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mp-toast-actions:has(.mp-btn) { margin-top: 8px; }
+.mp-toast-actions .mp-btn { padding: 4px 12px; font-size: 0.82rem; }
+.mp-toast.error .mp-btn.secondary { color: var(--color-error-text); }
+.mp-toast-close {
+  position: absolute; top: 6px; right: 6px; width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; cursor: pointer;
+  font: inherit; font-size: 1.25rem; line-height: 1; color: inherit;
+}
+.mp-toast-close:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.mp-toast:focus-visible, .mp-toast :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .mp-toast { animation: mp-toast-in 0.18s ease-out both; }
+  .mp-toast.leaving { animation: mp-toast-out 0.18s ease-in both; }
+}
+@keyframes mp-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes mp-toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(4px); } }
+
 /* ---- Motion (only when the reader has not asked for less) ------------- */
 @media (prefers-reduced-motion: no-preference) {
   .mp-app.mp-enter .mp-view { animation: mp-fade 0.32s ease-out both; }
@@ -773,6 +929,19 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 @keyframes mp-scan { from { background-position: -100% 0; } to { background-position: 200% 0; } }
 
 /* ---- Tablet and phone --------------------------------------------------- */
+@media (max-width: 640px) {
+  /* Log lines: time, curator, action and PDB on one row, the sentence below. */
+  .mp-term { padding: 10px 12px; font-size: 0.76rem; }
+  .mp-term-line { display: flex; flex-wrap: wrap; gap: 0 1.2ch; padding: 4px 0; border-bottom: 1px solid var(--color-border); }
+  .mp-term-line .msg { flex-basis: 100%; }
+  .mp-term-line .who { max-width: 14ch; }
+}
+@media (max-width: 760px) {
+  /* Tab bar: tighter tabs, and only the avatar for who is signed in, so every tab fits. */
+  .mp-tabs a { padding: 12px 9px 13px; letter-spacing: 0.06em; }
+  .mp-tabs a.mp-whoami { padding-left: 6px; }
+  .mp-tabs a.mp-whoami span { display: none; }
+}
 @media (max-width: 860px) {
   .mp-hero, .mp-body[data-mp-view]:not([data-mp-view="home"]) .mp-hero {
     --mol-cx: 0.5; display: flex; flex-direction: column; min-height: 0; border-radius: 14px;
@@ -816,6 +985,10 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .mp-entry-top { grid-template-columns: minmax(0, 1fr); }
   /* Entry view: the record's name and metadata come first; the PDB plate follows, capped. */
   .mp-entry-top .mp-figure { order: 1; width: auto; max-width: min(200px, 100%); max-height: 180px; object-fit: contain; padding: 6px; }
+  .mp-entry-top .mp-preview { order: 1; width: 100%; max-width: 420px; }
+  .mp-entry-top .mp-preview-stage { aspect-ratio: 4 / 3; }
+  .mp-preview-inline { float: none; width: 100%; max-width: 420px; margin: 0 0 12px; }
+  .mp-preview-inline .mp-preview-stage { aspect-ratio: 4 / 3; }
 }
 @media (max-width: 480px) {
   .mp-title { font-size: 2rem; }
@@ -824,9 +997,17 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .mp-entry.daughter { padding: 12px 12px 10px 14px; }
   .mp-daughters { --lin-pad: 10px; }
   .mp-entry.has-thumb > .mp-thumb { width: 76px; height: 76px; margin-left: 10px; }
+  .mp-entry.has-thumb > .mp-preview-sm { width: 92px; margin-left: 10px; }
   .mp-meta { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .mp-meta dt { margin-top: 6px; }
-  .mp-tabs a { padding: 12px 12px 13px; }
+  .mp-tabs a { padding: 12px 7px 13px; letter-spacing: 0.04em; }
+  .mp-tabs a.active::after { left: 6px; right: 6px; }
+  .mp-tabs .mp-tab-long { display: none; }
+  .mp-tabs a.mp-whoami { padding-left: 4px; }
+}
+@media (max-width: 360px) {
+  .mp-tabs a { padding: 12px 5px 13px; font-size: 0.72rem; letter-spacing: 0.02em; }
+  .mp-toasts { right: 16px; left: 16px; bottom: 12px; width: auto; }
   .mp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mp-stat { padding: 14px 14px 22px; }
   .mp-stat::after { left: 14px; right: 14px; }
@@ -845,6 +1026,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .mp-hero a, .mp-eyebrow span + span::before { color: LinkText; }
   .mp-eyebrow span + span::before { background: CanvasText; }
   .mp-tabs a.active::after { background: Highlight; }
+  .mp-toast { border: 2px solid CanvasText; }
   .mp-daughters > summary::after { background: Canvas; box-shadow: none; border: 1px solid CanvasText; }
   .mp-daughters > .mp-entry.daughter::after { background: CanvasText; }
   .logo::before { background: CanvasText; }
