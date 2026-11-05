@@ -206,8 +206,37 @@ def from_tree(root: Node) -> Database:
     return db
 
 
+def _from_wellformed(data: bytes) -> Node:
+    """Read the live export as served since November 2026: real XML with an
+    internal DTD and indentation, whose fields hold mpstruc's HTML markup as
+    escaped text. Builds the same tree the line grammar gives for the older
+    export, so a field's text is identical in both (e.g. '2.70&nbsp;&Aring;')."""
+    import xml.etree.ElementTree as ET
+
+    def conv(e) -> Node:
+        attrs = "".join(f' {k}="{v}"' for k, v in e.attrib.items())
+        if len(e):
+            return Node(e.tag, "elem", attrs=attrs, children=[conv(c) for c in e])
+        text = e.text
+        if text is None or (not text.strip() and e.tag in _CONTAINERS):
+            return Node(e.tag, "empty", attrs=attrs)
+        # One field per line in the older format; a line break inside a field is just whitespace in HTML.
+        return Node(e.tag, "leaf", attrs=attrs, text=text.replace("\r\n", "\n").replace("\n", " "))
+
+    return conv(ET.fromstring(data))
+
+
+_CONTAINERS = {"groups", "group", "subgroups", "subgroup", "proteins", "protein", "memberProteins", "memberProtein",
+               "bibliography", "secondaryBibliographies", "relatedPdbEntries"}
+
+
 def load(path_or_bytes: str | Path | bytes) -> Database:
     data = path_or_bytes if isinstance(path_or_bytes, bytes) else Path(path_or_bytes).read_bytes()
+    if b"<!DOCTYPE mpstruc" in data[:4096]:
+        db = from_tree(_from_wellformed(data))
+        db.sha256 = hashlib.sha256(data).hexdigest()
+        db.normalizations = ["read as well-formed XML (live export format)"]
+        return db
     clean, notes = normalize(data)
     db = from_tree(parse(clean))
     db.sha256 = hashlib.sha256(data).hexdigest()
