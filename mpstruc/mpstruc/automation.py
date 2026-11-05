@@ -783,7 +783,11 @@ def main() -> None:
     # Score every new structure for how likely it is to be a membrane protein
     # (mpstruc/membrane.py), and place those at 10% or more.
     from . import membrane
-    fresh = [p for p in ids if p not in kb.by_pdb]
+    # Structures curators already approved or rejected (data/curation.json, written
+    # by the site's Curators tab) are not suggested again.
+    curation_path = SITE_DATA / "curation.json"
+    decided = set((json.loads(curation_path.read_text()).get("entries") or {}).keys()) if curation_path.exists() else set()
+    fresh = [p for p in ids if p not in kb.by_pdb and p.upper() not in decided]
     mem = membrane.score_structures(fresh, db)
     floor = 0.1
     keep = {p for p, v in mem.items() if v["p"] >= floor}
@@ -813,6 +817,13 @@ def main() -> None:
             out["membraneAccuracy"]["review"] = {k: rv[k] for k in ("high_score_not_in_databases",
                                                                      "low_score_in_databases", "middle_scores")}
     (SITE_DATA / "candidates.json").write_text(json.dumps(out, separators=(",", ":")))
+    # One line per run for the site's Activity log (kept to the last 200 runs).
+    log_path = SITE_DATA / "import_log.json"
+    runs = json.loads(log_path.read_text()).get("runs", []) if log_path.exists() else []
+    runs.append({"at": out["generated"], "window": [since, until], "released": stats.get("released", 0),
+                 "candidates": len(props), "membrane50": sum(p["membrane"] >= 0.5 for p in props),
+                 "already_decided": len(decided & set(ids))})
+    log_path.write_text(json.dumps({"runs": runs[-200:]}, indent=1))
     print(f"{stats}; {sum(p['membrane'] >= 0.5 for p in props)} at least 50% likely to be membrane proteins; "
           f"wrote {SITE_DATA / 'candidates.json'}")
 

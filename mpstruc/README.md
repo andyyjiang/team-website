@@ -2,8 +2,8 @@
 
 A database browser and automation pipeline for
 [mpstruc](https://blanco.biomol.uci.edu/mpstruc/), *Membrane Proteins of Known 3D Structure*
-(created by Stephen White, maintained by Craig Snider, UC Irvine). This is a tool for the
-mpstruc curators; mpstruc itself remains the authoritative source.
+(created at UC Irvine by Stephen White and Craig Snider, and now jointly managed by members
+of the USC Bridge Institute). This is the curation team's tool.
 
 ## Status
 

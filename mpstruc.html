@@ -32,18 +32,24 @@
             <p class="mp-eyebrow" aria-hidden="true"><span>mpstruc</span><span>Membrane proteins · 3D structures</span></p>
             <h1 class="mp-title">Membrane Proteins of Known 3D Structure</h1>
             <p class="mp-credit">
-              Data from <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a>, created by Stephen White and
-              maintained by Craig Snider (UC Irvine). This is a curation tool for the mpstruc team; mpstruc remains the
-              authoritative source.
+              <a href="https://blanco.biomol.uci.edu/mpstruc/">mpstruc</a> was created at UC Irvine by Stephen White and
+              Craig Snider, and is now jointly managed by members of the USC Bridge Institute. This is the team's
+              curation tool.
             </p>
           </div>
           <figure class="mp-hero-mol">
             <canvas data-molecule="4mbs" tabindex="0" role="img"
-              aria-label="Rotating 3D model of the CCR5 chemokine receptor (PDB 4MBS) in a lipid membrane, with the HIV drug maraviroc bound. Drag or use the arrow keys to turn it."></canvas>
+              aria-label="Rotating 3D cartoon of the CCR5 chemokine receptor (PDB 4MBS) in a lipid membrane: its seven alpha-helices are red ribbons crossing the membrane, beta-strands gold arrows, loops a thin grey tube, and the HIV drug maraviroc is bound as small atom spheres. The rubredoxin added for crystallisation is drawn faint. Drag or use the arrow keys to turn it."></canvas>
             <span class="mp-reticle" aria-hidden="true"></span>
             <span class="mp-readout mp-readout-id" aria-hidden="true"><b>PDB</b> 4MBS</span>
             <span class="mp-readout mp-readout-hint" aria-hidden="true">Drag or use the arrow keys to turn it</span>
             <figcaption>
+              <ul class="mol-key mp-hero-key">
+                <li><i class="mol-sw mol-sw-helix" aria-hidden="true"></i>alpha-helix</li>
+                <li><i class="mol-sw mol-sw-strand" aria-hidden="true"></i>beta-strand</li>
+                <li><i class="mol-sw mol-sw-loop" aria-hidden="true"></i>loop</li>
+                <li><i class="mol-sw mol-sw-lig" aria-hidden="true"></i>maraviroc</li>
+              </ul>
               <a href="https://www.rcsb.org/structure/4MBS">4MBS</a> · CCR5 chemokine receptor with maraviroc ·
               Tan <i>et al.</i>, <i>Science</i> 2013
             </figcaption>
@@ -52,6 +58,9 @@
         <nav class="mp-tabs" aria-label="mpstruc sections">
           <a href="#/" data-tab="database">Database</a>
           <a href="#/automation" data-tab="automation">Automation</a>
+          <a href="#/curators" data-tab="curators">Curators</a>
+          <a href="#/log" data-tab="log" aria-label="Activity log" hidden><span class="mp-tab-long">Activity </span>log</a>
+          <a href="#/curators" class="mp-whoami" id="mp-whoami" hidden></a>
         </nav>
         <p id="mp-status" class="mp-visually-hidden" aria-live="polite"></p>
         <div id="mpstruc-app" class="mp-app">
