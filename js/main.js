@@ -573,7 +573,7 @@ links.addEventListener("click", (event) => {
   // "curators" below). Decisions made before sign-in existed were kept in
   // this browser (localStorage); curators are offered to upload them.
   const auto = { cands: null, backtest: null, error: null, loading: false,
-                 view: { min: null, placement: "", status: "undecided", q: "", age: "" }, editing: null, rejecting: null };
+                 view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null };
   const REJECT_REASONS = ["Not a membrane protein", "Peripheral, not integral", "Only a soluble domain resolved",
                           "Not notable enough for mpstruc", "Already listed under another ID", "Other"];
   const DECISIONS_KEY = "mpstruc-decisions-v1";
@@ -729,7 +729,8 @@ links.addEventListener("click", (event) => {
   function filteredCands() {
     const v = auto.view;
     const q = v.q.toLowerCase();
-    return auto.cands.candidates.filter((c) => {
+    const latest = latestRelease();
+    const out = auto.cands.candidates.filter((c) => {
       const d = decisionOf(c);
       if (v.status === "undecided" && d) return false;
       if (v.status === "approved" && d?.status !== "approved") return false;
@@ -738,6 +739,7 @@ links.addEventListener("click", (event) => {
       if (c.membrane < Number(v.min || 0)) return false;
       if (v.age) {
         const days = (Date.parse(auto.cands.window[1]) - Date.parse(c.released)) / 864e5;
+        if (v.age === "latest" && c.released !== latest) return false;
         if (v.age === "new" && days > 28) return false;
         if (v.age === "mid" && (days <= 28 || days > 91)) return false;
         if (v.age === "old" && days <= 91) return false;
@@ -745,6 +747,16 @@ links.addEventListener("click", (event) => {
       if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
+    // Newest release first (most likely membrane protein first within a week);
+    // otherwise the order the weekly job wrote, which is by membrane likelihood.
+    if (v.sort === "newest") {
+      out.sort((a, b) => String(b.released || "").localeCompare(String(a.released || "")) || (b.membrane || 0) - (a.membrane || 0));
+    }
+    return out;
+  }
+
+  function latestRelease() {
+    return auto.cands.candidates.reduce((m, c) => (c.released && c.released > m ? c.released : m), "");
   }
 
   // "UniProt lists ... membrane", "the sample contains detergent", "but ..." -> one plain sentence.
@@ -792,7 +804,8 @@ links.addEventListener("click", (event) => {
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
-        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
+        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("latest", `Latest: ${esc(new Date(`${latestRelease()}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }))}`, v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
+        <label>Sort<select name="sort">${opt("newest", "Newest first", v.sort)}${opt("membrane", "Most likely membrane protein", v.sort)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
