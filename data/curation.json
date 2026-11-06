@@ -201,7 +201,7 @@
    "edited": true,
    "by": "andyyjiang",
    "byName": "andyyjiang",
-   "at": "2026-11-06T01:15:18.833Z",
+   "at": "2026-11-06T01:33:52.839Z",
    "title": "Protein Complex(local refinement)",
    "released": "2026-11-04",
    "organism": "Homo sapiens",
@@ -331,6 +331,14 @@
    "action": "change",
    "pdb": "35YU",
    "detail": "Added 35YU as a daughter of 6BD4 in G Protein-Coupled Receptors: Class F (G03-S056) (suggested: curator to decide)"
+  },
+  {
+   "at": "2026-11-06T01:33:52.840Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "change",
+   "pdb": "35YU",
+   "detail": "Added 35YU as a daughter of 6BD4 in G Protein-Coupled Receptors: Class F (G03-S056) (was a daughter of 6BD4 in G Protein-Coupled Receptors: Class F (G03-S056))"
   }
  ]
 }
