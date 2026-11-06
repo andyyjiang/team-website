@@ -174,7 +174,7 @@ def update(cands: list[dict], citations: dict[str, dict | None | bool], rec: dic
 
 # Cache files that hold per-entry PDB data, with the age (seconds) after which
 # rcsb.py stops trusting them (it goes by file modification time).
-_CACHES = {"entry_details.json": 7 * 86400, "entry_entities.json": 30 * 86400,
+_CACHES = {"entry_details_v2.json": 7 * 86400, "entry_entities.json": 30 * 86400,
            "entry_summaries.json": 7 * 86400, "entry_extras.json": 30 * 86400}
 
 
@@ -212,7 +212,7 @@ def forget_changed(fresh: dict[str, dict | None]) -> list[str]:
     def expired(f: Path) -> bool:
         return time.time() - f.stat().st_mtime >= _CACHES[f.name]
 
-    path = rcsb.CACHE_DIR / "entry_details.json"
+    path = rcsb.CACHE_DIR / "entry_details_v2.json"
     try:
         # An expired cache is refetched in full anyway, so nothing to forget.
         cached = json.loads(path.read_text()) if path.exists() and not expired(path) else {}
