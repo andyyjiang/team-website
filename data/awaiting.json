@@ -11,11 +11,6 @@
    "released": "2026-08-12",
    "reason": "To be published"
   },
-  "10FJ": {
-   "since": "2026-11-06",
-   "released": "2026-07-01",
-   "reason": "preprint only"
-  },
   "10JA": {
    "since": "2026-11-06",
    "released": "2026-08-26",
@@ -956,11 +951,6 @@
    "released": "2026-06-10",
    "reason": "To be published"
   },
-  "9P4U": {
-   "since": "2026-11-06",
-   "released": "2026-06-24",
-   "reason": "To be published"
-  },
   "9PEW": {
    "since": "2026-11-06",
    "released": "2026-08-19",
@@ -1001,7 +991,27 @@
    "released": "2026-08-19",
    "reason": "To be published"
   },
+  "9Q0E": {
+   "since": "2026-11-06",
+   "released": "2026-08-26",
+   "reason": "To be published"
+  },
   "9Q0F": {
+   "since": "2026-11-06",
+   "released": "2026-08-26",
+   "reason": "To be published"
+  },
+  "9Q0G": {
+   "since": "2026-11-06",
+   "released": "2026-08-26",
+   "reason": "To be published"
+  },
+  "9Q0U": {
+   "since": "2026-11-06",
+   "released": "2026-08-26",
+   "reason": "To be published"
+  },
+  "9Q0V": {
    "since": "2026-11-06",
    "released": "2026-08-26",
    "reason": "To be published"
@@ -1010,6 +1020,11 @@
    "since": "2026-11-06",
    "released": "2026-06-10",
    "reason": "preprint only"
+  },
+  "9Q1X": {
+   "since": "2026-11-06",
+   "released": "2026-08-26",
+   "reason": "To be published"
   },
   "9Q6O": {
    "since": "2026-11-06",
@@ -1516,11 +1531,6 @@
    "released": "2026-07-29",
    "reason": "To be published"
   },
-  "9W0G": {
-   "since": "2026-11-06",
-   "released": "2026-07-29",
-   "reason": "To be published"
-  },
   "9W0Z": {
    "since": "2026-11-06",
    "released": "2026-07-29",
@@ -2016,7 +2026,22 @@
    "released": "2026-09-23",
    "reason": "To be published"
   },
+  "9YDT": {
+   "since": "2026-11-06",
+   "released": "2026-06-10",
+   "reason": "To be published"
+  },
+  "9YEC": {
+   "since": "2026-11-06",
+   "released": "2026-06-10",
+   "reason": "To be published"
+  },
   "9YED": {
+   "since": "2026-11-06",
+   "released": "2026-06-10",
+   "reason": "To be published"
+  },
+  "9YFG": {
    "since": "2026-11-06",
    "released": "2026-06-10",
    "reason": "To be published"
@@ -2034,6 +2059,11 @@
   "9YGV": {
    "since": "2026-11-06",
    "released": "2026-06-17",
+   "reason": "To be published"
+  },
+  "9YH0": {
+   "since": "2026-11-06",
+   "released": "2026-06-10",
    "reason": "To be published"
   },
   "9YJV": {

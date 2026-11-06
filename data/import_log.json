@@ -16,18 +16,18 @@
    "autoUnrejected": 0
   },
   {
-   "at": "2026-11-06T21:34+00:00",
+   "at": "2026-11-06T20:54+00:00",
    "window": [
     "2026-05-08",
     "2026-11-06"
    ],
    "released": 9497,
-   "candidates": 1121,
-   "membrane50": 948,
+   "candidates": 1120,
+   "membrane50": 933,
    "already_decided": 6,
-   "awaiting": 427,
+   "awaiting": 433,
    "newly_published": 0,
-   "autoRejected": 427,
+   "autoRejected": 433,
    "autoUnrejected": 0
   }
  ]
