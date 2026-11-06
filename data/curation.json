@@ -38,6 +38,44 @@
    "suggestedSubgroup": "G03-S084",
    "suggestedOwner": "22XP",
    "membrane": 0.949
+  },
+  "22XR": {
+   "status": "rejected",
+   "reason": "Other",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "at": "2026-11-06T00:11:53.334Z",
+   "title": "structure of full permease",
+   "released": "2026-11-04",
+   "organism": "Escherichia coli K-12",
+   "res": 2.88,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "PTS system mannitol-specific EIICBA component",
+    "species": "Escherichia coli K-12",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.88",
+    "description": "cryo-EM structure<br /> with bound d-mannitol",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "jinru Z, &amp; jinru Z",
+     "year": null,
+     "title": "structure of full permease",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "structure of full permease"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S084",
+   "suggestedOwner": "22XP",
+   "membrane": 0.949
   }
  },
  "log": [
@@ -64,6 +102,14 @@
    "action": "reject",
    "pdb": "22XQ",
    "detail": "Rejected 22XQ: Other"
+  },
+  {
+   "at": "2026-11-06T00:11:53.334Z",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "action": "reject",
+   "pdb": "22XR",
+   "detail": "Rejected 22XR: Other"
   }
  ]
 }
