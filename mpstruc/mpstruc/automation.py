@@ -711,12 +711,27 @@ def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, th
     return "\n".join(L) + "\n"
 
 
-def add_listings(props: list[dict]) -> None:
+def known_names(kb: KB, db: Database, core: set[str]) -> list[str]:
+    """Raw mpstruc names of entries for the same protein(s), most recent first:
+    entries with exactly this set of proteins if there are any, else any overlap."""
+    names = {e.key: e.name for e in db.entries()}
+    prior = {k.key: k for u in core for k in kb.by_uniprot.get(u, [])}.values()
+    exact = [k for k in prior if k.s and k.s["core"] == core]
+    out = []
+    for k in sorted(exact or prior, key=lambda k: k.released, reverse=True):
+        n = names.get(k.owner_key if k.kind == "related" else k.key)
+        if n:
+            out.append(n)
+    return out
+
+
+def add_listings(props: list[dict], kb: KB | None = None, db: Database | None = None) -> None:
     """Attach a draft mpstruc entry to each suggestion (see listing.py).
 
     `mp` holds the fields in mpstruc raw markup, used both by the XML download
     and (being escaped text) by the page. A structure suggested as the
     lead of other new structures lists them in its description, as mpstruc does.
+    With `kb` and `db`, the protein is named the way mpstruc already names it.
     """
     from . import listing
     ids = [p["pdb"] for p in props]
@@ -727,11 +742,12 @@ def add_listings(props: list[dict]) -> None:
             by_owner[p["ownerPdb"]].append(p["pdb"])
     for p in props:
         core = set(p.get("uniprot") or []) - FUSION_UNIPROT
-        mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))])
+        names = known_names(kb, db, core) if kb and db else []
+        mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))], names)
         if not mp:
             continue
         # Name, species, description, authors and title are built from escaped
-        # text plus <br />, <sup> and entities only, so the page shows them as HTML.
+        # text plus <br />, <sub>, <sup> and entities only, so the page shows them as HTML.
         p["mp"] = mp
 
 
@@ -798,7 +814,7 @@ def main() -> None:
         p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
     props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
     props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
-    add_listings(props)
+    add_listings(props, kb, db)
     snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
     age = (today - dt.date.fromisoformat(snap)).days if snap else None
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),

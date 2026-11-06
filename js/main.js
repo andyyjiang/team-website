@@ -637,7 +637,7 @@ links.addEventListener("click", (event) => {
 
   // A suggestion shown as an mpstruc entry (draft fields from the PDB, written
   // the way mpstruc writes them), with the PDB's own title underneath. The mp
-  // fields are escaped text with only <br />, <sup> and entities, built by
+  // fields are escaped text with only <br />, <sub>, <sup> and entities, built by
   // mpstruc/mpstruc/listing.py; numbers and IDs still go through esc().
   function mpListing(c) {
     const m = c.mp;
