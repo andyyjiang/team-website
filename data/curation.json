@@ -119,10 +119,10 @@
   },
   "23JL": {
    "status": "rejected",
-   "reason": "Other",
-   "by": "jaylinantwerp-beep",
-   "byName": "jaylinantwerp-beep",
-   "at": "2026-11-06T00:41:12.248Z",
+   "reason": "Not published yet",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-06T21:26:30.847Z",
    "title": "Complex structure of a permease",
    "released": "2026-11-04",
    "organism": "Escherichia coli K-12",
@@ -153,7 +153,8 @@
    "suggested": "related",
    "suggestedSubgroup": "G03-S084",
    "suggestedOwner": "23JK",
-   "membrane": 0.949
+   "membrane": 0.949,
+   "reasonCode": "unpublished"
   },
   "23JK": {
    "status": "rejected",
@@ -21375,6 +21376,14 @@
    "action": "reason",
    "pdb": "23JK",
    "detail": "Changed the reason for rejecting 23JK from “Other” to “Not published yet”"
+  },
+  {
+   "at": "2026-11-06T21:26:30.847Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "reason",
+   "pdb": "23JL",
+   "detail": "Changed the reason for rejecting 23JL from “Other” to “Not published yet”"
   }
  ]
 }
