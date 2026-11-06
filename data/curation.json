@@ -1,1 +1,55 @@
-{"version":1,"entries":{},"log":[]}
+{
+ "version": 1,
+ "entries": {
+  "22XQ": {
+   "status": "approved",
+   "placement": "related",
+   "subgroup": "G03-S084",
+   "owner": "22XP",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "at": "2026-11-06T00:10:55.958Z",
+   "title": "structure of a permease",
+   "released": "2026-11-04",
+   "organism": "Escherichia coli K-12",
+   "res": 2.68,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "PTS system mannitol-specific EIICBA component",
+    "species": "Escherichia coli K-12",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.68",
+    "description": "cryo-EM structure<br /> with bound d-mannitol",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "jinru Z, &amp; jinru Z",
+     "year": null,
+     "title": "structure of a permease",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "structure of a permease"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S084",
+   "suggestedOwner": "22XP",
+   "membrane": 0.949
+  }
+ },
+ "log": [
+  {
+   "at": "2026-11-06T00:10:55.958Z",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "action": "approve",
+   "pdb": "22XQ",
+   "detail": "Added 22XQ as a related entry of 22XP in Phosphoenolpyruvate-Dependent Phosphotransferases (PTSs) (G03-S084)"
+  }
+ ]
+}
