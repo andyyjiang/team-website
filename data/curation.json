@@ -192,6 +192,47 @@
    "suggestedSubgroup": "G03-S084",
    "suggestedOwner": "",
    "membrane": 0.949
+  },
+  "35YU": {
+   "status": "approved",
+   "placement": "daughter",
+   "subgroup": "G03-S056",
+   "owner": "6BD4",
+   "edited": true,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-06T01:15:18.833Z",
+   "title": "Protein Complex(local refinement)",
+   "released": "2026-11-04",
+   "organism": "Homo sapiens",
+   "res": 3.11,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": "42907587",
+   "doi": "10.1038/s41594-026-01909-1",
+   "mp": {
+    "name": "Frizzled-4 / Tetraspanin-12",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.11",
+    "description": "cryo-EM structure<br /> in complex with Low-density lipoprotein receptor-related protein 5 and Norrin, 3.60 &Aring;: 9PTT",
+    "bibliography": {
+     "pubMedId": "42907587",
+     "authors": "Hu Q, Li D, Long T, Sun Y, Junge HJ, Schmiege P, &amp; Li X",
+     "year": "2026",
+     "title": "Architecture of the Norrin signaling complex and structure-guided surrogate design.",
+     "journal": "Nat.Struct.Mol.Biol.",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1038/s41594-026-01909-1"
+    },
+    "pdbTitle": "Protein Complex(local refinement)"
+   },
+   "suggested": "review",
+   "suggestedSubgroup": "G03-S056",
+   "suggestedOwner": "6BD4",
+   "membrane": 0.948
   }
  },
  "log": [
@@ -282,6 +323,14 @@
    "action": "undo",
    "pdb": "35YU",
    "detail": "Undid the approval of 35YU (was a daughter of 6BD4 in G Protein-Coupled Receptors: Class F (G03-S056)); back in To decide"
+  },
+  {
+   "at": "2026-11-06T01:15:18.833Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "change",
+   "pdb": "35YU",
+   "detail": "Added 35YU as a daughter of 6BD4 in G Protein-Coupled Receptors: Class F (G03-S056) (suggested: curator to decide)"
   }
  ]
 }
