@@ -1,0 +1,5571 @@
+{
+ "about": "Plain spelling -> mpstruc markup, mined from mpstruc names, descriptions and bibliography titles (mpstruc_2026-10-02.xml, mpstruc_2026-10-15.xml). Regenerate: python -m mpstruc.markup build",
+ "min_marked": 2,
+ "min_consistency": 0.9,
+ "lexicon": {
+  "1H+": "1H<sup>+</sup>",
+  "2Ca2+": "2Ca<sup>2+</sup>",
+  "2K+": "2K<sup>+</sup>",
+  "2NO3−": "2NO<sub>3</sub><sup>−</sup>",
+  "A2A": "A<sub>2A</sub>",
+  "A2AAR": "A<sub>2A</sub>AR",
+  "A2B": "A<sub>2B</sub>",
+  "A3B3": "A<sub>3</sub>B<sub>3</sub>",
+  "ASBTYf": "ASBT<sub>Yf</sub>",
+  "AlF4–": "AlF<sub>4</sub><sup>–</sup>",
+  "B0AT1": "B<sup>0</sup>AT1",
+  "B4": "B<sub>4</sub>",
+  "Ba2+": "Ba<sup>2+</sup>",
+  "BaCl2": "BaCl<sub>2</sub>",
+  "Br-": "Br<sup>-</sup>",
+  "C14PC": "C<sub>14</sub>PC",
+  "CB1": "CB<sub>1</sub>",
+  "CB2": "CB<sub>2</sub>",
+  "CD59D22A": "CD59<sup>D22A</sup>",
+  "CIII2": "CIII<sub>2</sub>",
+  "CIII2CIV": "CIII<sub>2</sub>CIV",
+  "CIII2CIV2": "CIII<sub>2</sub>CIV<sub>2</sub>",
+  "CO2": "CO<sub>2</sub>",
+  "Ca++": "Ca<sup>++</sup>",
+  "Ca+2": "Ca<sup>+2</sup>",
+  "Ca2+": "Ca<sup>2+</sup>",
+  "Ca2E1": "Ca<sub>2</sub>E1",
+  "CaV": "Ca<sub>V</sub>",
+  "CaV1": "Ca<sub>V</sub>1",
+  "CaV2": "Ca<sub>V</sub>2",
+  "CaV3": "Ca<sub>V</sub>3",
+  "Cav1": "Ca<sub>v</sub>1",
+  "Cav2": "Ca<sub>v</sub>2",
+  "Cav3": "Ca<sub>v</sub>3",
+  "Cd+2": "Cd<sup>+2</sup>",
+  "Cd2+": "Cd<sup>2+</sup>",
+  "Cl-": "Cl<sup>-</sup>",
+  "Cs+": "Cs<sup>+</sup>",
+  "Cu+": "Cu<sup>+</sup>",
+  "EP3": "EP<sub>3</sub>",
+  "EP4": "EP<sub>4</sub>",
+  "ETA": "ET<sub>A</sub>",
+  "F-": "F<sup>-</sup>",
+  "F1F0": "F<sub>1</sub>F<sub>0</sub>",
+  "F1Fo": "F<sub>1</sub>F<sub>o</sub>",
+  "F1c10": "F<sub>1</sub>c<sub>10</sub>",
+  "Fe2+": "Fe<sup>2+</sup>",
+  "Fo": "F<sub>o</sub>",
+  "FoF1": "F<sub>o</sub>F<sub>1</sub>",
+  "G0": "G<sub>0</sub>",
+  "G12": "G<sub>12</sub>",
+  "G13": "G<sub>13</sub>",
+  "GABAA": "GABA<sub>A</sub>",
+  "GABAB": "GABA<sub>B</sub>",
+  "Gd3+": "Gd<sup>3+</sup>",
+  "Gg": "G<sub>g</sub>",
+  "Ggust": "G<sub>gust</sub>",
+  "Gi": "G<sub>i</sub>",
+  "Gi1": "G<sub>i1</sub>",
+  "Gi2": "G<sub>i2</sub>",
+  "Gi3": "G<sub>i3</sub>",
+  "Giq": "G<sub>iq</sub>",
+  "GltPh": "Glt<sub>Ph</sub>",
+  "GltTk": "Glt<sub>Tk</sub>",
+  "Go": "G<sub>o</sub>",
+  "GoA": "G<sub>oA</sub>",
+  "Gq": "G<sub>q</sub>",
+  "Gs": "G<sub>s</sub>",
+  "Gz": "G<sub>z</sub>",
+  "Gαq": "G<sub>αq</sub>",
+  "H+": "H<sup>+</sup>",
+  "H1": "H<sub>1</sub>",
+  "H4": "H<sub>4</sub>",
+  "HCO3-": "HCO<sub>3</sub><sup>-</sup>",
+  "HT1A": "HT<sub>1A</sub>",
+  "HT1B": "HT<sub>1B</sub>",
+  "HT1E": "HT<sub>1E</sub>",
+  "HT1F": "HT<sub>1F</sub>",
+  "HT2A": "HT<sub>2A</sub>",
+  "HT2B": "HT<sub>2B</sub>",
+  "HT2C": "HT<sub>2C</sub>",
+  "HT3A": "HT<sub>3A</sub>",
+  "HT6": "HT<sub>6</sub>",
+  "III2": "III<sub>2</sub>",
+  "III2IV": "III<sub>2</sub>IV",
+  "III2IV2": "III<sub>2</sub>IV<sub>2</sub>",
+  "IP3R": "IP<sub>3</sub>R",
+  "IP6": "IP<sub>6</sub>",
+  "IV2": "IV<sub>2</sub>",
+  "InsP3R1": "InsP<sub>3</sub>R1",
+  "InsP3R3": "InsP<sub>3</sub>R3",
+  "K+": "K<sup>+</sup>",
+  "K+channel": "K<sup>+</sup>channel",
+  "K+channels": "K<sup>+</sup>channels",
+  "K2P": "K<sub>2P</sub>",
+  "K2P1": "K<sub>2P</sub>1",
+  "K2P10": "K<sub>2P</sub>10",
+  "K2P2": "K<sub>2P</sub>2",
+  "K2P3": "K<sub>2P</sub>3",
+  "K2P4": "K<sub>2P</sub>4",
+  "KATP": "K<sub>ATP</sub>",
+  "Kv3": "K<sub>v</sub>3",
+  "LPA1": "LPA<sub>1</sub>",
+  "LTC4": "LTC<sub>4</sub>",
+  "Li+": "Li<sup>+</sup>",
+  "LptB2FG": "LptB<sub>2</sub>FG",
+  "LptB2FGC": "LptB<sub>2</sub>FGC",
+  "MT1": "MT<sub>1</sub>",
+  "MT2": "MT<sub>2</sub>",
+  "MalFGK2": "MalFGK<sub>2</sub>",
+  "Mg+2": "Mg<sup>+2</sup>",
+  "Mg2+": "Mg<sup>2+</sup>",
+  "MgCl2": "MgCl<sub>2</sub>",
+  "Mn2+": "Mn<sup>2+</sup>",
+  "Na+": "Na<sup>+</sup>",
+  "NaV": "Na<sub>V</sub>",
+  "NaV1": "Na<sub>V</sub>1",
+  "NaVAb": "Na<sub>V</sub>Ab",
+  "NaVPaS": "Na<sub>V</sub>PaS",
+  "OX2": "OX<sub>2</sub>",
+  "Opa60": "Opa<sub>60</sub>",
+  "P1B": "P<sub>1B</sub>",
+  "P212121": "P2<sub>1</sub>2<sub>1</sub>2<sub>1</sub>",
+  "P2X1": "P2X<sub>1</sub>",
+  "P2X2": "P2X<sub>2</sub>",
+  "P2X3": "P2X<sub>3</sub>",
+  "P2X4": "P2X<sub>4</sub>",
+  "P2X7": "P2X<sub>7</sub>",
+  "P2Y12": "P2Y<sub>12</sub>",
+  "P2Y14": "P2Y<sub>14</sub>",
+  "P31": "P3<sub>1</sub>",
+  "P32": "P3<sub>2</sub>",
+  "P43212": "P4<sub>3</sub>2<sub>1</sub>2",
+  "P63": "P6<sub>3</sub>",
+  "P64": "P6<sub>4</sub>",
+  "PERK-/-": "PERK<sup>-/-</sup>",
+  "PI(3,5)P2": "PI(3,5)P<sub>2</sub>",
+  "PepTSo": "PepT<sub>So</sub>",
+  "PepTSo2": "PepT<sub>So2</sub>",
+  "PepTSt": "PepT<sub>St</sub>",
+  "Rb+": "Rb<sup>+</sup>",
+  "TCRγ9δ2": "TCR<sub>γ9δ2</sub>",
+  "Tl+": "Tl<sup>+</sup>",
+  "VO": "V<sub>O</sub>",
+  "VO4": "VO<sub>4</sub>",
+  "Y1": "Y<sub>1</sub>",
+  "Y2": "Y<sub>2</sub>",
+  "Zn+2": "Zn<sup>+2</sup>",
+  "Zn2+": "Zn<sup>2+</sup>",
+  "b6f": "b<sub>6</sub>f",
+  "bRIL562": "bRIL<sub>562</sub>",
+  "ba3": "ba<sub>3</sub>",
+  "bc1": "bc<sub>1</sub>",
+  "bc1complex": "bc<sub>1</sub>complex",
+  "bo3": "bo<sub>3</sub>",
+  "c10": "c<sub>10</sub>",
+  "c11": "c<sub>11</sub>",
+  "c14": "c<sub>14</sub>",
+  "cbb3": "cbb<sub>3</sub>",
+  "mGlu1": "mGlu<sub>1</sub>",
+  "mGlu3": "mGlu<sub>3</sub>",
+  "mGlu4": "mGlu<sub>4</sub>",
+  "miniG13": "miniG<sub>13</sub>",
+  "miniGo": "miniG<sub>o</sub>",
+  "miniGq": "miniG<sub>q</sub>",
+  "miniGs": "miniG<sub>s</sub>",
+  "miniGs/q": "miniG<sub>s/q</sub>",
+  "miniGs399": "miniG<sub>s</sub>399",
+  "miniGsq": "miniG<sub>sq</sub>",
+  "α1A": "α<sub>1A</sub>",
+  "α2A": "α<sub>2A</sub>",
+  "β2AR365": "β<sub>2</sub>AR365",
+  "β2adrenergic": "β<sub>2</sub>adrenergic"
+ },
+ "context": {
+  "A2B": {
+   "before": [],
+   "after": [
+    "adenosine"
+   ]
+  },
+  "B4": {
+   "before": [
+    "leukotriene"
+   ],
+   "after": [
+    "receptor"
+   ]
+  },
+  "CB2": {
+   "before": [],
+   "after": [
+    "cannabinoid",
+    "gi"
+   ]
+  },
+  "CO2": {
+   "before": [],
+   "after": [
+    "channel",
+    "induced",
+    "pressurized"
+   ]
+  },
+  "CaV": {
+   "before": [
+    "channel",
+    "chaperone"
+   ],
+   "after": [
+    "created",
+    "structure"
+   ]
+  },
+  "EP3": {
+   "before": [
+    "receptor"
+   ],
+   "after": [
+    "gi"
+   ]
+  },
+  "EP4": {
+   "before": [
+    "prostaglandin",
+    "receptor"
+   ],
+   "after": [
+    "gs",
+    "heterotrimeric",
+    "receptor"
+   ]
+  },
+  "ETA": {
+   "before": [
+    "endothelin"
+   ],
+   "after": [
+    "receptor"
+   ]
+  },
+  "G0": {
+   "before": [
+    "mini",
+    "receptor"
+   ],
+   "after": [
+    "complex"
+   ]
+  },
+  "G12": {
+   "before": [],
+   "after": [
+    "complex",
+    "coupling"
+   ]
+  },
+  "G13": {
+   "before": [
+    "heterotrimeric",
+    "receptor"
+   ],
+   "after": [
+    "complex"
+   ]
+  },
+  "Gg": {
+   "before": [],
+   "after": [
+    "complex"
+   ]
+  },
+  "Gi2": {
+   "before": [
+    "fpr2",
+    "receptor"
+   ],
+   "after": [
+    "complex",
+    "protein"
+   ]
+  },
+  "Gi3": {
+   "before": [
+    "dimer"
+   ],
+   "after": [
+    "complex"
+   ]
+  },
+  "Giq": {
+   "before": [],
+   "after": [
+    "complex"
+   ]
+  },
+  "Gz": {
+   "before": [],
+   "after": [
+    "complex"
+   ]
+  },
+  "Gαq": {
+   "before": [],
+   "after": [
+    "complex",
+    "gpcr"
+   ]
+  },
+  "H1": {
+   "before": [
+    "histamine"
+   ],
+   "after": [
+    "receptor"
+   ]
+  },
+  "H4": {
+   "before": [
+    "histamine"
+   ],
+   "after": [
+    "receptor"
+   ]
+  },
+  "HT6": {
+   "before": [],
+   "after": [
+    "serotonin"
+   ]
+  },
+  "IP6": {
+   "before": [],
+   "after": []
+  },
+  "IV2": {
+   "before": [
+    "iii2"
+   ],
+   "after": [
+    "respiratory"
+   ]
+  },
+  "K2P": {
+   "before": [
+    "inhibit",
+    "thermosensitive"
+   ],
+   "after": [
+    "channel"
+   ]
+  },
+  "Kv3": {
+   "before": [],
+   "after": []
+  },
+  "MT1": {
+   "before": [
+    "human"
+   ],
+   "after": [
+    "gi",
+    "melatonin"
+   ]
+  },
+  "MT2": {
+   "before": [
+    "human"
+   ],
+   "after": [
+    "melatonin"
+   ]
+  },
+  "P1B": {
+   "before": [
+    "transporting",
+    "type"
+   ],
+   "after": [
+    "type"
+   ]
+  },
+  "P31": {
+   "before": [],
+   "after": [
+    "space"
+   ]
+  },
+  "P32": {
+   "before": [],
+   "after": [
+    "space"
+   ]
+  },
+  "P63": {
+   "before": [
+    "group"
+   ],
+   "after": [
+    "space"
+   ]
+  },
+  "P64": {
+   "before": [
+    "spacegroup",
+    "using"
+   ],
+   "after": [
+    "subgroup"
+   ]
+  },
+  "VO": {
+   "before": [
+    "atpase",
+    "embedded",
+    "stv1",
+    "vph1",
+    "yeast"
+   ],
+   "after": [
+    "complex",
+    "isoform",
+    "missing",
+    "motor"
+   ]
+  },
+  "VO4": {
+   "before": [
+    "adp"
+   ],
+   "after": []
+  },
+  "Y1": {
+   "before": [
+    "y"
+   ],
+   "after": [
+    "g",
+    "gi",
+    "receptor"
+   ]
+  },
+  "Y2": {
+   "before": [
+    "y"
+   ],
+   "after": [
+    "gi",
+    "receptor"
+   ]
+  },
+  "ba3": {
+   "before": [
+    "aberrant",
+    "cytochrome"
+   ],
+   "after": [
+    "cytochrome"
+   ]
+  },
+  "bo3": {
+   "before": [
+    "cytochrome"
+   ],
+   "after": [
+    "reveal"
+   ]
+  },
+  "c10": {
+   "before": [
+    "ring",
+    "synthase"
+   ],
+   "after": [
+    "complex",
+    "ring"
+   ]
+  },
+  "c11": {
+   "before": [
+    "rotor"
+   ],
+   "after": []
+  },
+  "c14": {
+   "before": [
+    "rotor"
+   ],
+   "after": []
+  },
+  "α1A": {
+   "before": [],
+   "after": [
+    "adrenergic"
+   ]
+  },
+  "α2A": {
+   "before": [],
+   "after": [
+    "adrenergic"
+   ]
+  }
+ },
+ "stats": {
+  "1H+": {
+   "form": "1H<sup>+</sup>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "2Ca2+": {
+   "form": "2Ca<sup>2+</sup>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "2K+": {
+   "form": "2K<sup>+</sup>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "2NO3−": {
+   "form": "2NO<sub>3</sub><sup>−</sup>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "3Na+E1": {
+   "form": "3Na<sup>+</sup>E1",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "7VSDII": {
+   "form": "7VSD<sub>II</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "A1": {
+   "form": "A<sub>1</sub>",
+   "marked": 8,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 24,
+   "consistency": 0.208,
+   "kept": false
+  },
+  "A2": {
+   "form": "A<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 16,
+   "consistency": 0.062,
+   "kept": false
+  },
+  "A2A": {
+   "form": "A<sub>2A</sub>",
+   "marked": 40,
+   "entries": 31,
+   "judged_on": "curator",
+   "marked_there": 33,
+   "seen_there": 35,
+   "consistency": 0.943,
+   "kept": true
+  },
+  "A2AAR": {
+   "form": "A<sub>2A</sub>AR",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "A2AAdenosine": {
+   "form": "A<sub>2A</sub>Adenosine",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "A2B": {
+   "form": "A<sub>2B</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "A2α": {
+   "form": "A<sub>2</sub>α",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "A3": {
+   "form": "A<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 7,
+   "consistency": 0.143,
+   "kept": false
+  },
+  "A3B3": {
+   "form": "A<sub>3</sub>B<sub>3</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "A3B3DF": {
+   "form": "A<sub>3</sub>B<sub>3</sub>DF",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "A3B3complex": {
+   "form": "A<sub>3</sub>B<sub>3</sub>complex",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AAD1": {
+   "form": "AAD<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ADPVi": {
+   "form": "ADPV<sub>i</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ALF4-.ADP": {
+   "form": "ALF<sub>4</sub><sup>-</sup><sup>.</sup>ADP",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AMY1R": {
+   "form": "AMY<sub>1</sub>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ASBTNM": {
+   "form": "ASBT<sub>NM</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ASBTYf": {
+   "form": "ASBT<sub>Yf</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "ASBTγf": {
+   "form": "ASBT<sub>γf</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ag+": {
+   "form": "Ag<sup>+</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlCl3": {
+   "form": "AlCl<sub>3</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlF-4": {
+   "form": "AlF<sup>-</sup><sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlF4": {
+   "form": "AlF<sub>4</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlF4-": {
+   "form": "AlF4<sup>-</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlF4–": {
+   "form": "AlF<sub>4</sub><sup>–</sup>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "AlF4−": {
+   "form": "AlF<sub>4</sub><sup>−</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "AlFx": {
+   "form": "AlF<sub>x</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 3,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "Ala225Gly5,46": {
+   "form": "Ala225Gly<sup>5,46</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "B0AT1": {
+   "form": "B<sup>0</sup>AT1",
+   "marked": 6,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "B12": {
+   "form": "B<sub>12</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 6,
+   "consistency": 0.667,
+   "kept": false
+  },
+  "B3": {
+   "form": "B<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 9,
+   "consistency": 0.111,
+   "kept": false
+  },
+  "B4": {
+   "form": "B<sub>4</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Ba++": {
+   "form": "Ba<sup>++</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ba2+": {
+   "form": "Ba<sup>2+</sup>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "BaCl2": {
+   "form": "BaCl<sub>2</sub>",
+   "marked": 12,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 12,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "BamA21-174": {
+   "form": "BamA<sub>21-174</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BamA21-351": {
+   "form": "BamA<sub>21-351</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BamA21-410": {
+   "form": "BamA<sub>21-410</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BamA264-424": {
+   "form": "BamA<sub>264-424</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BamA266-420": {
+   "form": "BamA<sub>266-420</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BamA421-810": {
+   "form": "BamA<sub>421-810</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BcsAG3B6": {
+   "form": "BcsAG<sub>3</sub>B<sub>6</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BeF3": {
+   "form": "BeF<sub>3</sub>",
+   "marked": 5,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 7,
+   "consistency": 0.714,
+   "kept": false
+  },
+  "BeF3-": {
+   "form": "BeF<sub>3</sub><sup>-</sup>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 6,
+   "consistency": 0.667,
+   "kept": false
+  },
+  "BeF3–": {
+   "form": "BeF<sub>3</sub><sup>–</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BeF3−": {
+   "form": "BeF<sub>3</sub><sup>−</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "BeFx": {
+   "form": "BeF<sub>x</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "BeSO4": {
+   "form": "BeSO<sub>4</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Br-": {
+   "form": "Br<sup>-</sup>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "C13": {
+   "form": "C<sub>13</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 3,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "C14": {
+   "form": "C<sub>14</sub>",
+   "marked": 3,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "C14PC": {
+   "form": "C<sub>14</sub>PC",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "C2221": {
+   "form": "C222<sub>1</sub>",
+   "marked": 13,
+   "entries": 9,
+   "judged_on": "curator",
+   "marked_there": 13,
+   "seen_there": 15,
+   "consistency": 0.867,
+   "kept": false
+  },
+  "C2O42-": {
+   "form": "C<sub>2</sub>O<sub>4</sub><sup>2-</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "C2S2M2": {
+   "form": "C<sub>2</sub>S<sub>2</sub>M<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "C2S2M2N2": {
+   "form": "C<sub>2</sub>S<sub>2</sub>M<sub>2</sub>N<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "C4synthase": {
+   "form": "C<sub>4</sub>synthase",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "C5a-d-Arg": {
+   "form": "C5a<sup>-d-Arg</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "C5a-desArg": {
+   "form": "C5a<sup>-desArg</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "C5apep": {
+   "form": "C5a<sup>pep</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CB1": {
+   "form": "CB<sub>1</sub>",
+   "marked": 14,
+   "entries": 14,
+   "judged_on": "curator",
+   "marked_there": 14,
+   "seen_there": 14,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CB2": {
+   "form": "CB<sub>2</sub>",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CD59D22A": {
+   "form": "CD59<sup>D22A</sup>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CFTRinh": {
+   "form": "CFTR<sub>inh</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CH2": {
+   "form": "CH<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CICIII2": {
+   "form": "CICIII<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CICIII2CIV": {
+   "form": "CICIII<sub>2</sub>CIV",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CIII2": {
+   "form": "CIII<sub>2</sub>",
+   "marked": 6,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CIII2CIV": {
+   "form": "CIII<sub>2</sub>CIV",
+   "marked": 5,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CIII2CIV2": {
+   "form": "CIII<sub>2</sub>CIV<sub>2</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CIII2CIV2SOD2": {
+   "form": "CIII<sub>2</sub>CIV<sub>2</sub>SOD<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CO2": {
+   "form": "CO<sub>2</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CS2": {
+   "form": "CS<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ca++": {
+   "form": "Ca<sup>++</sup>",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Ca+2": {
+   "form": "Ca<sup>+2</sup>",
+   "marked": 48,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 47,
+   "seen_there": 47,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Ca2+": {
+   "form": "Ca<sup>2+</sup>",
+   "marked": 252,
+   "entries": 119,
+   "judged_on": "curator",
+   "marked_there": 210,
+   "seen_there": 217,
+   "consistency": 0.968,
+   "kept": true
+  },
+  "Ca2+E1": {
+   "form": "Ca<sup>2+</sup>E1",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ca2+blockage": {
+   "form": "Ca<sup>2+</sup>blockage",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ca2+pump": {
+   "form": "Ca<sup>2+</sup>pump",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ca2E1": {
+   "form": "Ca<sub>2</sub>E1",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CaCl2": {
+   "form": "CaCl<sub>2</sub>",
+   "marked": 5,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 6,
+   "consistency": 0.833,
+   "kept": false
+  },
+  "CaV": {
+   "form": "Ca<sub>V</sub>",
+   "marked": 6,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CaV1": {
+   "form": "Ca<sub>V</sub>1",
+   "marked": 7,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CaV2": {
+   "form": "Ca<sub>V</sub>2",
+   "marked": 5,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CaV3": {
+   "form": "Ca<sub>V</sub>3",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CaVβ3": {
+   "form": "Ca<sub>V</sub>β<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cagβ1": {
+   "form": "Cagβ<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cav": {
+   "form": "Ca<sub>v</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cav1": {
+   "form": "Ca<sub>v</sub>1",
+   "marked": 8,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cav2": {
+   "form": "Ca<sub>v</sub>2",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cav3": {
+   "form": "Ca<sub>v</sub>3",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cd+2": {
+   "form": "Cd<sup>+2</sup>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cd2+": {
+   "form": "Cd<sup>2+</sup>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "CgsWT": {
+   "form": "Cgs<sub>WT</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CgsiGP1": {
+   "form": "Cgs<sub>iGP1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CgsiGP2": {
+   "form": "Cgs<sub>iGP2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CgsiGP3": {
+   "form": "Cgs<sub>iGP3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ci": {
+   "form": "C<sub>i</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cl-": {
+   "form": "Cl<sup>-</sup>",
+   "marked": 42,
+   "entries": 29,
+   "judged_on": "curator",
+   "marked_there": 35,
+   "seen_there": 35,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cl-1": {
+   "form": "Cl<sup>-1</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cl?": {
+   "form": "Cl<sup>?</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cl−": {
+   "form": "Cl<sup>−</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Co": {
+   "form": "C<sub>o</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 8,
+   "consistency": 0.125,
+   "kept": false
+  },
+  "Co2+": {
+   "form": "Co<sup>2+</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Coo": {
+   "form": "C<sub>oo</sub>",
+   "marked": 3,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Cs+": {
+   "form": "Cs<sup>+</sup>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cu+": {
+   "form": "Cu<sup>+</sup>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Cu2+": {
+   "form": "Cu<sup>2+</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CuB": {
+   "form": "Cu<sub>B</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CysLT1": {
+   "form": "CysLT<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "CysLT2": {
+   "form": "CysLT<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "D1": {
+   "form": "D<sub>1</sub>",
+   "marked": 7,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 9,
+   "consistency": 0.778,
+   "kept": false
+  },
+  "D2": {
+   "form": "D<sub>2</sub>",
+   "marked": 14,
+   "entries": 11,
+   "judged_on": "curator",
+   "marked_there": 11,
+   "seen_there": 15,
+   "consistency": 0.733,
+   "kept": false
+  },
+  "D3": {
+   "form": "D<sub>3</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 9,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "D4": {
+   "form": "D<sub>4</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 5,
+   "consistency": 0.6,
+   "kept": false
+  },
+  "D5": {
+   "form": "D<sub>5</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "DHTH": {
+   "form": "DHT<sup>H</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "DHTV": {
+   "form": "DHT<sup>V</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Disp1NNN": {
+   "form": "Disp1<sup>NNN</sup>",
+   "marked": 3,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "E1.Mg2+": {
+   "form": "E1<sup>.</sup>Mg<sup>2+</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "E2": {
+   "form": "E<sub>2</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 57,
+   "consistency": 0.035,
+   "kept": false
+  },
+  "E2.ALF4-": {
+   "form": "E2<sup>.</sup>ALF<sub>4</sub><sup>-</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "E2Pi": {
+   "form": "E2P<sub>i</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 9,
+   "consistency": 0.222,
+   "kept": false
+  },
+  "E2PiAlF/SPM": {
+   "form": "E2P<sub>i</sub><sup>AlF/SPM</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "EID21": {
+   "form": "E<sub>ID21</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "EP2": {
+   "form": "EP<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "EP3": {
+   "form": "EP<sub>3</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "EP4": {
+   "form": "EP<sub>4</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "ETA": {
+   "form": "ET<sub>A</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "ETB": {
+   "form": "ET<sub>B</sub>",
+   "marked": 11,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 8,
+   "seen_there": 9,
+   "consistency": 0.889,
+   "kept": false
+  },
+  "EspB7-278": {
+   "form": "EspB<sub>7-278</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "EΦX174": {
+   "form": "E<sub>ΦX174</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "F-": {
+   "form": "F<sup>-</sup>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "F0F1": {
+   "form": "F<sub>0</sub>F<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "F1": {
+   "form": "F<sub>1</sub>",
+   "marked": 40,
+   "entries": 21,
+   "judged_on": "curator",
+   "marked_there": 30,
+   "seen_there": 37,
+   "consistency": 0.811,
+   "kept": false
+  },
+  "F1ATPase": {
+   "form": "F<sub>1</sub>ATPase",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "F1F0": {
+   "form": "F<sub>1</sub>F<sub>0</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "all",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "F1FO": {
+   "form": "F<sub>1</sub>F<sub>O</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "F1Fo": {
+   "form": "F<sub>1</sub>F<sub>o</sub>",
+   "marked": 28,
+   "entries": 26,
+   "judged_on": "curator",
+   "marked_there": 27,
+   "seen_there": 27,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "F1c10": {
+   "form": "F<sub>1</sub>c<sub>10</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "F1c8": {
+   "form": "F<sub>1</sub>c<sub>8</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "FMO1": {
+   "form": "FMO<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "FMO2": {
+   "form": "FMO<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "FO": {
+   "form": "F<sub>O</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "FapFβ": {
+   "form": "FapF<sub>β</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Fe2+": {
+   "form": "Fe<sup>2+</sup>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Fo": {
+   "form": "F<sub>o</sub>",
+   "marked": 23,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 23,
+   "seen_there": 23,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "FoF1": {
+   "form": "F<sub>o</sub>F<sub>1</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Focombined": {
+   "form": "F<sub>o</sub>combined",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Fofocussed": {
+   "form": "F<sub>o</sub>focussed",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "G0": {
+   "form": "G<sub>0</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "G12": {
+   "form": "G<sub>12</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "G13": {
+   "form": "G<sub>13</sub>",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "GABAA": {
+   "form": "GABA<sub>A</sub>",
+   "marked": 22,
+   "entries": 17,
+   "judged_on": "curator",
+   "marked_there": 17,
+   "seen_there": 18,
+   "consistency": 0.944,
+   "kept": true
+  },
+  "GABAB": {
+   "form": "GABA<sub>B</sub>",
+   "marked": 15,
+   "entries": 8,
+   "judged_on": "curator",
+   "marked_there": 9,
+   "seen_there": 9,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "GABAB1": {
+   "form": "GABA<sub>B1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GABAB2": {
+   "form": "GABA<sub>B2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GDP0-5s": {
+   "form": "GDP<sub>0-5s</sub>",
+   "marked": 12,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 12,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GDP15s": {
+   "form": "GDP<sub>15s</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GDP8s": {
+   "form": "GDP<sub>8s</sub>",
+   "marked": 24,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 24,
+   "seen_there": 24,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GPR15LC11": {
+   "form": "GPR15L<sup>C11</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "GS": {
+   "form": "G<sub>S</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 7,
+   "consistency": 0.286,
+   "kept": false
+  },
+  "GZ": {
+   "form": "G<sub>Z</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Gd3+": {
+   "form": "Gd<sup>3+</sup>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Gg": {
+   "form": "G<sub>g</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Ggcomplex": {
+   "form": "G<sub>g</sub>complex",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Ggust": {
+   "form": "G<sub>gust</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Gi": {
+   "form": "G<sub>i</sub>",
+   "marked": 234,
+   "entries": 157,
+   "judged_on": "curator",
+   "marked_there": 219,
+   "seen_there": 227,
+   "consistency": 0.965,
+   "kept": true
+  },
+  "Gi/s": {
+   "form": "G<sub>i/s</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Gi1": {
+   "form": "G<sub>i1</sub>",
+   "marked": 32,
+   "entries": 25,
+   "judged_on": "curator",
+   "marked_there": 30,
+   "seen_there": 31,
+   "consistency": 0.968,
+   "kept": true
+  },
+  "Gi2": {
+   "form": "G<sub>i2</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Gi3": {
+   "form": "G<sub>i3</sub>",
+   "marked": 8,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 8,
+   "seen_there": 8,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Giq": {
+   "form": "G<sub>iq</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "GltPh": {
+   "form": "Glt<sub>Ph</sub>",
+   "marked": 12,
+   "entries": 12,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 13,
+   "consistency": 0.923,
+   "kept": true
+  },
+  "GltTk": {
+   "form": "Glt<sub>Tk</sub>",
+   "marked": 6,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "GluK2EM": {
+   "form": "GluK2<sub>EM</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Go": {
+   "form": "G<sub>o</sub>",
+   "marked": 20,
+   "entries": 11,
+   "judged_on": "curator",
+   "marked_there": 18,
+   "seen_there": 19,
+   "consistency": 0.947,
+   "kept": true
+  },
+  "GoA": {
+   "form": "G<sub>oA</sub>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Gq": {
+   "form": "G<sub>q</sub>",
+   "marked": 66,
+   "entries": 56,
+   "judged_on": "curator",
+   "marked_there": 61,
+   "seen_there": 62,
+   "consistency": 0.984,
+   "kept": true
+  },
+  "Gs": {
+   "form": "G<sub>s</sub>",
+   "marked": 174,
+   "entries": 133,
+   "judged_on": "curator",
+   "marked_there": 164,
+   "seen_there": 174,
+   "consistency": 0.943,
+   "kept": true
+  },
+  "Gsand": {
+   "form": "G<sub>s</sub>and",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Gz": {
+   "form": "G<sub>z</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Gα13": {
+   "form": "G<sub>α13</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Gαi3": {
+   "form": "Gα<sub>i3</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Gαq": {
+   "form": "G<sub>αq</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "H+": {
+   "form": "H<sup>+</sup>",
+   "marked": 107,
+   "entries": 87,
+   "judged_on": "curator",
+   "marked_there": 82,
+   "seen_there": 82,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "H+Antiporter": {
+   "form": "H<sup>+</sup>Antiporter",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "H+symport": {
+   "form": "H<sup>+</sup>symport",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "H1": {
+   "form": "H<sub>1</sub>",
+   "marked": 6,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "H2": {
+   "form": "H<sub>2</sub>",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 15,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "H2O2": {
+   "form": "H<sub>2</sub>O<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "H3": {
+   "form": "H<sub>3</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 5,
+   "consistency": 0.8,
+   "kept": false
+  },
+  "H3R": {
+   "form": "H<sub>3</sub>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "H4": {
+   "form": "H<sub>4</sub>",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HCO3-": {
+   "form": "HCO<sub>3</sub><sup>-</sup>",
+   "marked": 7,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT1A": {
+   "form": "HT<sub>1A</sub>",
+   "marked": 11,
+   "entries": 8,
+   "judged_on": "curator",
+   "marked_there": 11,
+   "seen_there": 11,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT1B": {
+   "form": "HT<sub>1B</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT1D": {
+   "form": "HT<sub>1D</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "HT1E": {
+   "form": "HT<sub>1E</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT1F": {
+   "form": "HT<sub>1F</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT2A": {
+   "form": "HT<sub>2A</sub>",
+   "marked": 14,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 13,
+   "seen_there": 13,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT2B": {
+   "form": "HT<sub>2B</sub>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT2C": {
+   "form": "HT<sub>2C</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT3": {
+   "form": "HT<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 6,
+   "consistency": 0.167,
+   "kept": false
+  },
+  "HT3A": {
+   "form": "HT<sub>3A</sub>",
+   "marked": 14,
+   "entries": 12,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 12,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT3AR": {
+   "form": "HT<sub>3A</sub>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "HT4": {
+   "form": "HT<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "HT5A": {
+   "form": "HT<sub>5A</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "HT6": {
+   "form": "HT<sub>6</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "HT7": {
+   "form": "HT<sub>7</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Hc": {
+   "form": "H<sub>c</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 10,
+   "consistency": 0.1,
+   "kept": false
+  },
+  "Hia1022-1098": {
+   "form": "Hia<sub>1022-1098</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Hia992-1098": {
+   "form": "Hia<sub>992-1098</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I-": {
+   "form": "I<sup>-</sup>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I1III2IV1": {
+   "form": "I<sub>1</sub>III<sub>2</sub>IV<sub>1</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I212121": {
+   "form": "I2<sub>1</sub>2<sub>1</sub>2<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I213": {
+   "form": "I2<sub>1</sub>3",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I41": {
+   "form": "I4<sub>1</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "I4122": {
+   "form": "I4<sub>1</sub>22",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "IF1": {
+   "form": "IF<sub>1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 3,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "III2": {
+   "form": "III<sub>2</sub>",
+   "marked": 21,
+   "entries": 14,
+   "judged_on": "curator",
+   "marked_there": 19,
+   "seen_there": 19,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "III2IV": {
+   "form": "III<sub>2</sub>IV",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "III2IV2": {
+   "form": "III<sub>2</sub>IV<sub>2</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "IL125": {
+   "form": "IL1<sup>25</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ILYml": {
+   "form": "ILY<sup>ml</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "IP3": {
+   "form": "IP<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 0,
+   "seen_there": 22,
+   "consistency": 0.0,
+   "kept": false
+  },
+  "IP3R": {
+   "form": "IP<sub>3</sub>R",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "all",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "IP6": {
+   "form": "IP<sub>6</sub>",
+   "marked": 7,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "IP7": {
+   "form": "IP<sub>7</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "IV2": {
+   "form": "IV<sub>2</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "InsP3R": {
+   "form": "InsP<sub>3</sub>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "InsP3R1": {
+   "form": "InsP<sub>3</sub>R1",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "InsP3R3": {
+   "form": "InsP<sub>3</sub>R3",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "InsP6": {
+   "form": "InsP<sub>6</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 5,
+   "consistency": 0.8,
+   "kept": false
+  },
+  "Jac1sfGFP": {
+   "form": "Jac1<sup>sfGFP</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "K+": {
+   "form": "K<sup>+</sup>",
+   "marked": 191,
+   "entries": 132,
+   "judged_on": "curator",
+   "marked_there": 137,
+   "seen_there": 137,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K+E2": {
+   "form": "K<sup>+</sup>E2",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "K+channel": {
+   "form": "K<sup>+</sup>channel",
+   "marked": 5,
+   "entries": 5,
+   "judged_on": "all",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K+channels": {
+   "form": "K<sup>+</sup>channels",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "all",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K+conduction": {
+   "form": "K<sup>+</sup>conduction",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "K+selectivity": {
+   "form": "K<sup>+</sup>selectivity",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "K2P": {
+   "form": "K<sub>2P</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P1": {
+   "form": "K<sub>2P</sub>1",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P10": {
+   "form": "K<sub>2P</sub>10",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P2": {
+   "form": "K<sub>2P</sub>2",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P3": {
+   "form": "K<sub>2P</sub>3",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P4": {
+   "form": "K<sub>2P</sub>4",
+   "marked": 6,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "K2P5": {
+   "form": "K<sub>2P</sub>5",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "K2P6": {
+   "form": "K<sub>2P</sub>6",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "KATP": {
+   "form": "K<sub>ATP</sub>",
+   "marked": 6,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "KH2PO4": {
+   "form": "KH<sub>2</sub>PO<sub>4</sub>",
+   "marked": 6,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "KNO3": {
+   "form": "KNO<sub>3</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "KV3": {
+   "form": "K<sub>V</sub>3",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Kv": {
+   "form": "K<sub>v</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 8,
+   "consistency": 0.25,
+   "kept": false
+  },
+  "Kv1": {
+   "form": "K<sub>v</sub>1",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 9,
+   "consistency": 0.222,
+   "kept": false
+  },
+  "Kv10": {
+   "form": "K<sub>v</sub>10",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Kv2": {
+   "form": "K<sub>v</sub>2",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 6,
+   "consistency": 0.167,
+   "kept": false
+  },
+  "Kv3": {
+   "form": "K<sub>v</sub>3",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Kv4": {
+   "form": "K<sub>v</sub>4",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 13,
+   "consistency": 0.154,
+   "kept": false
+  },
+  "L+binding": {
+   "form": "L<sup>+</sup>binding",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LH114": {
+   "form": "LH1<sub>14</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LH116": {
+   "form": "LH1<sub>16</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LPA1": {
+   "form": "LPA<sub>1</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "LPA6": {
+   "form": "LPA<sub>6</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LTC4": {
+   "form": "LTC<sub>4</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "LeuTAa": {
+   "form": "LeuT<sub>Aa</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LeuTK": {
+   "form": "LeuT<sup>K</sup>",
+   "marked": 6,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Li+": {
+   "form": "Li<sup>+</sup>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "LptB2": {
+   "form": "LptB<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "LptB2FG": {
+   "form": "LptB<sub>2</sub>FG",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "LptB2FGC": {
+   "form": "LptB<sub>2</sub>FGC",
+   "marked": 8,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 6,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "M5": {
+   "form": "M<sub>5</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 0,
+   "seen_there": 2,
+   "consistency": 0.0,
+   "kept": false
+  },
+  "MBPG69C/S337C": {
+   "form": "MBP<sub>G69C/S337C</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "METH": {
+   "form": "MET<sup>H</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "MPP+": {
+   "form": "MPP<sup>+</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "MT1": {
+   "form": "MT<sub>1</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "MT2": {
+   "form": "MT<sub>2</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "MalFGK2": {
+   "form": "MalFGK<sub>2</sub>",
+   "marked": 7,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Mg+2": {
+   "form": "Mg<sup>+2</sup>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Mg2+": {
+   "form": "Mg<sup>2+</sup>",
+   "marked": 63,
+   "entries": 31,
+   "judged_on": "curator",
+   "marked_there": 54,
+   "seen_there": 55,
+   "consistency": 0.982,
+   "kept": true
+  },
+  "Mg2+transporter": {
+   "form": "Mg<sub>2</sub><sup>+</sup>transporter",
+   "marked": 1,
+   "entries": 2,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "MgCl2": {
+   "form": "MgCl<sub>2</sub>",
+   "marked": 14,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 14,
+   "seen_there": 14,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "MgF4": {
+   "form": "MgF<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "MgF42-": {
+   "form": "MgF<sub>4</sub><sup>2-</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Mn+2": {
+   "form": "Mn<sup>+2</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Mn2+": {
+   "form": "Mn<sup>2+</sup>",
+   "marked": 19,
+   "entries": 11,
+   "judged_on": "curator",
+   "marked_there": 19,
+   "seen_there": 19,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Mn4Ca": {
+   "form": "Mn<sub>4</sub>Ca",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Mn4CaO5": {
+   "form": "Mn<sub>4</sub>CaO<sub>5</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "MoO4": {
+   "form": "MoO<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ModB2C2": {
+   "form": "ModB<sub>2</sub>C<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "N2O": {
+   "form": "N<sub>2</sub>O",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "N4497.49R": {
+   "form": "N449<sup>7.49</sup>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NAD+": {
+   "form": "NAD<sup>+</sup>",
+   "marked": 7,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 8,
+   "consistency": 0.75,
+   "kept": false
+  },
+  "NConst": {
+   "form": "N<sub>Const</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "NFlex": {
+   "form": "N<sub>Flex</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NH2": {
+   "form": "NH<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NH3": {
+   "form": "NH<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NH3transport": {
+   "form": "NH<sub>3</sub>transport",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NH4Cl": {
+   "form": "NH<sub>4</sub>Cl",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Na+": {
+   "form": "Na<sup>+</sup>",
+   "marked": 133,
+   "entries": 96,
+   "judged_on": "curator",
+   "marked_there": 93,
+   "seen_there": 93,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Na+and": {
+   "form": "Na<sup>+</sup>and",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Na+complex": {
+   "form": "Na<sup>+</sup>complex",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NaV": {
+   "form": "Na<sub>V</sub>",
+   "marked": 22,
+   "entries": 19,
+   "judged_on": "curator",
+   "marked_there": 22,
+   "seen_there": 23,
+   "consistency": 0.957,
+   "kept": true
+  },
+  "NaV1": {
+   "form": "Na<sub>V</sub>1",
+   "marked": 37,
+   "entries": 24,
+   "judged_on": "curator",
+   "marked_there": 30,
+   "seen_there": 31,
+   "consistency": 0.968,
+   "kept": true
+  },
+  "NaVAb": {
+   "form": "Na<sub>V</sub>Ab",
+   "marked": 12,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 11,
+   "seen_there": 11,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "NaVAe1p": {
+   "form": "Na<sub>V</sub>Ae1p",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NaVPaS": {
+   "form": "Na<sub>V</sub>PaS",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "NaX": {
+   "form": "Na<sub>X</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Nav": {
+   "form": "Na<sub>v</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 6,
+   "consistency": 0.167,
+   "kept": false
+  },
+  "Nav1": {
+   "form": "Na<sub>v</sub>1",
+   "marked": 9,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 9,
+   "consistency": 0.556,
+   "kept": false
+  },
+  "Nax": {
+   "form": "Na<sub>x</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NosDFE154Q": {
+   "form": "NosDF<sup>E154Q</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NosZDFE154QY": {
+   "form": "NosZDF<sup>E154Q</sup>Y",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NqrA1-377": {
+   "form": "NqrA<sub>1-377</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NqrC33-257": {
+   "form": "NqrC<sub>33-257</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "NrqF129-408": {
+   "form": "NrqF<sub>129-408</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "O2": {
+   "form": "O<sub>2</sub>",
+   "marked": 6,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 4,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "OX1": {
+   "form": "OX<sub>1</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 3,
+   "consistency": 0.667,
+   "kept": false
+  },
+  "OX2": {
+   "form": "OX<sub>2</sub>",
+   "marked": 8,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Opa60": {
+   "form": "Opa<sub>60</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P1B": {
+   "form": "P<sub>1B</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P1B-1": {
+   "form": "P<sub>1B-1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P1B-4": {
+   "form": "P<sub>1B-4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P21": {
+   "form": "P2<sub>1</sub>",
+   "marked": 14,
+   "entries": 13,
+   "judged_on": "curator",
+   "marked_there": 14,
+   "seen_there": 24,
+   "consistency": 0.583,
+   "kept": false
+  },
+  "P21212": {
+   "form": "P2<sub>1</sub>2<sub>1</sub>2",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 4,
+   "consistency": 0.75,
+   "kept": false
+  },
+  "P212121": {
+   "form": "P2<sub>1</sub>2<sub>1</sub>2<sub>1</sub>",
+   "marked": 14,
+   "entries": 11,
+   "judged_on": "curator",
+   "marked_there": 14,
+   "seen_there": 15,
+   "consistency": 0.933,
+   "kept": true
+  },
+  "P213": {
+   "form": "P2<sub>1</sub>3",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P2X1": {
+   "form": "P2X<sub>1</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2X2": {
+   "form": "P2X<sub>2</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2X3": {
+   "form": "P2X<sub>3</sub>",
+   "marked": 6,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2X4": {
+   "form": "P2X<sub>4</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2X4ion": {
+   "form": "P2X<sub>4</sub>ion",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P2X7": {
+   "form": "P2X<sub>7</sub>",
+   "marked": 6,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2Y1": {
+   "form": "P2Y<sub>1</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P2Y10": {
+   "form": "P2Y<sub>10</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P2Y12": {
+   "form": "P2Y<sub>12</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P2Y14": {
+   "form": "P2Y<sub>14</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P31": {
+   "form": "P3<sub>1</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P3121": {
+   "form": "P3<sub>1</sub>21",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P32": {
+   "form": "P3<sub>2</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P3221": {
+   "form": "P3<sub>2</sub>21",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P42": {
+   "form": "P4<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P42212": {
+   "form": "P4<sub>2</sub>2<sub>1</sub>2",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "P43212": {
+   "form": "P4<sub>3</sub>2<sub>1</sub>2",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P63": {
+   "form": "P6<sub>3</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "P64": {
+   "form": "P6<sub>4</sub>",
+   "marked": 4,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PA8LF4": {
+   "form": "PA<sub>8</sub>LF<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PBS2": {
+   "form": "PBS<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PBS3": {
+   "form": "PBS<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PCO2": {
+   "form": "PCO<sub>2</sub>",
+   "marked": 5,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PERK-/-": {
+   "form": "PERK<sup>-/-</sup>",
+   "marked": 8,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 8,
+   "seen_there": 8,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PGD2": {
+   "form": "PGD<sub>2</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 4,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "PGE2": {
+   "form": "PGE<sub>2</sub>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 8,
+   "consistency": 0.875,
+   "kept": false
+  },
+  "PI(3,5)P2": {
+   "form": "PI(3,5)P<sub>2</sub>",
+   "marked": 6,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PI(4,5)P2": {
+   "form": "PI(4,5)P<sub>2</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 21,
+   "consistency": 0.19,
+   "kept": false
+  },
+  "PIP2": {
+   "form": "PIP<sub>2</sub>",
+   "marked": 22,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 19,
+   "seen_there": 60,
+   "consistency": 0.317,
+   "kept": false
+  },
+  "PIP3": {
+   "form": "PIP<sub>3</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PLYD168A": {
+   "form": "PLY<sub>D168A</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PO4": {
+   "form": "PO<sub>4</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 4,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "PR": {
+   "form": "P<sub>R</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "PapC130-640": {
+   "form": "PapC<sub>130-640</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PapC146-637": {
+   "form": "PapC<sub>146-637</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PepTSh": {
+   "form": "PepT<sub>Sh</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PepTSo": {
+   "form": "PepT<sub>So</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PepTSo2": {
+   "form": "PepT<sub>So2</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PepTSt": {
+   "form": "PepT<sub>St</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "PepTXc": {
+   "form": "PepT<sub>Xc</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Pi": {
+   "form": "P<sub>i</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 11,
+   "consistency": 0.364,
+   "kept": false
+  },
+  "PiSPM": {
+   "form": "P<sub>i</sub>SPM",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Pt2+": {
+   "form": "Pt<sup>2+</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "PtdIns(3,5)P2": {
+   "form": "PtdIns(3,5)P<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Q10": {
+   "form": "Q<sub>10</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 7,
+   "consistency": 0.286,
+   "kept": false
+  },
+  "Qisite": {
+   "form": "Q<sub>i</sub>site",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Qosite": {
+   "form": "Q<sub>o</sub>site",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Rb+": {
+   "form": "Rb<sup>+</sup>",
+   "marked": 12,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 12,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "S6IV": {
+   "form": "S6<sub>IV</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "SCN-": {
+   "form": "SCN<sup>-</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "SO42-": {
+   "form": "SO<sub>4</sub><sup>2-</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "SO4−": {
+   "form": "SO<sub>4</sub><sup>−</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ShhNC24II": {
+   "form": "ShhN<sub>C24II</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TCRVγ4Vδ1": {
+   "form": "TCR<sub>Vγ4Vδ1</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TCRβ": {
+   "form": "TCR<sub>β</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TCRγ5δ1": {
+   "form": "TCR<sub>γ5δ1</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TCRγ9δ2": {
+   "form": "TCR<sub>γ9δ2</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "TCRγδ": {
+   "form": "TCR<sub>γδ</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TPC1DDE": {
+   "form": "TPC1<sub>DDE</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TRPV6cryst": {
+   "form": "TRPV6<sub>cryst</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TibA6": {
+   "form": "TibA<sub>6</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "TibC12": {
+   "form": "TibC<sub>12</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Tl+": {
+   "form": "Tl<sup>+</sup>",
+   "marked": 7,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 7,
+   "seen_there": 7,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "TolQ5R2A": {
+   "form": "TolQ<sub>5</sub>R<sub>2</sub>A",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "V0": {
+   "form": "V<sub>0</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "V1": {
+   "form": "V<sub>1</sub>",
+   "marked": 11,
+   "entries": 7,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 11,
+   "consistency": 0.545,
+   "kept": false
+  },
+  "V1EG": {
+   "form": "V<sub>1</sub>EG",
+   "marked": 35,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 35,
+   "seen_there": 35,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "V1VO": {
+   "form": "V<sub>1</sub>V<sub>O</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "V2T": {
+   "form": "V<sub>2</sub>T",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "VLYml": {
+   "form": "VLY<sup>ml</sup>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "VO": {
+   "form": "V<sub>O</sub>",
+   "marked": 11,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 9,
+   "seen_there": 9,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "VO4": {
+   "form": "VO<sub>4</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Vo": {
+   "form": "V<sub>o</sub>",
+   "marked": 7,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 8,
+   "consistency": 0.75,
+   "kept": false
+  },
+  "WO4": {
+   "form": "WO<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Y1": {
+   "form": "Y<sub>1</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Y2": {
+   "form": "Y<sub>2</sub>",
+   "marked": 4,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Y4": {
+   "form": "Y<sub>4</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YESID21": {
+   "form": "YES<sub>ID21</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YESΦX174": {
+   "form": "YES<sub>ΦX174</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YidC27-266": {
+   "form": "YidC<sub>27-266</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YidC27-267": {
+   "form": "YidC<sub>27-267</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YscX32": {
+   "form": "YscX<sub>32</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "YscX50": {
+   "form": "YscX<sub>50</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Zn+2": {
+   "form": "Zn<sup>+2</sup>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "Zn2+": {
+   "form": "Zn<sup>2+</sup>",
+   "marked": 21,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 19,
+   "seen_there": 19,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "aa3": {
+   "form": "aa<sub>3</sub>",
+   "marked": 9,
+   "entries": 8,
+   "judged_on": "curator",
+   "marked_there": 8,
+   "seen_there": 9,
+   "consistency": 0.889,
+   "kept": false
+  },
+  "b0,+AT": {
+   "form": "b<sup>0,+</sup>AT",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "b561": {
+   "form": "b<sub>561</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "b562": {
+   "form": "b<sub>562</sub>",
+   "marked": 32,
+   "entries": 25,
+   "judged_on": "curator",
+   "marked_there": 32,
+   "seen_there": 38,
+   "consistency": 0.842,
+   "kept": false
+  },
+  "b562RIL": {
+   "form": "b<sub>562</sub>RIL",
+   "marked": 9,
+   "entries": 6,
+   "judged_on": "curator",
+   "marked_there": 9,
+   "seen_there": 12,
+   "consistency": 0.75,
+   "kept": false
+  },
+  "b6f": {
+   "form": "b<sub>6</sub>f",
+   "marked": 18,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 10,
+   "seen_there": 11,
+   "consistency": 0.909,
+   "kept": true
+  },
+  "bRIL562": {
+   "form": "bRIL<sub>562</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "b[0,+1]AT1": {
+   "form": "b<sup>[0,+1]</sup>AT1",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "b[0,+]AT1": {
+   "form": "b<sup>[0,+]</sup>AT1",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ba3": {
+   "form": "ba<sub>3</sub>",
+   "marked": 5,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "ba3from": {
+   "form": "ba<sub>3</sub>from",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "bc1": {
+   "form": "bc<sub>1</sub>",
+   "marked": 24,
+   "entries": 24,
+   "judged_on": "curator",
+   "marked_there": 23,
+   "seen_there": 25,
+   "consistency": 0.92,
+   "kept": true
+  },
+  "bc1&gt;": {
+   "form": "bc<sub>1</sub>&gt;",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "bc1complex": {
+   "form": "bc<sub>1</sub>complex",
+   "marked": 10,
+   "entries": 10,
+   "judged_on": "all",
+   "marked_there": 10,
+   "seen_there": 10,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "bc1with": {
+   "form": "bc<sub>1</sub>with",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "bo3": {
+   "form": "bo<sub>3</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "c10": {
+   "form": "c<sub>10</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "c11": {
+   "form": "c<sub>11</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "c13": {
+   "form": "c<sub>13</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "c14": {
+   "form": "c<sub>14</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "c14Rotor": {
+   "form": "c<sub>14</sub>Rotor",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "c15": {
+   "form": "c<sub>15</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "c5a-desArg": {
+   "form": "c5a<sup>-desArg</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "c8": {
+   "form": "c<sub>8</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "caa3": {
+   "form": "caa<sub>3</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "calcium2+": {
+   "form": "calcium<sup>2+</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "cbb3": {
+   "form": "cbb<sub>3</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "cbb3cytochrome": {
+   "form": "cbb<sub>3</sub>cytochrome",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "cm2": {
+   "form": "cm<sup>2</sup>",
+   "marked": 5,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "diC8": {
+   "form": "diC<sub>8</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "hERGT": {
+   "form": "hERG<sub>T</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "hERGTs": {
+   "form": "hERG<sub>Ts</sub>",
+   "marked": 4,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "mGlu1": {
+   "form": "mGlu<sub>1</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "mGlu2": {
+   "form": "mGlu<sub>2</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 10,
+   "consistency": 0.4,
+   "kept": false
+  },
+  "mGlu3": {
+   "form": "mGlu<sub>3</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "mGlu4": {
+   "form": "mGlu<sub>4</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "mGlu5": {
+   "form": "mGlu<sub>5</sub>",
+   "marked": 6,
+   "entries": 5,
+   "judged_on": "curator",
+   "marked_there": 6,
+   "seen_there": 8,
+   "consistency": 0.75,
+   "kept": false
+  },
+  "mGlu7": {
+   "form": "mGlu<sub>7</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 3,
+   "consistency": 0.667,
+   "kept": false
+  },
+  "mGsqi": {
+   "form": "mG<sub>sqi</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniG13": {
+   "form": "miniG<sub>13</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGi": {
+   "form": "miniG<sub>i</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGi1": {
+   "form": "miniG<sub>i1</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGis": {
+   "form": "miniG<sub>is</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGisq": {
+   "form": "miniG<sub>isq</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGo": {
+   "form": "miniG<sub>o</sub>",
+   "marked": 5,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGoA": {
+   "form": "miniG<sub>oA</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGq": {
+   "form": "miniG<sub>q</sub>",
+   "marked": 14,
+   "entries": 12,
+   "judged_on": "curator",
+   "marked_there": 14,
+   "seen_there": 14,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGs": {
+   "form": "miniG<sub>s</sub>",
+   "marked": 21,
+   "entries": 19,
+   "judged_on": "curator",
+   "marked_there": 21,
+   "seen_there": 22,
+   "consistency": 0.955,
+   "kept": true
+  },
+  "miniGs/gust": {
+   "form": "miniG<sub>s/gust</sub>",
+   "marked": 3,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGs/q": {
+   "form": "miniG<sub>s/q</sub>",
+   "marked": 9,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 9,
+   "seen_there": 9,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGs399": {
+   "form": "miniG<sub>s</sub>399",
+   "marked": 5,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 5,
+   "seen_there": 5,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGsq": {
+   "form": "miniG<sub>sq</sub>",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "curator",
+   "marked_there": 3,
+   "seen_there": 3,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "miniGα/gust": {
+   "form": "miniG<sub>α/gust</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "miniGαoA": {
+   "form": "miniG<sub>αoA</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "mm2": {
+   "form": "mm<sup>2</sup>",
+   "marked": 8,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 8,
+   "seen_there": 8,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "p6122": {
+   "form": "p6<sub>1</sub>22",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "p6322": {
+   "form": "p6<sub>3</sub>22",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "xc-": {
+   "form": "x<sub>c</sub><sup>-</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "xc−": {
+   "form": "xc<sup>−</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Δ14": {
+   "form": "Δ<sup>14</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "Δ9": {
+   "form": "Δ<sup>9</sup>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ΔCH2": {
+   "form": "ΔCH<sub>2</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "ΔP2X4": {
+   "form": "ΔP2X<sub>4</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α1A": {
+   "form": "α<sub>1A</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "α1B": {
+   "form": "α<sub>1B</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α1βBheteromeric": {
+   "form": "α1β<sub>B</sub>heteromeric",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2A": {
+   "form": "α<sub>2A</sub>",
+   "marked": 4,
+   "entries": 4,
+   "judged_on": "curator",
+   "marked_there": 4,
+   "seen_there": 4,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "α2B": {
+   "form": "α<sub>2B</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2C": {
+   "form": "α<sub>2C</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2NB00": {
+   "form": "α<sub>2NB</sub>00",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2NB25": {
+   "form": "α<sub>2NB</sub>25",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2βδε": {
+   "form": "α<sub>2</sub>βδε",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "α2δ1": {
+   "form": "α<sub>2</sub>δ1",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 2,
+   "consistency": 0.5,
+   "kept": false
+  },
+  "α3NB83": {
+   "form": "α<sub>3NB</sub>83",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β1": {
+   "form": "β<sub>1</sub>",
+   "marked": 17,
+   "entries": 10,
+   "judged_on": "curator",
+   "marked_there": 12,
+   "seen_there": 23,
+   "consistency": 0.522,
+   "kept": false
+  },
+  "β12OmpLABCDE": {
+   "form": "β12<sup>OmpLA</sup>BCDE",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β1AR": {
+   "form": "β<sub>1</sub>AR",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β2": {
+   "form": "β<sub>2</sub>",
+   "marked": 30,
+   "entries": 23,
+   "judged_on": "curator",
+   "marked_there": 23,
+   "seen_there": 30,
+   "consistency": 0.767,
+   "kept": false
+  },
+  "β2AR": {
+   "form": "β<sub>2</sub>AR",
+   "marked": 3,
+   "entries": 3,
+   "judged_on": "all",
+   "marked_there": 3,
+   "seen_there": 5,
+   "consistency": 0.6,
+   "kept": false
+  },
+  "β2AR24": {
+   "form": "β<sub>2</sub>AR24",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β2AR365": {
+   "form": "β<sub>2</sub>AR365",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "β2V2R": {
+   "form": "β<sub>2</sub>V<sub>2</sub>R",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β2adrenergic": {
+   "form": "β<sub>2</sub>adrenergic",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "all",
+   "marked_there": 2,
+   "seen_there": 2,
+   "consistency": 1.0,
+   "kept": true
+  },
+  "β2adrenoceptor": {
+   "form": "β<sub>2</sub>adrenoceptor",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "all",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "β3": {
+   "form": "β<sub>3</sub>",
+   "marked": 2,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 6,
+   "consistency": 0.333,
+   "kept": false
+  },
+  "β8OmpABCDE": {
+   "form": "β8<sup>OmpA</sup>BCDE",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "γεΔ134–139": {
+   "form": "γε<sub>Δ134–139</sub>",
+   "marked": 1,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  },
+  "σ1": {
+   "form": "σ<sub>1</sub>",
+   "marked": 3,
+   "entries": 2,
+   "judged_on": "curator",
+   "marked_there": 2,
+   "seen_there": 3,
+   "consistency": 0.667,
+   "kept": false
+  },
+  "σ2": {
+   "form": "σ<sub>2</sub>",
+   "marked": 2,
+   "entries": 1,
+   "judged_on": "curator",
+   "marked_there": 1,
+   "seen_there": 1,
+   "consistency": 1.0,
+   "kept": false
+  }
+ }
+}

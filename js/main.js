@@ -613,6 +613,21 @@ links.addEventListener("click", (event) => {
 
   function decisionOf(c) { return decisions[c.pdb] || null; }
 
+  // Waiting for the paper: the weekly job marks structures whose PDB entry
+  // cites "To be published" or only a preprint (c.awaiting), keeps re-checking
+  // them, and sets c.publishedOn (the run that first saw the paper) when it
+  // appears. Such a structure then counts as new from that date.
+  const runDay = () => auto.cands.runDate || String(auto.cands.generated || "").slice(0, 10);
+  const sortDay = (c) => (c.publishedOn && c.publishedOn > (c.released || "") ? c.publishedOn : c.released || "");
+  const newlyPublished = (c) => !!c.publishedOn && c.publishedOn === runDay();
+  const shortDay = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  function awaitingNote(c) {
+    const a = c.awaiting;
+    const what = a.reason === "preprint only" ? "PDB lists only a preprint for this structure" : "PDB lists this as 'To be published'";
+    return `<p class="mp-flags mp-await-note">${what} - mpstruc lists structures once the paper is out. It will come back to
+      'To decide' automatically when it is published.${a.since ? ` <span class="mp-of">Waiting since ${esc(shortDay(a.since))}.</span>` : ""}</p>`;
+  }
+
   // What a decision remembers about its structure, so it can still be exported
   // after the structure drops out of a later week's suggestions.
   function snapshot(c) {
@@ -698,9 +713,12 @@ links.addEventListener("click", (event) => {
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
         ${status}
+        ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
+        ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
         <span class="mp-of">released ${esc(c.released || "")}</span>
         <h3>${c.mp && c.mp.name ? c.mp.name : esc(c.title || c.pdb)}</h3>
       </div>
+      ${c.awaiting ? awaitingNote(c) : ""}
       ${mpListing(c)}
       <div class="mp-like">
         <span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${c.membrane}"></meter><b>${pct(c.membrane)} likely</b>
@@ -717,7 +735,7 @@ links.addEventListener("click", (event) => {
       ${finalText}
       ${editForm}${rejectForm}
       ${editing || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
-        <button class="mp-btn" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : ""}>Approve</button>
+        <button class="mp-btn${c.awaiting && !d ? " secondary" : ""}" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : c.awaiting && !d ? " title='The paper is not out yet: approve only if you know it is published'" : ""}>${c.awaiting && !d ? "Approve anyway" : "Approve"}</button>
         <button class="mp-btn secondary" type="button" id="act-edit-${esc(c.pdb)}" data-act="edit" data-pdb="${esc(c.pdb)}"${off}>${c.placement === "review" ? "Decide" : "Change"}</button>
         <button class="mp-btn secondary" type="button" id="act-reject-${esc(c.pdb)}" data-act="reject" data-pdb="${esc(c.pdb)}"${off}>Reject</button>
         ${d ? `<button class="mp-btn secondary" type="button" id="act-undo-${esc(c.pdb)}" data-act="undo" data-pdb="${esc(c.pdb)}"${off}>Undo</button>` : ""}
@@ -726,20 +744,23 @@ links.addEventListener("click", (event) => {
     </article>`;
   }
 
-  function filteredCands() {
-    const v = auto.view;
+  // view defaults to the current filters; pass one to count with other settings.
+  function filteredCands(view) {
+    const v = view || auto.view;
     const q = v.q.toLowerCase();
     const latest = latestRelease();
     const out = auto.cands.candidates.filter((c) => {
       const d = decisionOf(c);
-      if (v.status === "undecided" && d) return false;
+      if (v.status === "undecided" && (d || c.awaiting)) return false;
+      if (v.status === "awaiting" && (d || !c.awaiting)) return false;
       if (v.status === "approved" && d?.status !== "approved") return false;
       if (v.status === "rejected" && d?.status !== "rejected") return false;
       if (v.placement && c.placement !== v.placement) return false;
       if (c.membrane < Number(v.min || 0)) return false;
       if (v.age) {
-        const days = (Date.parse(auto.cands.window[1]) - Date.parse(c.released)) / 864e5;
-        if (v.age === "latest" && c.released !== latest) return false;
+        // A structure whose paper just came out counts as new from that day.
+        const days = (Date.parse(auto.cands.window[1]) - Date.parse(sortDay(c))) / 864e5;
+        if (v.age === "latest" && c.released !== latest && !newlyPublished(c)) return false;
         if (v.age === "new" && days > 28) return false;
         if (v.age === "mid" && (days <= 28 || days > 91)) return false;
         if (v.age === "old" && days <= 91) return false;
@@ -747,10 +768,11 @@ links.addEventListener("click", (event) => {
       if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-    // Newest release first (most likely membrane protein first within a week);
-    // otherwise the order the weekly job wrote, which is by membrane likelihood.
+    // Newest first (most likely membrane protein first within a week), where a
+    // structure whose paper just came out is dated by that; otherwise the
+    // order the weekly job wrote, which is by membrane likelihood.
     if (v.sort === "newest") {
-      out.sort((a, b) => String(b.released || "").localeCompare(String(a.released || "")) || (b.membrane || 0) - (a.membrane || 0));
+      out.sort((a, b) => sortDay(b).localeCompare(sortDay(a)) || (b.membrane || 0) - (a.membrane || 0));
     }
     return out;
   }
@@ -793,18 +815,28 @@ links.addEventListener("click", (event) => {
     const counts = { approved: 0, rejected: 0 };
     Object.values(decisions).forEach((d) => { if (counts[d.status] != null) counts[d.status]++; });
     const older = Object.keys(decisions).filter((pdb) => !c.candidates.some((x) => x.pdb === pdb)).length;
+    // Counted with the same filters as the list (all but Show), so the number in
+    // the menu matches the cards listed when you pick it.
+    const waiting = filteredCands({ ...v, status: "awaiting" }).length;
+    // 'Latest' also lists older releases whose paper just came out: say so.
+    const latestDay = latestRelease();
+    const latestLabel = `Latest: ${esc(shortDay(latestDay))}${c.candidates.some((x) => newlyPublished(x) && x.released !== latestDay) ? " releases + new papers" : ""}`;
+    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x)).length;
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
+      ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
+        (the PDB lists ${waiting === 1 ? "it" : "them"} as 'To be published' or as a preprint) and ${waiting === 1 ? "is" : "are"} kept out of 'To decide' until it is out.` : ""}
+        ${nowOut ? `<b>${nowOut.toLocaleString()} ${nowOut === 1 ? "paper has" : "papers have"} come out</b> since the last check; ${nowOut === 1 ? "that structure is" : "those structures are"} back in 'To decide'.` : ""}</p>` : ""}
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
-        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
+        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("awaiting", `Awaiting publication (${waiting})`, v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
-        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("latest", `Latest: ${esc(new Date(`${latestRelease()}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }))}`, v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
+        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("latest", latestLabel, v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
         <label>Sort<select name="sort">${opt("newest", "Newest first", v.sort)}${opt("membrane", "Most likely membrane protein", v.sort)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
@@ -1536,12 +1568,15 @@ links.addEventListener("click", (event) => {
           .map(([p, d]) => `${p} (${d.placement === "related" ? "related entry" : "daughter"} of ${pdb})`) : [];
     const stranded = orphans.length
       ? `${orphans.join(", ")} ${orphans.length === 1 ? "stays approved but is" : "stay approved but are"} now not shown in the database` : "";
+    // A structure still waiting for its paper goes back to that list, not to 'To decide'.
+    const cand = auto.cands && auto.cands.candidates.find((x) => x.pdb === pdb);
+    const backTo = cand && cand.awaiting ? "Awaiting publication (waiting for its paper)" : "To decide";
     decide({
       pdb, entry: null, action: "undo",
-      detail: (prev.status === "approved" ? `Undid the approval of ${pdb} (was ${where(prev).replace(/^as /, "")}); back in To decide`
-                                           : `Undid the rejection of ${pdb}; back in To decide`) + (stranded ? `; ${stranded}` : ""),
+      detail: (prev.status === "approved" ? `Undid the approval of ${pdb} (was ${where(prev).replace(/^as /, "")}); back in ${backTo}`
+                                           : `Undid the rejection of ${pdb}; back in ${backTo}`) + (stranded ? `; ${stranded}` : ""),
       message: `Curator ${cur.user.login}: undo ${prev.status === "approved" ? "approval" : "rejection"} of ${pdb}`,
-      done: () => toast(`Undid the decision on ${pdb}: it is back in To decide${prev.status === "approved" ? " and out of the database" : ""}.`
+      done: () => toast(`Undid the decision on ${pdb}: it is back in ${backTo}${prev.status === "approved" ? " and out of the database" : ""}.`
         + (stranded ? ` ${stranded[0].toUpperCase()}${stranded.slice(1)}: approve ${pdb} again, or change ${orphans.length === 1 ? "it" : "them"}.` : ""),
         { timeout: stranded ? 12000 : undefined }),
     });
@@ -1793,7 +1828,9 @@ links.addEventListener("click", (event) => {
       lines.push({ at: r.at, who: "weekly-job", act: "IMPORT", pdb: "", msg:
         `Checked ${Number(r.released || 0).toLocaleString()} PDB releases from ${plain(w[0])} to ${plain(w[1])}: `
         + `${Number(r.candidates || 0).toLocaleString()} suggestions, ${Number(r.membrane50 || 0).toLocaleString()} at least 50% likely to be membrane proteins`
-        + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "") });
+        + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "")
+        + (r.awaiting ? `, ${Number(r.awaiting).toLocaleString()} waiting for their paper` : "")
+        + (r.newly_published ? `, ${Number(r.newly_published).toLocaleString()} with a paper newly published` : "") });
     }
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).
