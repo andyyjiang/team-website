@@ -79,7 +79,7 @@ def test_forget_changed_leaves_expired_caches_alone_and_keeps_age(tmp_path, monk
     import json, os, time
     from mpstruc import rcsb
     monkeypatch.setattr(rcsb, "CACHE_DIR", tmp_path)
-    det, ent = tmp_path / "entry_details.json", tmp_path / "entry_entities.json"
+    det, ent = tmp_path / "entry_details_v2.json", tmp_path / "entry_entities.json"
     det.write_text(json.dumps({"22XQ": {"rcsb_primary_citation": TBP}, "9OLD": {}}))
     ent.write_text(json.dumps({"22XQ": {}, "9OLD": {}}))
     three_days = time.time() - 3 * 86400
