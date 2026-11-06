@@ -1,7 +1,9 @@
 # Weekly mpstruc update: refresh the database page and this week's suggestions.
 # Runs every Thursday (the PDB releases on Wednesdays) and can be started by hand
 # from the Actions tab. It commits only data/*.json (data/awaiting.json remembers
-# structures waiting for their paper, so they are re-checked until it is out).
+# structures waiting for their paper, so they are re-checked until it is out;
+# they are recorded as rejected "Not published yet" in data/curation.json and
+# come back to "To decide" automatically when the paper is published).
 name: mpstruc weekly update
 
 on:
@@ -46,12 +48,14 @@ jobs:
         run: python -m mpstruc.web
 
       - name: Commit updated data
+        # Commits data/*.json, including the automatic "Not published yet"
+        # rejections in data/curation.json. Curators may save decisions to that
+        # file while the job runs: the commit is rebased onto them, and if that
+        # conflicts on data/curation.json the job takes the newer file, re-applies
+        # only its own changes (python -m mpstruc.autoreject apply) and retries,
+        # up to 3 times (see mpstruc/mpstruc/autoreject.py publish()).
+        working-directory: mpstruc
         run: |
           git config user.name "mpstruc-bot"
           git config user.email "mpstruc-bot@users.noreply.github.com"
-          git add data/candidates.json data/mpstruc.json data/import_log.json data/awaiting.json
-          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
-          git commit -m "Weekly mpstruc update ($(date -u +%F))"
-          # Curators may have saved decisions while the job ran; rebase onto them.
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push
+          python -m mpstruc.autoreject push --branch "${GITHUB_REF_NAME}" --attempts 3

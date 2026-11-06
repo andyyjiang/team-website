@@ -339,3 +339,180 @@ def test_markup_from_pdb_text_is_balanced_and_escaped():
     for text in (m["name"], m["description"], m["relatedLine"]):
         assert "<img" not in text and "<script" not in text
         assert text.count("<sub>") == text.count("</sub>") and text.count("<sup>") == text.count("</sup>")
+
+
+# ---------------------------------------------------------------- ideas ported from PR #4
+
+def test_base_name_keeps_entities_capitals_and_cuts_at_the_setting():
+    # An entity's ';' does not end the name, and a capital 'A' is part of it, not 'a'.
+    assert base_name("Lanosterol 14&alpha;-demethylase with bound lanosterol") == "Lanosterol 14&alpha;-demethylase"
+    assert base_name("&alpha;-hemolysin, M113F mutant") == "&alpha;-hemolysin"
+    assert base_name("Monoamine Oxidase A with bound Harmine") == "Monoamine Oxidase A"
+    # 'in a nanodisc', 'in DMPC ...' describe the sample, not the protein (PR #4's stem()).
+    assert base_name("TolC outer membrane protein in a nanodisc with colicin E1 fragment") == \
+        "TolC outer membrane protein"
+    assert base_name("AlkL passive importer of hydrophobic molecules in DMPC lipid bilayer") == \
+        "AlkL passive importer of hydrophobic molecules"
+
+
+def test_family_name_uses_the_most_common_spelling():
+    fam = [("Dopamine D<sub>3</sub> receptor with bound eticlopride", "2010"),
+           ("Dopamine D<sub>3</sub> receptor - G<sub>i</sub> complex", "2020"),
+           ("Dopamine D3 receptor - mini G<sub>o</sub> complex", "2025")]
+    assert family_base(fam) == "Dopamine D<sub>3</sub> receptor"
+
+
+def test_systematic_ligand_name_gives_way_to_the_title_name():
+    ch = entity("Transient receptor potential cation channel subfamily V member 3", ["Q8NET8"])
+    e = entry("8V6N", "TRPV3 in complex with 2-APB in the open state", [ch],
+              [ligand("2AB", "2-aminoethyl diphenylborinate")])
+    assert facets(e, {"Q8NET8"})["bound"] == ["2-APB"]
+    # A ligand known only by its ID claims the title's name before a systematic one does.
+    enz = entity("Dihydroorotate dehydrogenase (quinone), mitochondrial", ["Q08210"])
+    e = entry("9DLY", "Plasmodium falciparum dihydroorotate dehydrogenase bound with Inhibitor DSM1211 "
+              "((R)-3-(amino(6-(trifluoromethyl)pyridin-3-yl)methyl)-4-cyclopropyl-2,6-dihydro-7H-pyrazolo[3,4-c]"
+              "pyridin-7-one)", [enz],
+              [ligand("OG6", "6-Formyl-uracil hydrate"),
+               ligand("A1A6E", "(3R)-3-[amino-[6-(trifluoromethyl)pyridin-3-yl]methyl]-4-cyclopropyl-6-ethyl-2-"
+                               "methyl-2,6-dihydro-7H-pyrazolo[3,4-c]pyridin-7-one")])
+    assert "DSM1211" in facets(e, {"Q08210"})["bound"]
+
+
+def test_bril_and_its_antibodies_are_never_partners():
+    rec = entity("G-protein coupled receptor 84", ["Q9NQS5"], gene="GPR84")
+    bril = entity("Soluble cytochrome b562", ["P0ABE7"], 116)
+    fab_h = entity("BAG2 anti-BRIL Fab Heavy chain", [], 230)
+    fab_l = entity("BAG2 anti-BRIL Fab Light chain", [], 215)
+    anti_fab = entity("anti-Fab nanobody", [], 130)
+    e = entry("9V6T", "GLPG1205-bound GPR84 receptor with BRIL and BAG2", [rec, bril, fab_h, fab_l, anti_fab],
+              [ligand("A1D2X", "GLPG1205")])
+    f = facets(e, {"Q9NQS5"})
+    assert f["cplx"] == [] and f["ab"] == [] and f["g"] == []
+    assert build(e, {"Q9NQS5"})["name"] == "GPR84 G-protein coupled receptor 84 with bound GLPG1205"
+    # BRIL fused into the protein's own chain is dropped from its name.
+    assert _clean_name("Adenosine receptor A2a/Soluble cytochrome b562/Adenosine receptor A2a chimera") == \
+        "Adenosine receptor A2a"
+    assert _clean_name("Type-1 angiotensin II receptor Soluble cytochrome b562 complex") == \
+        "Type-1 angiotensin II receptor"
+    assert _clean_name("Soluble cytochrome b562 and Glucagon receptor chimera") == "Glucagon receptor"
+    assert _clean_name("OaVMAT2-BRIL") == "OaVMAT2"
+    assert _clean_name("NorA-BRIL(3A) fusion") == "NorA"
+    assert _clean_name("anti-BRIL Fab Heavy chain") == "anti-BRIL Fab Heavy chain"
+    # The fusion tag's gene (GFP, cybC) never goes before the protein's name; when the PDB
+    # lists it first, no gene is added (curators do not put the gene before a spelled-out name).
+    fused = entity("Green fluorescent protein,G-protein coupled receptor 55,Soluble cytochrome b562",
+                   ["P42212", "Q9Y2T6", "P0ABE7"], 741)
+    fused["rcsb_entity_source_organism"][0]["rcsb_gene_name"] = [{"value": "GFP"}, {"value": "GPR55"}]
+    assert pdb_name([fused]) == "G-protein coupled receptor 55"
+
+
+def test_g_protein_coupled_receptor_is_not_a_g_protein():
+    rec = entity("G-protein coupled receptor 3", ["P46089"], gene="GPR3")
+    e = entry("9XXX", "Orphan G protein-coupled receptor GPR3 in the apo state", [rec])
+    assert build(e, {"P46089"})["name"] == "GPR3 G-protein coupled receptor 3, apo form"
+    partner = entity("G-protein coupled receptor 55", [], 400)  # a non-core GPCR chain
+    e = entry("9XXY", "GPR55 with partner", [rec, partner])
+    assert facets(e, {"P46089"})["g"] == []
+
+
+def test_detergents_are_not_ligands():
+    for cid, name in [("1N7", "CHAPSO"), ("CPS", "3-[(3-CHOLAMIDOPROPYL)DIMETHYLAMMONIO]-1-PROPANESULFONATE"),
+                      ("A1H8K", "fluorinated fos-choline-8"), ("TRT", "FRAGMENT OF TRITON X-100"),
+                      ("ZZZ", "CHAPSO")]:
+        e = entry("24JS", "Voltage-gated sodium channel NavAb N49K mutant", [entity("NavAb", ["A8EVM5"])],
+                  [ligand(cid, name)], method="X-RAY DIFFRACTION")
+        assert ligands(e) == [], name
+
+
+def test_add_listings_reuses_the_name_of_entries_with_the_same_proteins(monkeypatch):
+    from mpstruc import automation, listing, rcsb
+    from mpstruc.model import load
+    db = load(str(automation.ROOT / "fixtures" / "mpstruc_2026-10-02.xml"))
+    mao = [e for e in db.entries() if e.pdbCode.upper() in ("1O5W", "2BXR", "2Z5X")]
+    assert len(mao) == 3
+    summaries = {e.pdbCode.upper(): {"core": {"P21397"}} for e in mao}
+    new = entry("9MAO", "Human monoamine oxidase A in complex with harmine",
+                [entity("Amine oxidase [flavin-containing] A", ["P21397"], 527, gene="MAOA")],
+                [ligand("HRM", "7-METHOXY-1-METHYL-9H-BETA-CARBOLINE", ["harmine"])], 2.2, "X-RAY DIFFRACTION")
+    monkeypatch.setattr(rcsb, "entry_details", lambda ids: {i: (new if i == "9MAO" else None) for i in ids})
+    monkeypatch.setattr(listing, "enrich", lambda d: d)
+    props = [{"pdb": "9MAO", "placement": "new", "uniprot": ["P21397"]}]
+    automation.add_listings(props, db, summaries)
+    assert props[0]["mp"]["name"] == "Monoamine Oxidase A with bound harmine"
+    # No mpstruc entry has exactly these proteins: the PDB's own name is used.
+    props = [{"pdb": "9MAO", "placement": "new", "uniprot": ["P21397", "Q99999"]}]
+    automation.add_listings(props, db, summaries)
+    assert props[0]["mp"]["name"].startswith("MAOA Amine oxidase")
+
+
+def test_title_names_for_a_systematic_ligand_must_fit_it():
+    # Regressions from review: a title word went to a ligand known only by a systematic name.
+    # 9VMN: 'KG-OXGR1' is part of the receptor's own name, not the ligand.
+    rec = entity("2-oxoglutarate receptor 1", ["Q96P68"], gene="OXGR1")
+    gq = entity("Guanine nucleotide-binding protein G(q) subunit alpha isoforms short", [], 380)
+    e = entry("9VMN", "Cryo-EM structure of the a-KG-OXGR1-Gq complex", [gq, rec],
+              [ligand("AKG", "2-OXOGLUTARIC ACID")])
+    assert facets(e, {"Q96P68"})["bound"] == ["2-oxoglutaric acid"]
+    # 9M8V: 'dimer' describes the sample.
+    gpr3 = entity("Soluble cytochrome b562,G-protein coupled receptor 3", ["P0ABE7", "P46089"], gene="GPR3")
+    e = entry("9M8V", "dimer-GPR3-Gs complex", [gpr3],
+              [ligand("1DO", "1-DODECANOL"), ligand("A1EM2", "N-[(4-chloranyl-2-propan-2-yloxy-phenyl)methyl]-5-"
+                                                            "phenyl-[1,2,4]triazolo[1,5-a]pyrimidin-7-amine")])
+    assert "dimer" not in facets(e, {"P46089"})["bound"]
+    # 7X05: the title names a different molecule (the product), not the bound UDP.
+    chs = entity("Chitin synthase", ["G4Z2L3"], 900)
+    for title in ("CryoEM structure of chitin synthase 1 from Phytophthora sojae complexed with the nascent "
+                  "chitooligosaccharide", "Chitin synthase 1 complexed with chitooligosaccharide"):
+        e = entry("7X05", title, [chs], [ligand("MN", "MANGANESE (II) ION"), ligand("UDP", "URIDINE-5'-DIPHOSPHATE")])
+        assert facets(e, {"G4Z2L3"})["bound"] == ["uridine-5'-diphosphate"], title
+    # 27RF: 'with bound PHQ' gives 'PHQ', not 'bound PHQ'.
+    serca = entity("Sarcoplasmic/endoplasmic reticulum calcium ATPase 1", ["P04191"], 994)
+    e = entry("27RF", "Crystal structure of SR Ca2+-ATPase in E2(TG) with bound PHQ", [serca],
+              [ligand("NA", "SODIUM ION"), ligand("A1MHS", "2-phenyl-hydroquinone")], 2.5, "X-RAY DIFFRACTION")
+    assert facets(e, {"P04191"})["bound"] == ["PHQ"]
+    assert "bound PHQ" not in title_names("SR Ca2+-ATPase in E2(TG) with bound PHQ")
+    # A common name sharing a stem with the PDB's name still wins ('propylamine' for '3-aminopropane').
+    elic = entity("Erwinia chrysanthemi ligand-gated ion channel", ["P0C7B7"])
+    e = entry("9NH4", "ELIC with propylamine in spNW25 nanodiscs", [elic], [ligand("A1X", "3-aminopropane")])
+    assert facets(e, {"P0C7B7"})["bound"] == ["propylamine"]
+
+
+def test_base_name_cuts_before_beta_arrestin_and_setting_words():
+    assert base_name("M2 muscarinic acetylcholine receptor-&beta;-arrestin complex in a nanodisc") == \
+        "M2 muscarinic acetylcholine receptor"
+    assert base_name("Neurotensin receptor 1 - &beta;-arrestin 1 complex") == "Neurotensin receptor 1"
+    assert base_name("RyR1 ryanodine receptor embedded in a lipid bilayer, primed model") == "RyR1 ryanodine receptor"
+    assert base_name("MsbA Lipid &quot;flippase&quot; with bound AMPPNP") == "MsbA Lipid &quot;flippase&quot;"
+    assert base_name("SecYE&beta; translocon") == "SecYE&beta; translocon"
+
+
+def test_bril_chimera_with_several_parts_cleans_to_one_name():
+    assert _clean_name("Adenosine receptor A2a/Soluble cytochrome b562/Adenosine receptor A2a chimera,"
+                       "Soluble cytochrome b562,Adenosine receptor A2a") == "Adenosine receptor A2a"
+    assert _clean_name("Inositol 1,4,5-trisphosphate receptor,Soluble cytochrome b562") == \
+        "Inositol 1,4,5-trisphosphate receptor"
+
+
+def test_maltose_binding_protein_is_a_real_partner_of_malfgk2():
+    core = {"P02916", "P68183", "P68187"}
+    ents = [entity("Maltose transport system permease protein MalF", ["P02916"], 514),
+            entity("Maltose transport system permease protein MalG", ["P68183"], 296),
+            entity("Maltose/maltodextrin import ATP-binding protein MalK", ["P68187"], 371)]
+    mbp = entity("Maltose-binding periplasmic protein", ["P0AEX9"], 370)
+    atp = [ligand("ATP", "ADENOSINE-5'-TRIPHOSPHATE")]
+    free = entry("9ZZY", "Crystal structure of the maltose transporter MalFGK2 in the inward-facing state",
+                 ents, atp, 2.8, "X-RAY DIFFRACTION")
+    bound = entry("9ZZZ", "Crystal structure of the maltose transporter MalFGK2 in complex with MBP in the "
+                  "outward-facing state", ents + [mbp], atp, 2.8, "X-RAY DIFFRACTION")
+    assert facets(bound, core)["cplx"] != []
+    line = build(free, core, [("9ZZZ", bound)])["description"]
+    assert "in complex with" in line and "9ZZZ" in line
+    # A separate BRIL chain is still never a partner.
+    bril = entity("Soluble cytochrome b562", ["P0ABE7"], 116)
+    assert facets(entry("9ZZX", "MalFGK2 with BRIL", ents + [bril], atp), core)["cplx"] == []
+
+
+def test_between_is_not_a_detergent():
+    from mpstruc.listing import LIPIDISH
+    assert not LIPIDISH.search("linker between domains")
+    assert LIPIDISH.search("tween 20") and LIPIDISH.search("triton x-100")

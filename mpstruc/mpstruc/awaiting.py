@@ -130,14 +130,31 @@ def with_tracked(ids: list[str], rec: dict) -> list[str]:
     return list(ids) + sorted(p for p in tracked(rec) if p not in have)
 
 
-def update(cands: list[dict], citations: dict[str, dict | None | bool], rec: dict, today: str) -> tuple[dict, dict]:
+def _still_unconfirmed(pdb: str, citations: dict, old_wait: dict) -> dict:
+    """Keep the "unconfirmed" mark only while the PDB data is unavailable."""
+    if pdb not in citations and (old_wait.get(pdb) or {}).get("unconfirmed"):
+        return {"unconfirmed": True}
+    return {}
+
+
+def update(cands: list[dict], citations: dict[str, dict | None | bool], rec: dict, today: str,
+           hold: set[str] | frozenset = frozenset()) -> tuple[dict, dict]:
     """Mark candidates waiting for their paper and return the new record and counts.
 
     citations: pdb -> rcsb_primary_citation (dict or None for "cites nothing");
     a pdb missing from it (PDB data unavailable) keeps its previous state.
     Sets c["awaiting"] or c["publishedOn"] on the candidates in place.
     Tracked structures that are no longer candidates (approved, rejected,
-    added to mpstruc, or obsoleted) are dropped from the record.
+    added to mpstruc, or obsoleted) are dropped from the record, except
+    those in hold (rejected as "Not published yet", see autoreject.py):
+    they stay tracked, and move to 'published' when citations shows the paper.
+
+    Entries marked "unconfirmed" (added by autoreject.track_unpublished for a
+    curator's rejection, not yet seen waiting by a run) whose citation already
+    counts as published are simply dropped: the paper did not newly appear,
+    so they get no "published" date and are not counted as newly published.
+    Once a run sees one still waiting the mark goes (unless the PDB data was
+    unavailable, when the entry is kept as it was).
     """
     old_wait, old_pub = rec.get("awaiting") or {}, rec.get("published") or {}
     cutoff = (dt.date.fromisoformat(today) - dt.timedelta(days=KEEP_PUBLISHED_DAYS)).isoformat()
@@ -155,16 +172,36 @@ def update(cands: list[dict], citations: dict[str, dict | None | bool], rec: dic
             reason = None
         if reason:
             since = (old_wait.get(pdb) or {}).get("since") or today
-            wait[pdb] = {"since": since, "released": c.get("released"), "reason": reason}
+            wait[pdb] = {"since": since, "released": c.get("released"), "reason": reason,
+                         **_still_unconfirmed(pdb, citations, old_wait)}
             c["awaiting"] = {"since": since, "reason": reason}
             continue
         on = (old_pub.get(pdb) or {}).get("on")
-        if not on and pdb in old_wait:
+        if not on and pdb in old_wait and not old_wait[pdb].get("unconfirmed"):
             on = today
             newly += 1
         if on and on >= cutoff:
             pub[pdb] = {"on": on, "released": c.get("released")}
             c["publishedOn"] = on
+    seen = {c["pdb"].upper() for c in cands}
+    for pdb in sorted({p.upper() for p in hold} - seen):
+        if pdb in citations:
+            reason = citation_status(citations[pdb])
+        elif pdb in old_wait:
+            reason = old_wait[pdb].get("reason") or TO_BE_PUBLISHED
+        else:
+            reason = None
+        old = old_wait.get(pdb) or {}
+        if reason:
+            wait[pdb] = {"since": old.get("since") or today, "released": old.get("released"), "reason": reason,
+                         **_still_unconfirmed(pdb, citations, old_wait)}
+            continue
+        on = (old_pub.get(pdb) or {}).get("on")
+        if not on and pdb in old_wait and not old.get("unconfirmed"):
+            on = today
+            newly += 1
+        if on and on >= cutoff:
+            pub[pdb] = {"on": on, "released": old.get("released") or (old_pub.get(pdb) or {}).get("released")}
     new = {"updated": today, "awaiting": wait, "published": pub}
     stats = {"awaiting": len(wait), "newly_published": newly}
     return new, stats

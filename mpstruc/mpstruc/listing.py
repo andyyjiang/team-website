@@ -22,6 +22,18 @@ entries of the 2 and 15 Oct 2026 snapshots):
 * Names and descriptions get mpstruc's <sub>/<sup> markup (markup.py).
   Bibliography titles stay as the journal printed them: none of the 803
   titles curated for 2024-2026 papers carries markup.
+
+Credit: parts of this come from PR #4 (branch mpstruc-listing-language, a
+collaborator's session), each kept only because it improved the measured
+match with curators' text: cutting a protein name at 'in a ...' / 'in DMPC
+...' and keeping entities whole (its stem()); a ligand with only a systematic
+name taking the name the PDB title gives it; reusing the name of mpstruc
+entries with exactly the same proteins when the family gives none (its
+known_names, in automation.add_listings). The three gaps its description
+listed are fixed here too: the most common spelling of a family name wins,
+BRIL / soluble cytochrome b562 and anti-BRIL or anti-Fab antibodies are never
+partners, and detergents such as CHAPSO are never ligands. Its 40-residue
+peptide cut-off was tried and not kept (100 matches curators better).
 """
 from __future__ import annotations
 
@@ -72,6 +84,7 @@ Y01 CLR PCW POV PEE PLC LPP PGW CDL 3PE PC1 6PL P5S PEF PEV D10 D12 OCT HEX DD9 
 STE PA8 PA6 PTY NAG NDG MAN BMA FUC GAL GLC SIA DMU UMQ CPS SDS DPC LDM 9Z9 AV0 PX4 PCF PGT U10
 7PH PTD 8PE 44E 2CV 17F J40 P0E LHG LMG DGD SQD AJP LBN 6OU PEK PSF CHD A85 PIE EPH 3TL NA1 POP
 SPD SPM PUT DTT TCE EDT EGT AZI SCN FLC MLI MLA PGO PG0 BU3 2PE 12P 15P PE3 XPE MGE LNL DGG LMU
+1N7 C15 TRT CXE CE1 CE9 SOG BGL LMO RWB P4K
 """.split())
 # Cofactors and pigments that every structure of a complex carries: named only when the title names them.
 COFACTORS = set("""HEM HEC HEA HEB CLA CHL BCL BPH BCR CRT LUT NEX XAT PQN PL9 FAD FMN NAD NAP NDP NAI SF4
@@ -87,6 +100,9 @@ LIPIDISH = re.compile(r"\b\d{1,2}:\d\b|\b(?:lpa|lpc|lpe|lps|pip\d?|dag)\b(?=.*\d
                       r"phosphatidyl|phospho(?:choline|ethanolamine|serine|glycerol|inositol)|glycero-?3|sn-glycer|oleoyl|palmitoyl|stearoyl|myristoyl|cardiolipin|maltoside|glucoside|"
                       r"digitonin|hemisuccinate|lauryl|dodecyl|undecyl|decyl|nonyl|octyl|neopentyl|cholest|"
                       r"diacylglycerol|lipid|detergent|sterol|polyethylene|glycol|galactosyl|"
+                      # zwitterionic and other detergents (PR #4 listed CHAPSO drafted as a ligand)
+                      r"\bchapso?\b|cholamidopropyl|ammonio-1-propanesulfonate|fos-?choline|\btriton\b|\btween\b|zwittergent|"
+                      r"cymal|\bdeoxycholate\b|\bcholate\b|"
                       # fatty acids: 8 carbons or more ('hexacosanoic', 'alpha-linolenic'), not 'ethanoic'
                       r"\b[a-z-]*(?:octan|nonan|decan|cosan|octadec|hexadec|tetradec|dodec|icos|docos)[a-z]*oic acid\b|"
                       r"\b[a-z-]*(?:oleic|stearic|palmitic|myristic|lauric|linoleic|linolenic|arachidonic|petroselinic|"
@@ -148,9 +164,56 @@ FUSION_NAME = re.compile(r"^(green fluorescent protein|gfp|egfp|t4 lysozyme|endo
                          r".*luciferase.*|(?:large|small)? ?bit|nanobit|lgbit|smbit|hibit|nanoluc)$", re.I)
 
 
+# Fusion tags and crystallisation chaperones (as automation.FUSION_UNIPROT).
+FUSION_TAG_UNIPROT = {"P00720", "P0ABE7", "P0AEX9", "P42212", "P0AA25", "Q9ZEU2", "P61626", "P63165", "P0ACJ8",
+                      "P02185"}
+# Of those, the ones that are never a real binding partner when they come as a chain of their
+# own. Maltose-binding protein (P0AEX9) is the substrate-binding partner of the maltose
+# transporter ('MalFGK<sub>2</sub>-MBP'), and thioredoxin (P0AA25) has partners of its own.
+TAG_ONLY_UNIPROT = FUSION_TAG_UNIPROT - {"P0AEX9", "P0AA25"}
+FUSION_TAG_GENES = {"gfp", "cybc", "male", "e", "trxa", "rubr", "lyz", "sumo1", "mb"}
+# BRIL (soluble cytochrome b562) written into a fused protein's name: 'OaVMAT2-BRIL',
+# 'Adenosine receptor A2a/Soluble cytochrome b562 chimera', 'NorA-BRIL(3A) fusion'.
+BRIL_IN_NAME = re.compile(r"\s*(?:[-/,]|\band\b)?\s*(?:E\.? ?coli )?(?:soluble |apo)?cytochrome b562(?:RIL)?"
+                          r"(?:\s+(?:complex|chimera|fusion(?: protein)?))?|(?<!anti)(?<!anti-)(?<!anti )-?\bBRIL\b(?:\(\w+\))?(?:\s+fusion)?", re.I)
+# Antibodies that only hold the fusion tag or another antibody (anti-BRIL Fab BAG2, anti-Fab nanobody).
+HELPER_ANTIBODY = re.compile(r"anti-?\s?bril|anti-?\s?fab|\bBAG2\b|SRP2070|scfv[-\s]?16|\bnb[-\s]?35\b|fab[-\s]?(?:cb6|16)\b",
+                             re.I)
+
+
+def _is_fusion_tag(e: dict) -> bool:
+    """A chain that is only a fusion tag or chaperone (a separate BRIL chain),
+    never a partner. Not maltose-binding protein or thioredoxin, which can be
+    real partners, and not a chain that fuses a tag to something else
+    ('Maltodextrin-binding protein,Autotransporter EspP chimera')."""
+    desc, ups = _desc(e), _uniprots(e)
+    if re.search(r"malto|thioredoxin", desc, re.I) or (ups and not ups <= TAG_ONLY_UNIPROT):
+        return False
+    parts = [re.sub(r"\s+(?:chimera|fusion(?: protein)?)$", "", x, flags=re.I).strip() for x in desc.split(",")]
+    parts = [x for x in parts if x]
+    return bool(parts) and all(FUSION_NAME.match(x) or BRIL_IN_NAME.fullmatch(x) for x in parts)
+
+
 def _clean_name(desc: str) -> str:
     """PDB entity name -> mpstruc-like protein name: drop fusion partners
-    ('X,Green fluorescent protein') and 'Isoform 1 of'."""
+    ('X,Green fluorescent protein', 'X/Soluble cytochrome b562 chimera',
+    'X-BRIL') and 'Isoform 1 of'."""
+    if BRIL_IN_NAME.search(desc) and not FUSION_NAME.match(desc.strip()):
+        bare = re.sub(r"^and\s+|\s+and$", "", BRIL_IN_NAME.sub("", desc).strip(" ,/-"), flags=re.I).strip(" ,/-")
+        # Each '/'- or ','-separated part loses its own 'chimera' or 'fusion', and a part
+        # repeated around the tag goes ('A2a/b562/A2a chimera,b562,A2a' -> 'A2a').
+        safe = re.sub(r"(?<![A-Za-z0-9])\d+(?:,\d+)+(?=[-\s)'])", lambda m: m[0].replace(",", "\0"), bare)
+        pieces, seen = re.split(r"(\s*[/,]\s*)", safe), set()
+        bare = ""
+        for i in range(0, len(pieces), 2):
+            x = re.sub(r"^(?:chimera|fusion) protein of (?:human )?|\s+(?:chimera|fusion(?: protein)?)$", "",
+                       pieces[i].strip(), flags=re.I).strip()
+            if x and x.lower() not in seen:
+                seen.add(x.lower())
+                bare += (pieces[i - 1].strip() if bare else "") + x
+        bare = bare.replace("\0", ",")
+        if len(bare) >= 3:
+            desc = bare
     rep = re.fullmatch(r"(.+?)(?:,\s*\1)+(,.*)?", desc)  # 'X 1,X 1,Fusion protein' -> 'X 1,Fusion protein'
     if rep:
         desc = rep[1] + (rep[2] or "")
@@ -254,7 +317,8 @@ def title_names(title: str, aliases: set[str] = frozenset()) -> list[str]:
             split.append(item)
     out: list[str] = []
     for item in split:
-        item = ROLE.sub("", re.sub(r"^(?:the|a|an|human|mouse|rat|bovine)\s+", "", item.strip(" ."), flags=re.I)).strip(" .")
+        item = ROLE.sub("", re.sub(r"^(?:(?:the|a|an|human|mouse|rat|bovine|bound)\s+)+", "", item.strip(" ."),
+                                   flags=re.I)).strip(" .")
         if not item or len(item) < 2 or len(item.split()) > 4 or len(item) > 40 or TITLE_GENERIC.match(item):
             continue
         if MUTATION.fullmatch(item) or re.fullmatch(r"\d+|[a-z]+", item) and item.lower() in STOP:
@@ -335,7 +399,7 @@ def _title_g(title: str) -> str | None:
     m = re.search(r"(?<![A-Za-z0-9])G(s|i|o|q|t|olf|z)(\d?)(?![A-Za-z0-9])", title)
     if m and re.search(r"complex|coupled|bound|protein|-G", title, re.I):
         return f"G<sub>{m[1].lower()}{m[2]}</sub>"
-    if re.search(r"\bG[- ]?proteins?\b|heterotrimeric G", title, re.I):
+    if re.search(r"\bG[- ]?proteins?\b(?![- ]coupled)|heterotrimeric G", title, re.I):
         return "G protein"
     return None
 
@@ -389,9 +453,9 @@ def partners(det: dict, core: set[str], title: str | None = None, own: str = "")
     g_descs = []
     for e in _protein_entities(det):
         ups, desc = _uniprots(e), _desc(e)
-        if not desc or (ups & core):
-            continue
-        if re.search(r"guanine nucleotide-binding protein|\bG(?:[soqitz]|olf|1[1-6])?[-\s]?proteins?\b|\bG[-\s]?alpha|"
+        if not desc or (ups & core) or _is_fusion_tag(e):
+            continue  # (a separate BRIL chain is a tag, not a partner: a known gap of PR #4)
+        if re.search(r"guanine nucleotide-binding protein|\bG(?:[soqitz]|olf|1[1-6])?[-\s]?proteins?\b(?![-\s]coupled)|\bG[-\s]?alpha|"
                      r"mini[-\s]?G[soqi]\b|\bG\(?[soqi]\)? (?:alpha|subunit)|\bGNA[ISOQT]|gustducin|transducin",
                      desc, re.I):
             g_descs.append(desc)
@@ -403,8 +467,10 @@ def partners(det: dict, core: set[str], title: str | None = None, own: str = "")
         if _is_antibody(desc):
             m = re.search(r"\b(?:Nb|Sb|Fab|scFv|Mb)[-\s]?\w*\d\w*", desc, re.I)
             said = m and _in_title([m[0], m[0].replace(" ", "")], title)
-            if re.search(r"scfv[-\s]?16|\bnb[-\s]?35\b|fab[-\s]?(?:cb6|16)\b", desc, re.I):
-                said = None  # the standard G-protein helpers say nothing about the structure
+            if HELPER_ANTIBODY.search(desc):
+                # The standard G-protein helpers (Nb35, scFv16) and the anti-BRIL Fab or
+                # anti-Fab nanobody say nothing about the structure (PR #4).
+                said = None
             out["antibodies"].append((said or desc, bool(said)))
             continue
         tarp = re.match(r"voltage-dependent calcium channel gamma-([2-8]) subunit", desc, re.I)
@@ -737,6 +803,58 @@ def _aliases(det: dict, core: set[str], extra: list[str] = ()) -> set[str]:
     return {a for a in out if a}
 
 
+# Title words that describe the sample, never a small molecule ('dimer-GPR3-Gs complex').
+NOT_A_LIGAND = re.compile(r"^(?:monomers?|dimers?|trimers?|tetramers?|pentamers?|hexamers?|oligomers?|protomers?|"
+                          r"heterodimers?|homodimers?|complex(?:es)?|states?|forms?|sugars?|ligands?|substrates?|"
+                          r"compounds?|drugs?|inhibitors?|agonists?|antagonists?|lipids?|nascent|apo|holo)$", re.I)
+
+
+def _chem_names(det: dict, cid: str) -> list[str]:
+    """Every name the PDB gives a chemical: its name, description and synonyms."""
+    for n in det.get("nonpolymer_entities") or []:
+        nc = n.get("nonpolymer_comp") or {}
+        if ((nc.get("chem_comp") or {}).get("id") or "") == cid:
+            return [w for w in [(nc.get("chem_comp") or {}).get("name"),
+                                (n.get("rcsb_nonpolymer_entity") or {}).get("pdbx_description"),
+                                *[s.get("name") for s in nc.get("rcsb_chem_comp_synonyms") or []]] if w]
+    return []
+
+
+def _fits_ligand(term: str, names: list[str], own_words: set[str], several: bool) -> bool:
+    """Can a title's name `term` be the ligand the PDB knows only by a systematic
+    name? It must be one word that is not the protein's own name ('KG-OXGR1') or
+    a word for the sample ('dimer'), and look like a short name for a chemical:
+    a code or abbreviation ('2-APB', 'UK5099', 'cVA') or a common name that shares
+    two stems with one of the PDB's names ('propylamine' for '3-aminopropane').
+    With several ligands, an abbreviation's letters must also come in order in
+    one of their names ('PHQ' for '2-phenyl-hydroquinone'), so it goes to the right one."""
+    if not re.fullmatch(r"\S+", term) or NOT_A_LIGAND.match(term):
+        return False
+    words = _norm(term).split()
+    if any(w in own_words for w in words) or not words:
+        return False
+    low = [re.sub(r"[^a-z]", "", _plain(n).lower()) for n in names]
+    letters = re.sub(r"[^a-z]", "", term.lower())
+    if re.search(r"\d", term) and re.fullmatch(r"[A-Za-z]{0,6}-?\d[\w-]*", term) and \
+            sum(c.isalpha() for c in term) <= 6:
+        return True  # a code name ('UK5099', 'VUF6884', 'G6P', '2-OG', 'F4', '5c')
+    if len(re.findall(r"[A-Z]", term)) >= 2 and len(term) <= 8:
+        if not several:
+            return True
+        return any(re.search(".*".join(letters), n) for n in low) if letters else False
+    # A common name: two separate 4-letter stems found in one of the PDB's names.
+    for n in low:
+        hits, i = 0, 0
+        while i <= len(letters) - 4:
+            if letters[i:i + 4] in n:
+                hits, i = hits + 1, i + 4
+            else:
+                i += 1
+        if hits >= 2:
+            return True
+    return False
+
+
 def facets(det: dict, core: set[str], use_entity_mutations: bool = True, aliases: list[str] = ()) -> dict:
     """Everything that can tell one structure of a study from another, as
     mpstruc phrases grouped by kind: mut, g (G protein/arrestin), cplx,
@@ -770,17 +888,23 @@ def facets(det: dict, core: set[str], use_entity_mutations: bool = True, aliases
         if not said and free:
             lab, said = _lower_name(free.pop(0)), True
         peptides.append((lab, said))
-    bound = []
-    for cid, lab, how in ligs:
-        if how == "id":
-            # A small molecule known only by its chemical ID takes the name the
-            # title gives it, unless that name is a word of the protein's own name ('A2A').
-            pick = next((t for t in free if _norm(t) not in own_words and
+    bound = [(lab, how) for _, lab, how in ligs]
+    # A small molecule known only by its chemical ID, then one known only by a
+    # systematic name ('2-aminoethyl diphenylborinate'), takes the name the title
+    # gives it ('2-APB'; the systematic case is from PR #4), unless that name is a
+    # word of the protein's own name ('A2A').
+    order = [i for i, b in enumerate(bound) if b[1] == "id"] + \
+            [i for i, b in enumerate(bound) if b[1] == "name" and _systematic(b[0])]
+    for i in order:
+        if bound[i][1] == "id":
+            pick = next((t for t in free if _norm(t) not in own_words and not NOT_A_LIGAND.match(t) and
                          re.fullmatch(r"\S+(?: [a-z]\S*)?(?: [A-Z0-9]{1,3})?", t)), None)
-            if pick:
-                free.remove(pick)
-                lab, how = _lower_name(pick), "title"
-        bound.append((lab, how))
+        else:
+            names = _chem_names(det, ligs[i][0]) + [bound[i][0]]
+            pick = next((t for t in free if _fits_ligand(t, names, own_words, len(ligs) > 1)), None)
+        if pick:
+            free.remove(pick)
+            bound[i] = (_lower_name(pick), "title")
     bound = [b for b in bound if b[1] != "id"]  # a bare chemical ID ('A1EYI') means nothing to a reader
     # One ligand the title does not name and one compound name the title gives: the
     # title's name is the one curators use ('LSD', not 'lysergic acid diethylamide').
@@ -1009,13 +1133,13 @@ def _tell_apart(out: dict[str, str], present: list[tuple[str, dict]], titles: li
 # ---------------------------------------------------------------- names
 
 _COND = re.compile(
-    r"(?:,\s+|\s+-\s+|\s*-\s*(?=(?:mini)?G<sub>|(?:mini)?G\s?protein|β-arrestin|&beta;-arrestin|beta-arrestin|"
-    r"(?:mini)?G[soqi]\b)|\s+|;\s*)"
-    r"(?=with\b|bound\b|in complex\b|complexed\b|apo\b|in the\b|in (?:lipid|nanodisc|detergent|LMNG|DDM|GDN|"
+    r"(?:,\s+|\s+-\s+|\s*-\s*(?=(?:mini[- ]?)?G<sub>|(?:mini[- ]?)?G\s?protein|β-arrestin|&beta;-arrestin|beta-arrestin|"
+    r"(?:mini[- ]?)?G[soqi]\b)|\s+|;\s*)"
+    r"(?=with\b|bound\b|in complex\b|complexed\b|apo\b|in (?:the|an?)\b|in (?-i:[A-Z][A-Z0-9]{2,})\b|in (?:lipid|nanodisc|detergent|LMNG|DDM|GDN|"
     r"digitonin|amphipol|MSP|saposin|peptidisc|total|native|liposome|presence|absence)|in [a-z]+[- ]facing|"
     r"[A-Z]\d+[A-Z](?:/[A-Z]\d+[A-Z])* mutant|mutant\b|[\w-]+-(?:bound|free)\b|[\w-]+[- ]facing\b|"
     r"(?:open|closed|inactive|active|resting|desensiti[sz]ed|occluded|inhibited|intermediate)\b|pH\b|E\d\b|"
-    r"state\b|form\b|(?:mini)?G<sub>|G protein|β-arrestin|&beta;-arrestin|beta-arrestin|focused|local\b|"
+    r"state\b|form\b|(?:mini[- ]?)?G<sub>|G protein|β-arrestin|&beta;-arrestin|beta-arrestin|focused|local\b|"
     r"consensus|composite|full[- ]length|crystal|x-ray|cryo|structure\b)", re.I)
 
 
@@ -1029,16 +1153,24 @@ def base_name(name: str | None) -> str | None:
     s = re.sub(r"\s+", " ", name).strip()
     cut = len(s)
     for m in re.finditer(r",\s|;\s*", s):
+        # An entity's ';' ('&alpha;', '&Delta;') does not end the name.
+        if m[0][0] == ";" and re.search(r"&#?\w+$", s[:m.start()]):
+            continue
         if _depth_at(s, m.start()) == 0:
             cut = m.start()
             break
     for m in _COND.finditer(s):
         if m.start() < cut and _depth_at(s, m.start()) == 0 and m.start() > 0:
-            cut = m.start()
+            # '&quot; with ...': the ';' belongs to the entity.
+            cut = m.start() + (s[m.start()] == ";" and bool(re.search(r"&#?\w+$", s[:m.start()])))
             break
-    out = s[:cut].strip(" ,;-")
-    out = re.sub(r"(?:\s+(?:in|with|and|of|at|from|by|for|to|the|a|an))+$", "", out, flags=re.I).strip(" ,;-")
-    return out or s
+    out = s[:cut]
+    # Lower case only: 'Monoamine Oxidase A' keeps its 'A'. A word that only led into
+    # the setting goes too ('RyR1 ryanodine receptor embedded in a lipid bilayer').
+    out = re.sub(r"(?:\s+(?:in|with|and|of|at|from|by|for|to|the|a|an|embedded|reconstituted|incorporated|"
+                 r"solubili[sz]ed|inserted|expressed|purified|captured|trapped|determined|bound))+$", "", out)
+    out = out.strip(" ,-") if re.search(r"&#?\w+;$", out.strip(" ,-")) else out.strip(" ,;-")
+    return out or name.strip()
 
 
 def _depth_at(s: str, i: int) -> int:
@@ -1051,20 +1183,24 @@ def _depth_at(s: str, i: int) -> int:
 
 def family_base(names: list[tuple[str | None, str | None]]) -> str | None:
     """The protein name mpstruc uses most for a family, from (name, year)
-    pairs of the entries that share the protein; ties go to the newest."""
-    seen: dict[str, list] = {}
+    pairs of the entries that share the protein; ties go to the newest.
+    Names that differ only in case or markup ('D3' / 'D<sub>3</sub>') count
+    as one name, written in its most common spelling (PR #4 listed picking
+    the newest spelling as a known gap)."""
+    seen: dict[str, dict] = {}
     for name, year in names:
         b = base_name(name)
         if not b:
             continue
-        k = _norm(b)
-        rec = seen.setdefault(k, [0, "", b])
-        rec[0] += 1
-        if (year or "") >= rec[1]:
-            rec[1], rec[2] = year or "", b
+        rec = seen.setdefault(_norm(b), {"n": 0, "year": "", "spell": Counter(), "last": {}})
+        rec["n"] += 1
+        rec["year"] = max(rec["year"], year or "")
+        rec["spell"][b] += 1
+        rec["last"][b] = max(rec["last"].get(b, ""), year or "")
     if not seen:
         return None
-    best = max(seen.values(), key=lambda r: (r[0], r[1]))[2]
+    rec = max(seen.values(), key=lambda r: (r["n"], r["year"]))
+    best = max(rec["spell"], key=lambda b: (rec["spell"][b], rec["last"][b]))
     return _cap(best) if re.match(r"[a-z]{4,}\b", best) else best
 
 
@@ -1087,8 +1223,12 @@ def pdb_name(mine: list[dict]) -> str | None:
     # PDB charges as mpstruc writes them: 'H(+)/Cl(-) exchange' -> 'H<sup>+</sup>/Cl<sup>-</sup> exchange'
     name = re.sub(r"\b([A-Z][a-z]?)\((\d?[+-])\)", r"\1<sup>\2</sup>", name)
     # The gene symbol only goes before a single protein name, never before a list of fused parts.
+    # When the PDB lists a fusion tag's gene first (cybC for BRIL, GFP), no gene is added, as
+    # before the tag was dropped from the name: the protein's own gene would then go before
+    # receptor names the PDB already spells out ('HTR1A 5-hydroxytryptamine receptor 1A'),
+    # which curators do not write, and it scored no better against their names.
     genes = _genes(mine[0]) if len(names) == 1 and ", " not in name else []
-    gene = genes[0] if genes else None
+    gene = genes[0] if genes and genes[0].lower() not in FUSION_TAG_GENES else None
     if gene and re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{1,9}", gene) and re.search(r"\d|^[A-Z]{3,}$", gene) \
             and not re.fullmatch(r"[A-Z]{1,4}\d{3,}\w*|[a-z]{2,}\d{3,}\w*", gene) \
             and not any(_norm(g) in _norm(name).split() for g in genes):
