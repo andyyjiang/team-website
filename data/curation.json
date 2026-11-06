@@ -41,10 +41,10 @@
   },
   "22XR": {
    "status": "rejected",
-   "reason": "Other",
-   "by": "jaylinantwerp-beep",
-   "byName": "jaylinantwerp-beep",
-   "at": "2026-11-06T00:11:53.334Z",
+   "reason": "Not published yet",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-06T21:26:36.697Z",
    "title": "structure of full permease",
    "released": "2026-11-04",
    "organism": "Escherichia coli K-12",
@@ -75,7 +75,8 @@
    "suggested": "related",
    "suggestedSubgroup": "G03-S084",
    "suggestedOwner": "22XP",
-   "membrane": 0.949
+   "membrane": 0.949,
+   "reasonCode": "unpublished"
   },
   "22XS": {
    "status": "approved",
@@ -21384,6 +21385,14 @@
    "action": "reason",
    "pdb": "23JL",
    "detail": "Changed the reason for rejecting 23JL from “Other” to “Not published yet”"
+  },
+  {
+   "at": "2026-11-06T21:26:36.697Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "reason",
+   "pdb": "22XR",
+   "detail": "Changed the reason for rejecting 22XR from “Other” to “Not published yet”"
   }
  ]
 }
