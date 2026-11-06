@@ -1,26 +1,35 @@
 """How likely is a PDB structure to be a membrane protein?
 
-    python -m mpstruc.membrane        # train, test, write membrane_model.json + reports/membrane.md
+    python -m mpstruc.membrane             # train, test, write membrane_model.json + reports/membrane.md
+    python -m mpstruc.membrane --tradeoff  # also compare ways of labelling monotopic proteins
 
 Labels (what counts as a membrane protein): the structure is listed in
 mpstruc, or PDBTM or MemProtMD (which screened every PDB entry for
 transmembrane proteins) list it, or OPM classes it as transmembrane.
-Structures OPM classes only as monotopic/peripheral or peptide, and that no
-other source lists, are left out of training and testing (OPM does not say
-whether they sit in the membrane or on it). Everything else released in the
-same weeks is labelled "not a membrane protein". PDBTM screened the whole PDB
+Structures mpstruc lists only as monotopic are handled by MONOTOPIC_LABEL
+(see _labels; --tradeoff measures the alternatives). Structures OPM classes
+only as monotopic/peripheral or peptide, and that no other source lists, are
+left out of training and testing. Everything else released in the same weeks
+is labelled "not a membrane protein". PDBTM screened the whole PDB
 consistently until March 2025, so training (Jul 2023 - Aug 2024) and testing
 (Sep 2024 - Mar 2025) use that period.
 
 Features are things known on the day a structure is released, so the
-prediction works for brand-new entries: whether the residues that cross the
-membrane (UniProt transmembrane segments) are actually resolved in the
-structure, UniProt keywords and families,
+prediction works for brand-new entries. The strongest is whether the part
+that crosses the membrane is resolved in the structure: UniProt transmembrane
+segments (helices, or strands where UniProt maps them), or, for beta-barrels
+UniProt maps no strands for, a UniProt barrel domain such as 'TBDR
+beta-barrel' (uniprot.membrane_features, barrel_domains). A structure of only
+a soluble part (a plug, an ectodomain) does not count. Also: whether UniProt
+calls a protein transmembrane but maps nothing to check, UniProt keywords
+(including "Transmembrane beta strand" and "Cell outer membrane") and
+families, TCDB classes (including 1.B, outer-membrane beta-barrel porins),
 detergents, lipids or nanodiscs in the sample, whether mpstruc already lists
 the same protein (only earlier mpstruc entries count), how often its protein
 family is a membrane protein in the training data, the method, and words in
-the PDB title. The probability is calibrated: of structures given about 80%,
-about 80% are membrane proteins in the test period (see reports/membrane.md).
+the PDB title. UniProt annotations are read as they are today, as before.
+The probability is calibrated: of structures given about 80%, about 80% are
+membrane proteins in the test period (see reports/membrane.md).
 """
 from __future__ import annotations
 
@@ -36,6 +45,9 @@ from .model import load
 from .report import ROOT, source_xml
 
 TRAIN = ("2023-07-01", "2024-08-31")
+# How structures mpstruc lists only as monotopic are labelled ("positive", "exclude" or
+# "negative"; see _labels and the trade-off table in reports/membrane.md).
+MONOTOPIC_LABEL = "positive"
 TEST = ("2024-09-01", "2025-03-31")
 MODEL_PATH = ROOT / "membrane_model.json"
 
@@ -46,6 +58,30 @@ LIPIDS = set("""PCW POV PEE PLC LPP PGW CDL 3PE PC1 6PL P5S PEF PEV PTY LHG LMG 
 NANODISC = re.compile(r"membrane scaffold|apolipoprotein a-?i\b|saposin|msp1|msp2", re.I)
 # UniProt keywords that point away from (or towards) the membrane.
 KW_SOLUBLE = {"KW-0964": "secreted", "KW-0963": "in the cytoplasm", "KW-0539": "in the nucleus"}
+KW_STRAND, KW_OUTER, KW_SECRETED = "KW-1134", "KW-0998", "KW-0964"  # TM beta strand; Cell outer membrane; Secreted
+# UniProt Domain names that are a whole membrane-spanning beta-barrel domain. How the list
+# was chosen (no test-period data was used):
+# - from the training period only (2023-07-01 to 2024-08-31): the Domain names on proteins
+#   UniProt marks KW-1134 or KW-0998 there are "TBDR beta-barrel", "TonB-dependent
+#   receptor-like beta-barrel", "Autotransporter" and "Porin";
+# - from the PROSITE/Pfam/InterPro definitions of outer-membrane barrel domains, not from
+#   any data: "YadA-like C-terminal membrane anchor" (IPR005594), the secretin barrel
+#   ("secretion system secretin-like", IPR004846) and "Outer membrane protein
+#   beta-barrel" (PF13505). (The secretin's N-terminal domains are periplasmic.)
+# Every name is anchored to the whole domain name. Region notes such as aerolysin's "Part
+# of the transmembrane beta-barrel after ... insertion into the host membrane" describe a
+# conditional pore, not the protein's own barrel domain, and are not counted. Many soluble
+# domains are barrels too (TIM barrel, RNA helicase aquarius beta-barrel), and the plug,
+# POTRA and OmpA-like domains of outer-membrane proteins sit outside the membrane.
+BARREL_DOMAIN = re.compile(r"^(?:(?:TBDR|TonB-dependent receptor(?:-like)?) beta-barrel|porin|autotransporter|"
+                           r"YadA-like C-terminal membrane anchor|(?:type II/III )?secretion system secretin-like(?: domain)?|"
+                           r"outer membrane protein beta-barrel(?: domain)?)$", re.I)
+# A TonB-dependent receptor's barrel follows its plug. When UniProt names only the plug,
+# the BARREL_AFTER_PLUG residues after it are taken as (the start of) the barrel, for
+# proteins UniProt marks as outer-membrane or beta-strand (KW-0998, KW-1134). The
+# training period has such plug-only proteins too ("TonB-dependent receptor plug").
+TBDR_PLUG = re.compile(r"^(?:TBDR|TonB-dependent receptor) plug(?: domain)?$", re.I)
+BARREL_AFTER_PLUG = 300
 KW_MEMBRANE = {"KW-0472", "KW-1003", "KW-0999", "KW-1000", "KW-0256", "KW-0333", "KW-0998", "KW-0793"}
 TITLE_STOP = {"of", "the", "in", "with", "and", "a", "an", "from", "to", "by", "for", "on", "at", "bound",
               "structure", "structures", "complex", "state", "form", "cryo-em", "cryoem", "crystal", "x-ray"}
@@ -100,8 +136,25 @@ def _uniprots(det: dict | None) -> set[str]:
 
 def _fetch(ids: list[str]):
     ext, fam, det, cov = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids), rcsb.entry_coverage(ids)
-    accs = sorted({a for v in cov.values() for e in (v or []) for a in e.get("align") or {}})
-    return ext, fam, det, cov, uniprot.tm_segments(accs)
+    # Segments for every linked protein, not only the aligned ones, so "UniProt has
+    # no segments for it" is known rather than guessed.
+    accs = sorted({a for v in cov.values() for e in (v or []) for a in e.get("align") or {}} |
+                  {u for d in det.values() for u in _uniprots(d)})
+    return ext, fam, det, cov, uniprot.membrane_features(accs)
+
+
+def barrel_domains(named: list, keywords=()) -> list[list[int]]:
+    """[[first, last], ...] of UniProt Domain/Region features that are a membrane-spanning
+    beta-barrel (e.g. 'TBDR beta-barrel', 'Autotransporter'). Barrel-shaped domains that
+    stay outside the membrane (OmpA-like, TIM barrel, plug, POTRA, ...) are not counted.
+
+    keywords: the protein's UniProt keywords. If it is an outer-membrane or beta-strand
+    protein with a TonB-dependent receptor plug but no named barrel, the residues after
+    the plug are taken as the barrel."""
+    out = [[b, e] for b, e, name in named or [] if BARREL_DOMAIN.search(name.strip())]
+    if not out and {KW_OUTER, KW_STRAND} & set(keywords):
+        out = [[e + 1, e + BARREL_AFTER_PLUG] for b, e, name in named or [] if TBDR_PLUG.search(name.strip())]
+    return out
 
 
 def tm_coverage(cov: list | None, tmseg: dict[str, list]) -> tuple[int, int]:
@@ -131,11 +184,19 @@ def tm_coverage(cov: list | None, tmseg: dict[str, list]) -> tuple[int, int]:
 
 
 def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
-              cov: list | None = None, tmseg: dict | None = None) -> dict | None:
-    """Release-day facts about a structure (no labels, no PDB annotations)."""
+              cov: list | None = None, feats: dict | None = None) -> dict | None:
+    """Release-day facts about a structure (no labels, no PDB annotations).
+
+    feats: uniprot.membrane_features output ({acc: {"tm": [...], "named": [...]}}).
+    """
     if not det:
         return None
+    tmseg = {a: v["tm"] for a, v in feats.items()} if feats is not None else None
     kw = (ext or {}).get("kw") or {}
+    # Named barrel domains count whatever the keywords: unreviewed porins often carry no
+    # transmembrane keyword (8XWO chitoporin), and the names are anchored to whole domains.
+    barrel = ({a: barrel_domains(v["named"], kw.get(a, ())) for a, v in feats.items()}
+              if feats is not None else None)
     prot = [e for e in det.get("polymer_entities") or []
             if (e.get("entity_poly") or {}).get("rcsb_entity_polymer_type") == "Protein"]
     ups = _uniprots(det) - FUSION_UNIPROT
@@ -145,14 +206,30 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
     descs = [((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "") for e in prot]
     ipr = (fam or {}).get("ipr") or {}
     has_tm_protein = any(tmseg.get(u) for u in ups) if tmseg is not None else None
+    has_barrel = any(barrel.get(u) for u in ups) if barrel is not None else None
+    # Outer-membrane or beta-strand proteins UniProt calls transmembrane but maps neither
+    # segments nor a barrel domain for, so whether their membrane part is resolved cannot
+    # be checked. Secreted proteins (toxins UniProt gives the transmembrane keyword, such
+    # as botulinum NTNH or latrotoxin) are not counted: their pore forms only in a host.
+    tm_unmapped = (sorted(u for u in tm_ups if not tmseg.get(u) and not barrel.get(u)
+                          and {KW_OUTER, KW_STRAND} & set(kw.get(u, ())) and KW_SECRETED not in kw.get(u, ()))
+                   if tmseg is not None else None)
+    # Families of the proteins UniProt places in a membrane, so a soluble partner's family
+    # (a ubiquitin-like or TPR protein bound to a barrel) does not speak for the complex.
+    mem_ups = {u for u in ups if (TM_KEYWORDS | {KW_OUTER, KW_STRAND}) & set(kw.get(u, ()))}
     tm_total, tm_modelled = tm_coverage(cov, tmseg or {}) if cov is not None else (None, None)
+    # Membrane-spanning beta-barrel domains, mapped onto the structure the same way.
+    bar_total, bar_modelled = tm_coverage(cov, barrel or {}) if cov is not None else (None, None)
     return {
-        "has_tm_protein": has_tm_protein, "tm_in_construct": tm_total, "tm_modelled": tm_modelled,
+        "has_tm_protein": has_tm_protein, "has_barrel": has_barrel, "tm_unmapped": tm_unmapped,
+        "tm_in_construct": tm_total, "tm_modelled": tm_modelled,
+        "barrel_in_construct": bar_total, "barrel_modelled": bar_modelled,
         "pdb": pdb, "released": (ext or {}).get("released", ""),
         "uniprots": sorted(ups), "tm_uniprots": sorted(tm_ups), "keywords": sorted(all_kw),
         "detergents": sorted(ligs & DETERGENTS), "lipids": sorted(ligs & LIPIDS),
         "nanodisc": any(NANODISC.search(d) for d in descs),
         "ipr": sorted({x for u in ups for x in ipr.get(u, ())}),
+        "ipr_membrane": sorted({x for u in mem_ups for x in ipr.get(u, ())}),
         "methods": " ".join(m.get("method", "") for m in det.get("exptl") or []).upper(),
         "title": ((det.get("struct") or {}).get("title") or ""),
         "n_protein": len(prot),
@@ -184,13 +261,25 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
         x[f"kw_{k}"] = float(k in kw)
     x["no_uniprot"] = float(not f["uniprots"])
     # Is the membrane-crossing part actually in the structure? (None: coverage unknown.)
+    # A membrane protein here means one whose membrane-spanning part is in the structure:
+    # resolved helical segments (UniProt transmembrane features) or a resolved
+    # membrane beta-barrel (UniProt transmembrane strands or a barrel domain).
     if f.get("tm_modelled") is not None:
-        x["tm_modelled"] = float(f["tm_modelled"] > 0)
-        x["tm_missing"] = float(bool(f.get("has_tm_protein")) and f["tm_modelled"] == 0)
+        bar = f.get("barrel_modelled") or 0
+        x["tm_modelled"] = float(f["tm_modelled"] > 0 or bar > 0)
+        x["barrel_modelled"] = float(bar > 0)
+        x["tm_missing"] = float((bool(f.get("has_tm_protein")) or bool(f.get("has_barrel")))
+                                and f["tm_modelled"] == 0 and bar == 0)
+    # UniProt calls it transmembrane but maps nothing to check: unknown, not "missing".
+    if f.get("tm_unmapped") is not None:
+        x["tm_unmapped"] = float(bool(f["tm_unmapped"]) and not f.get("has_tm_protein") and not f.get("has_barrel"))
+    x["kw_strand"] = float(KW_STRAND in kw)
+    x["kw_outer"] = float(KW_OUTER in kw)
     tcs = sorted({tc for u in f["uniprots"] for tc in ctx.tcdb.get(u, ())})
     x["tcdb_transporter"] = float(any(tc[0] in "123" for tc in tcs))
     x["tcdb_other"] = float(bool(tcs) and not x["tcdb_transporter"])
-    why["tcdb"] = tcs[:2]
+    x["tcdb_barrel"] = float(any(tc.startswith("1.B.") for tc in tcs))  # outer-membrane beta-barrel porins
+    why["tcdb"] = sorted(tcs, key=lambda tc: not tc.startswith("1.B."))[:2] if x["tcdb_barrel"] else tcs[:2]
     x["detergent"] = float(bool(f["detergents"]))
     x["lipid"] = float(bool(f["lipids"]))
     x["nanodisc"] = float(f["nanodisc"])
@@ -198,7 +287,8 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
     x["same_protein"] = float(bool(earlier))
     why["same_protein"] = ctx.protein_example.get(earlier[0]) if earlier else None
     best, best_ipr = 0.0, None
-    for i in f["ipr"]:
+    # Family of a membrane protein in it if there is one, else of any protein in it.
+    for i in f.get("ipr_membrane") or f["ipr"]:
         st = list(ctx.fam_stats.get(i, (0, 0)))
         if own_label is not None and sum(st):
             st[0 if own_label else 1] = max(0, st[0 if own_label else 1] - 1)
@@ -246,32 +336,54 @@ def predict(x: dict[str, float], model: dict) -> float:
 
 
 def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: int = 3) -> list[str]:
-    """Plain-English reasons, strongest first: for a high score the evidence
-    for, then the strongest against; for a low score the other way round."""
+    """Plain-English reasons, strongest first.
+
+    High score: the evidence for it, then "but" and the strongest evidence
+    against. Low score: the evidence against it, with the strongest evidence
+    for it folded into the last reason as "although ..." (or, if nothing
+    counts against it, "the evidence for it is limited: ..."). So "but" only
+    ever introduces evidence against a membrane protein.
+    """
     w = model["weights"]
     reasons = []  # (signed contribution, text)
     def add(key, val, text):
         if text:
             reasons.append((w.get(key, 0.0) * val, text))
-    kw = set(f["keywords"])
     if x.get("kw_tm"):
         add("kw_tm", 1, "UniProt lists " + ("all its proteins" if x.get("kw_tm_all") and len(f["uniprots"]) > 1
                                             else "a protein in it") + " as crossing the membrane")
     elif f["uniprots"]:
         reasons.append((-abs(w.get("kw_tm", 1.0)), "UniProt does not list any of its proteins as crossing the membrane"))
+    if x.get("kw_strand"):
+        add("kw_strand", 1, "UniProt says a protein in it crosses the membrane as beta strands, as in a beta-barrel")
+    if x.get("kw_outer"):
+        add("kw_outer", 1, "UniProt places a protein in it in the outer membrane of a bacterium")
     if x.get("kw_membrane") and not x.get("kw_tm"):
         add("kw_membrane", 1, "UniProt places a protein in it in a membrane")
     for k, place in KW_SOLUBLE.items():
         if x.get(f"kw_{k}"):
             add(f"kw_{k}", 1, f"UniProt says a protein in it is {place}")
-    if x.get("tcdb_transporter"):
+    if x.get("tcdb_barrel"):  # one sentence, carrying both TCDB weights (1.B is also a transporter class)
+        reasons.append((w.get("tcdb_barrel", 0.0) + w.get("tcdb_transporter", 0.0) * x.get("tcdb_transporter", 0.0),
+                        f"TCDB classifies a protein in it as an outer-membrane barrel protein (TC {why['tcdb'][0]})"))
+    elif x.get("tcdb_transporter"):
         add("tcdb_transporter", 1, f"TCDB classifies a protein in it as a channel or transporter (TC {why['tcdb'][0]})")
     elif x.get("tcdb_other"):
         add("tcdb_other", 1, f"TCDB lists a protein in it (TC {why['tcdb'][0]})")
     if x.get("tm_modelled"):
-        add("tm_modelled", 1, f"{f['tm_modelled']} of its membrane-crossing segments are resolved in the structure")
+        parts = []
+        if f.get("tm_modelled"):
+            k = f["tm_modelled"]
+            parts.append(f"{k} membrane-crossing {'segment is' if k == 1 else 'segments are'} resolved in the structure")
+        if x.get("barrel_modelled"):
+            parts.append("the beta-barrel that crosses the membrane is resolved in the structure")
+        add("tm_modelled", 1, " and ".join(parts))
+        if x.get("barrel_modelled"):
+            reasons[-1] = (reasons[-1][0] + w.get("barrel_modelled", 0.0), reasons[-1][1])
     if x.get("tm_missing"):
-        add("tm_missing", 1, "its membrane-crossing segments are not resolved, so only an outside part of the protein is in the structure")
+        add("tm_missing", 1, "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure")
+    if x.get("tm_unmapped"):
+        add("tm_unmapped", 1, "UniProt has not marked where it crosses the membrane, so that part could not be checked")
     if x.get("detergent"):
         add("detergent", 1, f"the sample contains detergent ({', '.join(f['detergents'][:2])})")
     if x.get("lipid"):
@@ -289,23 +401,43 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
         reasons.append((wt, f"the title mentions '{word}'"))
     if not f["uniprots"]:
         reasons.append((w.get("no_uniprot", 0.0), "none of its proteins is linked to UniProt yet"))
-    high = p >= 0.5
-    pro = sorted([r for r in reasons if (r[0] > 0) == high and abs(r[0]) > 0.05], key=lambda r: -abs(r[0]))
-    con = sorted([r for r in reasons if (r[0] > 0) != high and abs(r[0]) > 0.05], key=lambda r: -abs(r[0]))
-    out = [t for _, t in pro[:n]]
-    if con:
-        out.append("but " + con[0][1])
+    supporting = sorted([r for r in reasons if r[0] > 0.05], key=lambda r: -r[0])
+    against = sorted([r for r in reasons if r[0] < -0.05], key=lambda r: r[0])
+    if p >= 0.5:
+        out = [t for _, t in supporting[:n]]
+        if against:
+            out.append("but " + against[0][1])
+        return out
+    out = [t for _, t in against[:n]]
+    if supporting:
+        if out:
+            out[-1] += ", although " + supporting[0][1]
+        else:
+            out = ["the evidence for it is limited: " + " and ".join(t for _, t in supporting[:2])]
     return out
 
 
-def _labels(start: str, end: str, mpstruc_ids: set[str]) -> tuple[list[str], set[str]]:
-    """Release IDs (minus OPM-only monotopic/peripheral and peptide entries) and the membrane-protein set."""
+def _labels(start: str, end: str, mpstruc_ids: set[str], monotopic_ids: set[str] = frozenset(),
+            monotopic: str = "positive") -> tuple[list[str], set[str], list[str]]:
+    """(IDs used, membrane-protein set, all IDs released in the window).
+
+    Left out: OPM-only monotopic/peripheral and peptide entries. monotopic says
+    what to do with structures mpstruc lists only as monotopic (no transmembrane
+    source lists them): "positive" counts them as membrane proteins, "exclude"
+    leaves them out, "negative" counts them as not membrane proteins (no
+    membrane-spanning part)."""
     ids = released_between(start, end)
     opm = membranedb.opm()
-    pos = annotated(start, end, ["PDBTM", "MemProtMD"]) | (set(ids) & mpstruc_ids) | \
+    tm = annotated(start, end, ["PDBTM", "MemProtMD"]) | (set(ids) & (mpstruc_ids - monotopic_ids)) | \
         {p for p in ids if opm.get(p) == "transmembrane"}
+    mono = (set(ids) & monotopic_ids) - tm
+    pos = tm | mono if monotopic == "positive" else tm
     unsure = {p for p in ids if opm.get(p) in ("monotopic/peripheral", "peptide")} - pos
-    return [p for p in ids if p not in unsure], pos
+    if monotopic == "exclude":
+        unsure |= mono
+    elif monotopic == "negative":
+        unsure -= mono
+    return [p for p in ids if p not in unsure], pos, ids
 
 
 def evaluate(rows, model) -> dict:
@@ -385,6 +517,50 @@ def _apply_isotonic(knots: list[list[float]], p: float) -> float:
     return knots[-1][1]
 
 
+def mpstruc_groups(db) -> dict[str, str]:
+    """{PDB ID: mpstruc group name} for entries and their related structures."""
+    out: dict[str, str] = {}
+    for g in db.groups:
+        for sg in g.subgroups:
+            for e in sg.parents:
+                for x in [e, *e.daughters]:
+                    out.setdefault(x.pdbCode.upper(), g.name)
+                    for r in x.related:
+                        out.setdefault(r.pdb.upper(), g.name)
+    return out
+
+
+MONOTOPIC = "MONOTOPIC MEMBRANE PROTEINS"
+BARREL_GROUP = "TRANSMEMBRANE PROTEINS: BETA-BARREL"
+OUTER = "outer membrane (UniProt)"
+# Recent structures curators asked about; their scores are reported from the same run.
+SPOTLIGHT = ("38FI", "38AQ")
+
+
+def false_positive_split(rows: list[tuple[str, float, int, dict]]) -> dict:
+    """Test structures labelled "not a membrane protein" but scored 50% or more, split into
+    those UniProt calls an outer-membrane beta-barrel protein (KW-0998 and KW-1134), which
+    the label sources probably missed, and the rest."""
+    fp = [(pdb, p, f) for pdb, p, y, f in rows if p >= 0.5 and not y]
+    barrel = sorted(pdb for pdb, _, f in fp if {KW_OUTER, KW_STRAND} <= set(f["keywords"]))
+    return {"total": len(fp), "outer_membrane_barrel": len(barrel), "other": len(fp) - len(barrel),
+            "outer_membrane_barrel_ids": barrel}
+
+
+def group_recall(preds: list[tuple[str, float, int | None, dict]], groups: dict[str, str]) -> dict:
+    """Share scored at least 50%, by kind: every structure in each mpstruc group
+    (whatever its training label), and membrane proteins UniProt places in the
+    outer membrane (KW-0998). y is None for structures left out of the labels."""
+    kinds: dict[str, list[float]] = defaultdict(list)
+    for pdb, p, y, f in preds:
+        if pdb in groups:
+            kinds[groups[pdb]].append(p)
+        if y and KW_OUTER in f["keywords"]:
+            kinds[OUTER].append(p)
+    return {k: {"n": len(v), "recall_pct": round(100 * sum(q >= 0.5 for q in v) / len(v), 1)}
+            for k, v in sorted(kinds.items())}
+
+
 def _family_stats(rows) -> dict[str, list[int]]:
     stats: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for f, y in rows:
@@ -393,17 +569,22 @@ def _family_stats(rows) -> dict[str, list[int]]:
     return dict(stats)
 
 
-def train_and_test(folds: int = 5) -> dict:
+def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = True,
+                   tradeoff: dict | None = None) -> dict:
     """Train on TRAIN, calibrate on held-out folds of it, report on TEST.
 
     Family statistics are computed without the structure being scored (from
     the other time blocks of the training period), and the calibration maps
     out-of-fold predictions to observed frequencies, so the percentage shown
     is what was actually seen on structures the model had not learnt from.
+    monotopic: how mpstruc's monotopic-only structures are labelled (see _labels).
     """
+    monotopic = monotopic or MONOTOPIC_LABEL
     db = load(source_xml())
     ctx = Context(db)
-    ids_tr, pos_tr = _labels(*TRAIN, ctx.mpstruc_ids)
+    groups = mpstruc_groups(db)
+    mono_ids = {p for p, g in groups.items() if g == MONOTOPIC}
+    ids_tr, pos_tr, _ = _labels(*TRAIN, ctx.mpstruc_ids, mono_ids, monotopic)
     ext, fam, det, cov, seg = _fetch(ids_tr)
     facts = []
     for pdb in ids_tr:
@@ -429,21 +610,36 @@ def train_and_test(folds: int = 5) -> dict:
     model["fam_stats"] = {k: v for k, v in _family_stats(facts).items() if sum(v) >= 2}
     ctx.fam_stats = model["fam_stats"]
 
-    ids_te, pos_te = _labels(*TEST, ctx.mpstruc_ids)
-    ext, fam, det, cov, seg = _fetch(ids_te)
-    rows_te = []
-    for pdb in ids_te:
+    model["monotopic_label"] = monotopic
+
+    ids_te, pos_te, all_te = _labels(*TEST, ctx.mpstruc_ids, mono_ids, monotopic)
+    used = set(ids_te)
+    ext, fam, det, cov, seg = _fetch(all_te)
+    rows_te, kinds = [], []
+    for pdb in all_te:
         f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
         if f:
             x, why = features(f, ctx, prior)
-            rows_te.append((pdb, x, int(pdb in pos_te), f, why))
+            y = int(pdb in pos_te) if pdb in used else None
+            kinds.append((pdb, predict(x, model), y, f))
+            if pdb in used:
+                rows_te.append((pdb, x, y, f, why))
     oof_eval = [(_apply_isotonic(model["isotonic"], p), y) for p, y in oof]
-    result = {"train": {"window": TRAIN, **evaluate_preds(oof_eval)},
-              "test": {"window": TEST, **evaluate(rows_te, model)}}
+    misses = sorted(({"pdb": pdb, "p": round(p, 3), "title": f["title"][:90]} for pdb, p, _, f in kinds
+                     if groups.get(pdb) == BARREL_GROUP and p < 0.5), key=lambda m: -m["p"])
+    result = {"monotopic_label": monotopic, "train": {"window": TRAIN, **evaluate_preds(oof_eval)},
+              "test": {"window": TEST, **evaluate(rows_te, model), "by_kind": group_recall(kinds, groups),
+                       "false_positives": false_positive_split([(pdb, p, y, f) for pdb, p, y, f in kinds if y is not None]),
+                       "beta_barrel_misses": misses}}
+    if not write:
+        return result
+    if tradeoff is not None:
+        result["monotopic_tradeoff"] = {**tradeoff, monotopic: _brief(result)}
     MODEL_PATH.write_text(json.dumps(model))
     later = sorted(set(released_between("2025-07-01", "2025-12-31")) & ctx.mpstruc_ids)
     sc = score_structures(later, db, model)
     ps = [v["p"] for v in sc.values()]
+    result["spotlight"] = {pdb: score_structures([pdb], db, model).get(pdb) for pdb in SPOTLIGHT}
     result["mpstruc_later"] = {"window": ["2025-07-01", "2025-12-31"], "n": len(ps),
                                "at_least_50_pct": round(100 * sum(p >= 0.5 for p in ps) / len(ps), 1) if ps else None,
                                "at_least_10_pct": round(100 * sum(p >= 0.1 for p in ps) / len(ps), 1) if ps else None}
@@ -453,6 +649,11 @@ def train_and_test(folds: int = 5) -> dict:
     (ROOT / "reports" / "membrane.json").write_text(json.dumps(result, indent=1))
     (ROOT / "reports" / "membrane.md").write_text(report_md(result, model))
     return result
+
+
+def _brief(result: dict) -> dict:
+    t = result["test"]
+    return {"n": t["n"], "membrane": t["membrane"], "auc": t["auc"], "at_50": t["at_50"], "by_kind": t["by_kind"]}
 
 
 def load_model() -> dict | None:
@@ -483,7 +684,14 @@ def report_md(r: dict, model: dict) -> str:
          "A structure counts as a membrane protein if mpstruc lists it, if PDBTM or MemProtMD (which screened every "
          "PDB entry for transmembrane proteins) do, or if OPM classes it as transmembrane. Structures OPM classes only as "
          "monotopic/peripheral or peptide, with no other source, are left out. Signals include UniProt keywords and "
-         "families and TCDB transporter classes. The model uses only facts known on the day a structure is released. "
+         "families (including the beta-barrel and outer-membrane keywords) and TCDB classes. The strongest signal is "
+         "whether the part that crosses the membrane is resolved in the structure: UniProt transmembrane segments, or "
+         "for beta-barrels a UniProt barrel domain (such as 'TBDR beta-barrel'). The list of barrel domain names was "
+         "chosen from the training period and from published domain definitions, without looking at the test period.", "",
+         "Facts from the structure itself (what is resolved, detergents, lipids, the title) and from mpstruc are as they "
+         "were on the release day. UniProt, TCDB and InterPro are read as they are today, and some of their annotations "
+         "may have been added after (or because of) the structure. So the test-period numbers below may look somewhat "
+         "better than they will be for brand-new entries.", "",
          f"It was trained on PDB releases {TRAIN[0]} to {TRAIN[1]} (calibrated on structures each fold had not seen) and "
          f"tested on {TEST[0]} to {TEST[1]}.", "",
          "## Test period", "",
@@ -493,8 +701,57 @@ def report_md(r: dict, model: dict) -> str:
          f"they include {t['at_50']['recall_pct']}% of all membrane proteins",
          f"- Of the {r['mpstruc_later']['n']} structures mpstruc added from Jul–Dec 2025 releases, "
          f"{r['mpstruc_later']['at_least_50_pct']}% score at least 50% and {r['mpstruc_later']['at_least_10_pct']}% at least 10%",
-         "", "### Does the percentage mean what it says?", "",
-         "| Shown as | Structures | Average shown | Actually membrane proteins |", "|---|---|---|---|"]
+         ""]
+    def kind_name(k):
+        return k[0] + k[1:].lower() if k.isupper() else k
+    if t.get("by_kind"):
+        L += ["### Which kinds are found?", "",
+              "Share of each kind in the test period that scores at least 50%: every structure in each mpstruc "
+              "group, and the membrane proteins UniProt places in a bacterial outer membrane.", "",
+              "| Kind | Structures | Scored 50% or more |", "|---|---|---|"]
+        L += [f"| {kind_name(k)} | {v['n']:,} | {v['recall_pct']}% |" for k, v in t["by_kind"].items()]
+        L.append("")
+    fp = t.get("false_positives")
+    if fp:
+        L += ["### Wrong calls: model errors or missing labels?", "",
+              f"{fp['total']} test structures labelled 'not a membrane protein' score 50% or more. "
+              f"{fp['outer_membrane_barrel']} of them are proteins UniProt calls outer-membrane beta-barrels (cell outer "
+              "membrane and transmembrane beta strand), which the label sources (mpstruc, PDBTM, MemProtMD, OPM) "
+              "probably missed; the same protein is sometimes labelled a membrane protein in another structure. "
+              f"The other {fp['other']} are real mistakes. The labels were not changed, so the precision above counts "
+              "both kinds as wrong."
+              + (f" Outer-membrane barrels counted as wrong: {', '.join(fp['outer_membrane_barrel_ids'])}."
+                 if fp["outer_membrane_barrel_ids"] else ""), ""]
+    misses, spot = t.get("beta_barrel_misses"), r.get("spotlight")
+    if misses is not None or spot:
+        L += ["### Beta-barrels", ""]
+        if spot:
+            L.append("Scores from this model for structures curators asked about: " + "; ".join(
+                f"{pdb} {round(100 * v['p'])}%" if v else f"{pdb} could not be scored" for pdb, v in spot.items()) + ".")
+            L.append("")
+        if misses:
+            L += [f"mpstruc beta-barrel structures in the test period that still score below 50% ({len(misses)}). "
+                  "Barrels whose UniProt entry names no barrel domain (only a plug, or nothing) are still often missed:", "",
+                  "| PDB | Shown | Title |", "|---|---|---|"]
+            L += [f"| {m['pdb']} | {round(100 * m['p'])}% | {m['title']} |" for m in misses]
+            L.append("")
+    trade = r.get("monotopic_tradeoff")
+    if trade:
+        L += ["### Monotopic proteins: membrane proteins or not?", "",
+              "mpstruc also lists monotopic proteins, which sit on the membrane without crossing it. If a membrane "
+              "protein must have a part that crosses the membrane, they should not count. The same model was trained "
+              "three ways; each is tested on its own labels, so the overall numbers differ partly because the "
+              f"question differs. This model uses: {r.get('monotopic_label', MONOTOPIC_LABEL)}.", "",
+              "| Monotopic structures labelled | AUC | Precision at 50% | Recall at 50% | Monotopic ≥50% | "
+              "Alpha-helical ≥50% | Beta-barrel ≥50% |", "|---|---|---|---|---|---|---|"]
+        for mode, v in trade.items():
+            bk = v["by_kind"]
+            g = lambda k: f"{bk[k]['recall_pct']}%" if k in bk else "–"
+            L.append(f"| {mode} | {v['auc']} | {v['at_50']['precision_pct']}% | {v['at_50']['recall_pct']}% | "
+                     f"{g(MONOTOPIC)} | {g('TRANSMEMBRANE PROTEINS: ALPHA-HELICAL')} | {g('TRANSMEMBRANE PROTEINS: BETA-BARREL')} |")
+        L.append("")
+    L += ["### Does the percentage mean what it says?", "",
+          "| Shown as | Structures | Average shown | Actually membrane proteins |", "|---|---|---|---|"]
     L += [f"| {b['range']} | {b['n']:,} | {b['predicted']}% | {b['actual']}% |" for b in t["calibration"]]
     L += ["", "## Strongest signals", "", "| Signal | Weight |", "|---|---|"]
     named = sorted(((k, v) for k, v in model["weights"].items() if not k.startswith("t:")), key=lambda kv: -abs(kv[1]))
@@ -508,6 +765,10 @@ def report_md(r: dict, model: dict) -> str:
 
 
 if __name__ == "__main__":
-    res = train_and_test()
-    print(json.dumps({k: {kk: vv for kk, vv in v.items() if kk != 'calibration'} for k, v in res.items() if k != "examples"}, indent=1))
+    import sys
+    # --tradeoff: also train with the other monotopic labellings and report them side by side.
+    other = [m for m in ("positive", "exclude", "negative") if m != MONOTOPIC_LABEL] if "--tradeoff" in sys.argv else []
+    trade = {m: _brief(train_and_test(monotopic=m, write=False)) for m in other} or None
+    res = train_and_test(tradeoff=trade)
+    print(json.dumps({k: {kk: vv for kk, vv in v.items() if kk != 'calibration'} for k, v in res.items() if k != "examples" and isinstance(v, dict) and k != "spotlight"}, indent=1))
     print(json.dumps(res["test"]["calibration"], indent=1))

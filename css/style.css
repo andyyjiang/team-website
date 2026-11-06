@@ -1076,6 +1076,40 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-rej-facts dd { margin: 2px 0 0; min-width: 0; overflow-wrap: anywhere; }
 .mp-rej-row .mp-actions { margin-top: 10px; }
 .mp-rej-row .mp-actions .mp-btn { padding: 6px 12px; font-size: 0.82rem; }
+/* ---- Decisions › Approved: staged and pushed structures ----------------- */
+.mp-menu [role="group"] { margin: 0; }
+.mp-menu-head {
+  margin: 4px 10px 2px; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted);
+}
+.mp-badge.staged { text-transform: none; letter-spacing: 0.02em; color: var(--color-warn-text); background: var(--color-warn-bg);
+  border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+.mp-badge.in-db { text-transform: none; letter-spacing: 0.02em; color: var(--color-text); background: var(--color-bg-alt); border-color: var(--color-border-strong); }
+.mp-badge.in-db::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
+.mp-badge.edited { text-transform: none; letter-spacing: 0.02em; color: var(--color-daughter); border-style: dashed;
+  background: color-mix(in srgb, var(--color-daughter) 8%, transparent); border-color: color-mix(in srgb, var(--color-daughter) 45%, transparent); }
+.mp-appr-row.pushed { border-left: 3px solid var(--color-border-strong); }
+.mp-appr-where { margin: 6px 0 0; font-size: 0.88rem; overflow-wrap: anywhere; }
+.mp-appr-warn { color: var(--color-warn-text); }
+.mp-appr-info { background: var(--color-bg-alt); color: var(--color-text); }
+.mp-appr-diff, .mp-appr-listing { margin: 10px 0 0; font-size: 0.88rem; }
+.mp-appr-diff summary, .mp-appr-listing summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.mp-appr-diff dl { margin: 8px 0 0; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-bg-alt); }
+.mp-appr-diff dl > div { padding: 6px 0; border-top: 1px solid var(--color-border); }
+.mp-appr-diff dl > div:first-child { border-top: 0; }
+.mp-appr-diff dt { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-muted); }
+.mp-appr-diff dd { margin: 2px 0 0; overflow-wrap: anywhere; line-height: 1.5; }
+.mp-appr-diff del { color: var(--color-muted); text-decoration-color: color-mix(in srgb, var(--color-muted) 70%, transparent); }
+.mp-appr-diff ins { text-decoration: none; font-weight: 600; box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--color-daughter) 55%, transparent); }
+.mp-diff-arrow { margin: 0 8px; color: var(--color-muted); }
+.mp-appr-preview { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px; }
+.mp-appr-preview .mp-draft { margin: 0; }
+.mp-appr-row .mp-ed { margin-top: 12px; }
+.mp-push-notice { margin-bottom: 16px; }
+.mp-push-notice p + p { margin-top: 6px; }
+.mp-staged-note .mp-badge { margin-right: 4px; }
+.mp-staged-banner a { font-weight: 600; }
+.mp-term-line.act-push .act { color: var(--term-accent); }
+.mp-term-line.act-unpush .act { color: var(--term-text); }
 .mp-steps { margin: 0 0 12px; padding-left: 22px; line-height: 1.6; }
 .mp-steps li { margin: 2px 0; }
 
