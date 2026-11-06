@@ -241,8 +241,8 @@ def entry_families(pdb_ids: list[str], batch: int = 150, max_age_s: float = 30 *
 
 def entry_details(pdb_ids: list[str], batch: int = 100, max_age_s: float = 7 * 86400) -> dict[str, dict | None]:
     """What an mpstruc-style listing needs: entity names, organisms with lineage,
-    expression hosts, bound ligands and the full primary citation."""
-    path = CACHE_DIR / "entry_details.json"
+    expression hosts, chain lengths, bound ligands and the full primary citation."""
+    path = CACHE_DIR / "entry_details_v2.json"
     cache: dict[str, dict | None] = {}
     if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
         cache = json.loads(path.read_text())
@@ -252,7 +252,7 @@ def entry_details(pdb_ids: list[str], batch: int = 100, max_age_s: float = 7 * 8
          "rcsb_primary_citation { rcsb_authors title journal_abbrev journal_volume journal_issue page_first page_last "
          "year pdbx_database_id_DOI pdbx_database_id_PubMed } "
          "polymer_entities { rcsb_polymer_entity { pdbx_description } "
-         "entity_poly { rcsb_entity_polymer_type } "
+         "entity_poly { rcsb_entity_polymer_type rcsb_sample_sequence_length } "
          "rcsb_polymer_entity_container_identifiers { uniprot_ids } "
          "rcsb_entity_source_organism { ncbi_scientific_name taxonomy_lineage { name } } "
          "rcsb_entity_host_organism { ncbi_scientific_name } } "

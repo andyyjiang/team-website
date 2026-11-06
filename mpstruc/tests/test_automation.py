@@ -152,10 +152,14 @@ def test_listing_in_mpstruc_style():
                                 {"nonpolymer_comp": {"chem_comp": {"id": "LMT", "name": "DODECYL-BETA-D-MALTOSIDE"}}}],
     }
     m = build(det, {"P1"}, [("9ABC", det)])
-    assert m["name"] == "Channel X" and m["species"] == "Homo sapiens" and m["taxonomicDomain"] == "Eukaryota"
+    # mpstruc puts the structure's own condition in its name (the title names the
+    # calcium; the Fab and the detergent are left out), keeps the first description
+    # line for the method, and lists a related structure by what differs from the
+    # lead - here nothing does.
+    assert m["name"] == "Channel X with bound Ca<sup>2+</sup>"
+    assert m["species"] == "Homo sapiens" and m["taxonomicDomain"] == "Eukaryota"
     assert m["expressedInSpecies"] == "Spodoptera frugiperda" and m["resolution"] == "3.1"
-    assert m["description"] == ("cryo-EM structure<br /> in complex with Fab heavy chain, with bound Ca<sup>2+</sup>"
-                                "<br /> in complex with Fab heavy chain, with bound Ca<sup>2+</sup>, 3.10 &Aring;: 9ABC")
+    assert m["description"] == "cryo-EM structure<br /> additional structure, 3.10 &Aring;: 9ABC"
     b = m["bibliography"]
     assert b["authors"] == "Wang L, &amp; Zhou M" and b["title"] == "A &lt;b&gt;title&lt;/b&gt; &amp; more"
     assert b["pubMedId"] is None and b["year"] == "2026"

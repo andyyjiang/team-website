@@ -515,6 +515,7 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${rejectedNote(id)}
       ${preview(id, "lg", "mp-preview-inline")}
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
@@ -526,6 +527,18 @@ links.addEventListener("click", (event) => {
           `<a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>`).join(", ")}${refs.length ? "" : ", but not listed as an entry or related entry there (possibly a typo in the description)"}.</p>` : ""}
       ${!refs.length && !mentions.length && !x ? `<p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>` : ""}
     </div>`;
+  }
+
+  // On a PDB page, for curators: this structure was rejected (or deleted) on the Automation tab.
+  function rejectedNote(id) {
+    const d = signedIn() && Object.hasOwn(curation.entries, id) ? curation.entries[id] : null;
+    if (!isObj(d) || (d.status !== "rejected" && d.status !== "deleted")) return "";
+    const deleted = d.status === "deleted", note = reasonNote(d), code = reasonCode(d);
+    const who = d.auto === true || d.by === AUTO_BY ? AUTO_NAME : plain(d.byName || d.by) || "a curator";
+    const when = fmtDate(plain(d.at));
+    return `<p class="mp-newnote">${deleted ? "Deleted permanently (never suggested again)" : "Rejected"} on the Automation tab:
+      <b>${esc(reasonLabel(d))}</b>${note ? ` (${esc(note)})` : ""}, by ${esc(who)}${when ? ` on ${esc(when)}` : ""}.
+      <a href="#/rejected/${deleted ? "deleted" : code}">See it in Rejected › ${esc(deleted ? "Deleted" : REASON_LABEL[code])}</a></p>`;
   }
 
   function viewEntry(e) {
@@ -555,8 +568,9 @@ links.addEventListener("click", (event) => {
         ${e.sg.group.topology === "Monotopic" ? "" : `<a href="https://pdbtm.unitmp.org/entry/${esc(lower)}" rel="noopener">PDBTM ↗</a>`}
       </p>
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
-      ${e.isNew ? `<p class="mp-newnote">Added by ${esc(e.newBy)} on ${esc(fmtDate(e.newAt))} from the Automation tab. It is in this site's shared
-        curation record (<code>data/curation.json</code>) and in the downloads for the mpstruc maintainers, but not yet in the official mpstruc file.</p>` : ""}
+      ${e.isNew ? `<p class="mp-newnote">Added by ${esc(e.newBy)} on ${esc(fmtDate(e.newAt))} from the Automation tab${e.edited ? ", with the entry edited by the curator" : ""}. It is in this site's shared
+        curation record (<code>data/curation.json</code>) and in the downloads for the mpstruc maintainers, but not yet in the official mpstruc file.
+        ${signedIn() ? `<a href="#/automation/edit/${esc(e.pdb)}">Edit this entry</a>` : ""}</p>` : ""}
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
       ${relRows ? `<h3>Related entries (${e.rel.length})</h3><p class="mp-frompdb">Details below come from the PDB; mpstruc records only the IDs.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
@@ -574,8 +588,41 @@ links.addEventListener("click", (event) => {
   // this browser (localStorage); curators are offered to upload them.
   const auto = { cands: null, backtest: null, error: null, loading: false,
                  view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null };
-  const REJECT_REASONS = ["Not a membrane protein", "Peripheral, not integral", "Only a soluble domain resolved",
-                          "Not notable enough for mpstruc", "Already listed under another ID", "Other"];
+  // Why a structure was rejected: the code is saved as reasonCode, the label
+  // (plus the curator's note, if any) as reason. Rejections saved before codes
+  // existed have no reasonCode and count as "other".
+  const REASONS = [
+    { code: "unpublished", label: "Not published yet" },
+    { code: "not_membrane", label: "Not a membrane protein" },
+    { code: "in_mpstruc", label: "Already in mpstruc" },
+    { code: "duplicate", label: "Duplicate of another suggestion" },
+    { code: "quality", label: "Structure quality / incomplete" },
+    { code: "out_of_scope", label: "Out of scope for mpstruc" },
+    { code: "other", label: "Other" },
+  ];
+  const REASON_LABEL = Object.fromEntries(REASONS.map((r) => [r.code, r.label]));
+  const reasonCode = (d) => (d && Object.hasOwn(REASON_LABEL, d.reasonCode) ? d.reasonCode : "other");
+  // The note part of a saved reason (the text after its label). Older entries
+  // whose text is not a label ("Peripheral, not integral") keep it all as the note.
+  // The weekly job's own wording ("Not published yet (preprint only)") is part
+  // of the label, not a note: see reasonLabel().
+  const AUTO_SUFFIX_RE = /^Not published yet (\([^()]*(?:\([^()]*\)[^()]*)*\))$/;
+  function reasonNote(d) {
+    const text = String((d && d.reason) ?? "").trim(), label = REASON_LABEL[reasonCode(d)];
+    if (text === label) return "";
+    if (reasonCode(d) === "unpublished" && AUTO_SUFFIX_RE.test(text)) return "";
+    if (text.startsWith(label)) return text.slice(label.length).replace(/^\s*[:\-–]\s*/, "").trim();
+    return text;
+  }
+  // The label to show for a saved reason, with the weekly job's detail if any.
+  function reasonLabel(d) {
+    const code = reasonCode(d), m = code === "unpublished" ? AUTO_SUFFIX_RE.exec(String((d && d.reason) ?? "").trim()) : null;
+    return m ? `${REASON_LABEL[code]} ${m[1]}` : REASON_LABEL[code];
+  }
+  const reasonText = (code, note) => (note ? `${REASON_LABEL[code]}: ${note}` : REASON_LABEL[code]);
+  const unpublishedText = (c) => `${REASON_LABEL.unpublished} (${c.awaiting && c.awaiting.reason === "preprint only" ? "preprint only" : "PDB lists it as 'To be published'"})`;
+  const reasonOptions = (sel, blank) => (blank ? `<option value=""${sel ? "" : " selected"}>Choose a reason…</option>` : "")
+    + REASONS.map((r) => `<option value="${r.code}"${r.code === sel ? " selected" : ""}>${esc(r.label)}</option>`).join("");
   const DECISIONS_KEY = "mpstruc-decisions-v1";
   let decisions = {}; // curation.entries: what everyone sees, including this browser's unsaved changes
   let localDecisions = {};
@@ -594,7 +641,7 @@ links.addEventListener("click", (event) => {
                  fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
       .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5; })
       .catch((err) => { auto.error = err.message; })
-      .finally(() => { auto.loading = false; if (lastRoute.startsWith("automation")) render(); });
+      .finally(() => { auto.loading = false; if (lastRoute.startsWith("automation") || lastRoute.startsWith("rejected")) rerender(); });
   }
 
   const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
@@ -612,6 +659,22 @@ links.addEventListener("click", (event) => {
   }
 
   function decisionOf(c) { return decisions[c.pdb] || null; }
+
+  // Waiting for the paper: the weekly job marks structures whose PDB entry
+  // cites "To be published" or only a preprint (c.awaiting), keeps re-checking
+  // them, and sets c.publishedOn (the run that first saw the paper) when it
+  // appears. Such a structure then counts as new from that date.
+  const runDay = () => auto.cands.runDate || String(auto.cands.generated || "").slice(0, 10);
+  const sortDay = (c) => (c.publishedOn && c.publishedOn > (c.released || "") ? c.publishedOn : c.released || "");
+  const newlyPublished = (c) => !!c.publishedOn && c.publishedOn === runDay();
+  const shortDay = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  function awaitingNote(c) {
+    const a = c.awaiting;
+    const what = a.reason === "preprint only" ? "PDB lists only a preprint for this structure" : "PDB lists this as 'To be published'";
+    return `<p class="mp-flags mp-await-note">${what} - mpstruc lists structures once the paper is out. The weekly check moves it to
+      the Rejected tab under 'Not published yet' (or use the button below), and brings it back to 'To decide' by itself when the paper
+      is published.${a.since ? ` <span class="mp-of">Waiting since ${esc(shortDay(a.since))}.</span>` : ""}</p>`;
+  }
 
   // What a decision remembers about its structure, so it can still be exported
   // after the structure drops out of a later week's suggestions.
@@ -637,57 +700,543 @@ links.addEventListener("click", (event) => {
 
   // A suggestion shown as an mpstruc entry (draft fields from the PDB, written
   // the way mpstruc writes them), with the PDB's own title underneath. The mp
-  // fields are escaped text with only <br />, <sup> and entities, built by
-  // mpstruc/mpstruc/listing.py; numbers and IDs still go through esc().
-  function mpListing(c) {
-    const m = c.mp;
+  // fields are mpstruc markup (only <br />, <sub>, <sup>, <i>, <em>, <b> and
+  // entities); they always go through safeMp() here, because curators can edit
+  // them (mpEdited). Numbers and IDs still go through esc().
+  // m: the mp fields to show (default: the suggestion); rel: where it goes, for
+  // the line a related entry adds to its owner's description.
+  function mpListing(c, m = c.mp, rel = { placement: c.placement, owner: c.ownerPdb }) {
     if (!m) return `<p class="mp-pdbtitle"><b>PDB title:</b> ${esc(c.title || "")}</p>`;
+    m = safeMp(m);
     const b = m.bibliography || {};
     const desc = (m.description || "").replace(/(&Aring;|Å)([\s:;,]*)([0-9][A-Za-z0-9]{3})\b/g,
       (all, a, sep, id) => `${a}${sep}<a href="https://www.rcsb.org/structure/${id}" rel="noopener">${id}</a>`);
-    const where = [b.journal, b.volume && `${esc(b.volume)}${b.issue ? `(${esc(b.issue)})` : ""}`, b.pages && esc(b.pages)].filter(Boolean).join(" ");
-    const links = [b.doi && `<a href="https://doi.org/${esc(b.doi)}" rel="noopener">DOI</a>`,
-                   b.pubMedId && `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(b.pubMedId)}/" rel="noopener">PubMed</a>`].filter(Boolean).join(" · ");
+    const where = [b.journal, b.volume && `${b.volume}${b.issue ? `(${b.issue})` : ""}`, b.pages].filter(Boolean).join(" ");
+    const links = [b.doi && `<a href="https://doi.org/${esc(strip(b.doi))}" rel="noopener">DOI</a>`,
+                   b.pubMedId && `<a href="https://pubmed.ncbi.nlm.nih.gov/${esc(strip(b.pubMedId))}/" rel="noopener">PubMed</a>`].filter(Boolean).join(" · ");
+    const related = (m.related || []).filter((id) => PDB_RE.test(id));
+    const owner = rel.owner ? esc(rel.owner) : "the owner";
     return `<div class="mp-draft">
       <dl class="mp-meta">
-        <dt>Species</dt><dd>${m.species || "—"}${m.taxonomicDomain ? ` <span class="mp-frompdb">(${esc(m.taxonomicDomain)})</span>` : ""}</dd>
+        <dt>Species</dt><dd>${m.species || "—"}${m.taxonomicDomain ? ` <span class="mp-frompdb">(${m.taxonomicDomain})</span>` : ""}</dd>
         <dt>Expressed in</dt><dd>${m.expressedInSpecies || "Not stated"}</dd>
-        <dt>Resolution</dt><dd>${m.resolution ? `${esc(m.resolution)} Å` : "—"}</dd>
+        <dt>Resolution</dt><dd>${m.resolution ? `${m.resolution} Å` : "—"}</dd>
       </dl>
       ${desc ? `<div class="mp-desc">${desc}</div>` : ""}
-      <p class="mp-cite">${b.authors ? `${b.authors}${b.year ? ` (${esc(b.year)})` : ""}. ` : ""}${b.title ? `<span class="t">${b.title}</span> ` : ""}${where ? `<i>${where}</i>. ` : ""}${links || "Paper not yet linked in the PDB."}</p>
+      ${rel.placement === "related" && m.relatedLine ? `<p class="mp-relline"><b>Line to add to ${owner}'s entry:</b> <span>${m.relatedLine}</span></p>` : ""}
+      <p class="mp-cite">${b.authors ? `${b.authors}${b.year ? ` (${b.year})` : ""}. ` : ""}${b.title ? `<span class="t">${b.title}</span> ` : ""}${where ? `<i>${where}</i>. ` : ""}${links || "Paper not yet linked in the PDB."}</p>
+      ${related.length ? `<p class="mp-relids"><span class="mp-badge related">Related</span>${related.map((id) => `<a class="mp-chip" href="#/pdb/${id}">${id}</a>`).join("")}</p>` : ""}
       <p class="mp-pdbtitle"><b>PDB title:</b> ${esc(c.title || "")} <span class="mp-of">· ${esc((c.method || "").toLowerCase())}</span></p>
     </div>`;
+  }
+
+  // ---- the Change editor ----------------------------------------------------
+  // Change (or Decide) opens a form for everything in the drafted mpstruc
+  // entry: where it goes, every listing field, the paper, related PDB entries
+  // and a note for other curators, with a live preview drawn by mpListing().
+  // What the curator types is kept per PDB in `drafts` (memory only), so a
+  // re-render (another save, a toast, a filter) never loses it; Cancel or a
+  // successful save drops it. Saved edits go in entries[PDB].mpEdited (a full
+  // copy of mp); the suggestion itself stays in mp.
+  const MP_TEXT = ["name", "species", "taxonomicDomain", "expressedInSpecies", "resolution", "description", "relatedLine"];
+  const MP_BIB = ["pubMedId", "authors", "year", "title", "journal", "volume", "issue", "pages", "doi"];
+  const DOMAINS = ["Eukaryota", "Bacteria", "Archaea", "Viruses"];
+  const ED_LABEL = {
+    name: "Name", species: "Species", taxonomicDomain: "Taxonomic domain", expressedInSpecies: "Expressed in (species)",
+    resolution: "Resolution (Å)", description: "Description", relatedLine: "Line to add to the owner's entry",
+    "bibliography.pubMedId": "PubMed ID", "bibliography.authors": "Authors", "bibliography.year": "Year", "bibliography.title": "Paper title",
+    "bibliography.journal": "Journal", "bibliography.volume": "Volume", "bibliography.issue": "Issue", "bibliography.pages": "Pages",
+    "bibliography.doi": "DOI", note: "Note for other curators",
+  };
+  // Fields that hold mpstruc markup (the rest are numbers, codes or plain words).
+  const ED_MARKUP = new Set(["name", "species", "expressedInSpecies", "description", "relatedLine", "bibliography.authors",
+                             "bibliography.title", "bibliography.journal", "bibliography.volume", "bibliography.issue", "bibliography.pages"]);
+  const drafts = new Map(); // PDB -> { placement, subgroup, owner, mp, note, restored }
+  const edId = (pdb, path) => `ed-${pdb}-${path.replace(".", "-")}`;
+  const getPath = (m, path) => (path.startsWith("bibliography.") ? (m.bibliography || {})[path.slice(13)] : m[path]);
+
+  // Any mp object -> every field as a string (null -> ""), plus the related IDs.
+  function fullMp(m) {
+    m = isObj(m) ? m : {};
+    const b = isObj(m.bibliography) ? m.bibliography : {};
+    const out = Object.fromEntries(MP_TEXT.map((k) => [k, m[k] == null ? "" : String(m[k])]));
+    out.bibliography = Object.fromEntries(MP_BIB.map((k) => [k, b[k] == null ? "" : String(b[k])]));
+    out.related = Array.isArray(m.related) ? m.related.map((x) => String(x).toUpperCase()).filter((x) => PDB_RE.test(x)) : [];
+    return out;
+  }
+  // A typed value as it will be saved: trimmed, line breaks as <br />, only
+  // mpstruc's markup kept (safeMarkup), a DOI without its https://doi.org/ prefix.
+  function cleanField(path, v) {
+    let t = String(v ?? "").replace(/\r\n?/g, "\n").trim();
+    if (path === "bibliography.doi") t = t.replace(/^(?:https?:\/\/(?:dx\.)?doi\.org\/|doi:\s*)/i, "");
+    if (path === "resolution") t = t.replace(/\s*(?:Å|&Aring;|A)$/i, "");
+    if (path === "description" || path === "relatedLine") t = t.replace(/\s*(?:\n|<br\s*\/?>)\s*/gi, "<br /> ");
+    else t = t.replace(/\s+/g, " ");
+    // Quotes and apostrophes stay as typed (5'-nucleotidase, O'Brien): they are
+    // safe in element text, and every attribute use goes through esc().
+    return unquote(safeMarkup(unquote(t)));
+  }
+  const unquote = (v) => String(v).replace(/&quot;|&#0*34;|&#x0*22;/gi, '"').replace(/&#0*39;|&#x0*27;|&apos;/gi, "'");
+  function cleanMp(m) {
+    const f = fullMp(m), out = {};
+    for (const k of MP_TEXT) out[k] = cleanField(k, f[k]);
+    out.bibliography = Object.fromEntries(MP_BIB.map((k) => [k, cleanField(`bibliography.${k}`, f.bibliography[k])]));
+    out.related = [...new Set(f.related)];
+    return out;
+  }
+  // Which fields differ ("name", "bibliography.pages", "related").
+  function diffMp(a, b) {
+    const x = cleanMp(a), y = cleanMp(b), out = [];
+    for (const k of MP_TEXT) if (x[k] !== y[k]) out.push(k);
+    for (const k of MP_BIB) if (x.bibliography[k] !== y.bibliography[k]) out.push(`bibliography.${k}`);
+    if ([...x.related].sort().join() !== [...y.related].sort().join()) out.push("related");
+    return out;
+  }
+  // The mp object saved as mpEdited: the same keys as the suggestion's mp
+  // (empty fields as null, like the weekly job writes them), plus related.
+  function savedMp(c, typed) {
+    const orig = isObj(c.mp) ? c.mp : {}, ob = isObj(orig.bibliography) ? orig.bibliography : {};
+    const t = cleanMp(typed), changed = new Set(diffMp(orig, typed)), nul = (v) => (v === "" ? null : v);
+    const out = { ...orig };
+    // Fields the curator did not change keep the suggestion's exact text.
+    for (const k of MP_TEXT) {
+      if (changed.has(k)) out[k] = nul(t[k]);
+      else if (k !== "relatedLine" || k in orig) out[k] = orig[k] ?? null;
+    }
+    out.bibliography = { ...ob, ...Object.fromEntries(MP_BIB.map((k) => [k, changed.has(`bibliography.${k}`) ? nul(t.bibliography[k]) : ob[k] ?? null])) };
+    out.related = t.related;
+    return out;
+  }
+  // What a decision shows and exports: the curator's edited copy if there is one.
+  const effectiveMp = (d, c) => (d && d.status === "approved" && isObj(d.mpEdited) ? d.mpEdited : (c && c.mp) || (d && d.mp) || null);
+
+  function seedDraft(c) {
+    const d = decisionOf(c), ap = d && d.status === "approved" ? d : null;
+    const seed = () => ({ placement: ap ? ap.placement : (c.placement === "review" ? "daughter" : c.placement),
+                          subgroup: ap ? ap.subgroup : c.subgroup || "", owner: ap ? ap.owner || "" : c.ownerPdb || "",
+                          mp: fullMp(effectiveMp(ap, c)), note: ap ? plain(ap.note) : "" });
+    // base: the saved version the form started from, and its time stamp, so a
+    // save can tell what this curator changed from what someone else saved since.
+    return { ...seed(), base: { ...seed(), at: d ? d.at || null : null, status: d ? d.status : null } };
+  }
+  // The fields of a draft this curator changed since it was opened (paths as in ED_LABEL).
+  const DRAFT_TOP = ["placement", "subgroup", "owner", "note"];
+  function draftGet(dr, path) {
+    if (DRAFT_TOP.includes(path)) return dr[path];
+    if (path === "related") return [...dr.mp.related];
+    return getPath(dr.mp, path);
+  }
+  function draftSet(dr, path, v) {
+    if (DRAFT_TOP.includes(path)) dr[path] = v;
+    else if (path === "related") dr.mp.related = [...v];
+    else if (path.startsWith("bibliography.")) dr.mp.bibliography[path.slice(13)] = v;
+    else dr.mp[path] = v;
+  }
+  function draftDiff(a, b) {
+    return [...DRAFT_TOP.filter((k) => (k === "owner" ? a.owner.trim().toUpperCase() !== b.owner.trim().toUpperCase() : a[k].trim() !== b[k].trim())),
+            ...diffMp(a.mp, b.mp)];
+  }
+  const draftChanges = (dr) => (dr.base ? draftDiff(dr.base, dr) : []);
+  // Field names as curators read them, for toasts, the Activity log and commit messages.
+  const CHANGE_LABEL = { placement: "Placement", subgroup: "Subfamily", subfamily: "Subfamily", owner: "Parent or owner PDB ID",
+                         related: "Related PDB entries" };
+  const changeLabels = (keys) => keys.map((k) => CHANGE_LABEL[k] || ED_LABEL[k] || k).join(", ");
+  // Someone else saved this entry while the form was open: start again from what
+  // they saved and put back only the fields this curator changed. Returns the new draft.
+  function rebaseDraft(c, dr) {
+    const mine = draftChanges(dr), fresh = seedDraft(c), d = decisionOf(c);
+    const theirs = dr.base ? draftDiff(dr.base, fresh) : [];
+    for (const path of mine) draftSet(fresh, path, draftGet(dr, path));
+    const both = mine.filter((p) => theirs.includes(p));
+    const who = d ? plain(d.byName || d.by) || "another curator" : "another curator";
+    const what = !d ? `${who} undid the decision on ${c.pdb}, so it is back in To decide`
+      : d.status !== "approved" ? `${who} ${d.status === "deleted" ? "deleted" : "rejected"} ${c.pdb}`
+      : `${who} saved a different version of ${c.pdb}${theirs.length ? ` (they changed ${changeLabels(theirs)})` : ""}`;
+    fresh.restored = true;
+    fresh.notice = `Not saved yet: ${what} while you were editing. The form now shows their version`
+      + (mine.length ? ` with your own changes (${changeLabels(mine)}) put back on top` : "") + "."
+      + (both.length ? ` You both changed ${changeLabels(both)}: the form keeps yours, so check ${both.length === 1 ? "it" : "them"}.` : "")
+      + " Check the form, then press Save again.";
+    drafts.set(c.pdb, fresh);
+    return fresh;
+  }
+  function suggestionDraft(c, note) {
+    return { placement: c.placement === "review" ? "daughter" : c.placement, subgroup: c.subgroup || "", owner: c.ownerPdb || "",
+             mp: fullMp(c.mp), note };
+  }
+
+  // Field checks: { path: message } for every field that cannot be saved as typed.
+  function markupProblem(v) {
+    const raw = String(v ?? "");
+    const lt = (s) => (s.match(/&lt;/g) || []).length;
+    if (lt(safeMarkup(raw)) > lt(raw)) {
+      return "Only <sub>, <sup>, <i>, <em>, <b> and <br /> can be used here, and each one must be closed (for example <sub>2</sub>). To show a < sign, type &lt;";
+    }
+    return "";
+  }
+  function checkDraft(dr, pdb) {
+    const err = {}, m = dr.mp, b = m.bibliography;
+    if (!m.name.trim()) err.name = "Give the entry a name.";
+    const r = cleanField("resolution", m.resolution);
+    if (r && !/^\d{1,3}(\.\d{1,3})?$/.test(r)) err.resolution = "Write the resolution as a number of Å, for example 2.85 (no other text).";
+    if (b.year.trim() && !/^(19|20)\d\d$/.test(b.year.trim())) err["bibliography.year"] = "Write the year with four digits, for example 2026.";
+    if (b.pubMedId.trim() && !/^\d{1,9}$/.test(b.pubMedId.trim())) err["bibliography.pubMedId"] = "A PubMed ID is digits only, for example 39012345.";
+    const doi = cleanField("bibliography.doi", b.doi);
+    if (doi && !/^10\.\d{4,9}\/\S+$/.test(strip(doi))) err["bibliography.doi"] = "A DOI starts with 10. and has a slash, for example 10.1038/s41586-026-01234-5.";
+    if (dr.placement !== "parent") {
+      const o = dr.owner.trim().toUpperCase();
+      if (!PDB_RE.test(o)) err.owner = "Enter the 4-character PDB ID of the parent (for a daughter) or of the entry it is listed under (for a related entry).";
+      else if (o === pdb) err.owner = `${pdb} cannot be listed under itself.`;
+    }
+    for (const path of ED_MARKUP) {
+      if (err[path] || (path === "relatedLine" && dr.placement !== "related")) continue;
+      const p = markupProblem(getPath(m, path));
+      if (p) err[path] = p;
+    }
+    return err;
+  }
+  // A typed related PDB ID: 4 characters, or an extended ID such as pdb_00001abc.
+  function relatedId(raw) {
+    let id = String(raw || "").trim().toUpperCase();
+    const ext = /^PDB_0000([0-9][A-Z0-9]{3})$/.exec(id);
+    if (ext) id = ext[1];
+    return PDB_RE.test(id) ? id : "";
+  }
+
+  // The form, drawn from the draft (so a re-render shows what was typed).
+  function editorForm(c, d) {
+    const pdb = c.pdb, P = esc(pdb);
+    if (!drafts.has(pdb)) drafts.set(pdb, seedDraft(c));
+    if (drafts.get(pdb).rebase) rebaseDraft(c, drafts.get(pdb));
+    const dr = drafts.get(pdb), m = dr.mp, b = m.bibliography;
+    const id = (path) => edId(P, path);
+    const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
+      `<option value="${sg.k}"${sg.k === dr.subgroup ? " selected" : ""}>${asText(sg.name)}</option>`).join("")}</optgroup>`).join("");
+    const field = (path, { type = "input", hint = "", wide = false, extra = "", value } = {}) => {
+      let v = value ?? getPath(m, path) ?? "";
+      if (path === "description" || path === "relatedLine") v = String(v).replace(/\s*<br\s*\/?>\s*/gi, "\n");
+      v = unquote(v);
+      const describe = `${hint ? `${id(path)}-hint ` : ""}${id(path)}-err`;
+      const control = type === "textarea"
+        ? `<textarea id="${id(path)}" data-path="${path}" rows="${path === "description" ? 5 : 2}" aria-describedby="${describe}"${extra}>${esc(v)}</textarea>`
+        : `<input id="${id(path)}" data-path="${path}" value="${esc(v)}" autocomplete="off" aria-describedby="${describe}"${extra}>`;
+      return `<div class="mp-ed-field${wide ? " wide" : ""}${ED_MARKUP.has(path) ? " markup" : ""}">
+          <label for="${id(path)}">${esc(ED_LABEL[path] || path)}</label>${control}
+          ${hint ? `<p class="mp-ed-hint" id="${id(path)}-hint">${hint}</p>` : ""}
+          <p class="mp-field-err" id="${id(path)}-err"></p></div>`;
+    };
+    const ap = d && d.status === "approved";
+    const rels = dr.mp.related.map((r) => `<li><a class="mp-chip" href="#/pdb/${r}">${r}</a><button type="button" class="mp-ed-rm" data-ed="rm" data-id="${r}"
+        aria-label="Remove ${r} from the related PDB entries">×</button></li>`).join("");
+    return `<form class="mp-ed" id="${id("form")}" data-pdb="${P}" novalidate aria-labelledby="${id("title")}">
+      <h4 class="mp-ed-title" id="${id("title")}">${ap ? "Edit" : "Change"} the mpstruc entry for ${P}</h4>
+      <p class="mp-ed-intro">Every field below is saved with ${ap ? "the approval" : "your approval"}. The text fields use mpstruc's own markup:
+        select text and use the buttons to make it subscript or superscript, or type tags such as <code>&lt;sub&gt;2&lt;/sub&gt;</code>
+        and entities such as <code>&amp;Aring;</code>. A new line in the description becomes a line break.</p>
+      ${dr.notice ? `<p class="mp-ed-restored" id="${id("notice")}" tabindex="-1" role="status">${esc(dr.notice)}</p>`
+        : dr.restored ? `<p class="mp-ed-restored">Your unsaved changes from earlier are back. Cancel throws them away.</p>` : ""}
+      <div class="mp-ed-grid">
+        <div class="mp-ed-fields">
+          <fieldset><legend>Where it goes</legend>
+            <div class="mp-ed-row">
+              <div class="mp-ed-field"><label for="${id("placement")}">Placement</label>
+                <select id="${id("placement")}" data-path="placement">${["parent", "daughter", "related"].map((p) =>
+                  `<option value="${p}"${p === dr.placement ? " selected" : ""}>${PLACEMENT_LABEL[p]}</option>`).join("")}</select></div>
+              <div class="mp-ed-field wide"><label for="${id("subgroup")}">Group and subfamily</label>
+                <select id="${id("subgroup")}" data-path="subgroup">${sgOptions}</select></div>
+              <div class="mp-ed-field"><label for="${id("owner")}">Parent or owner PDB ID</label>
+                <input id="${id("owner")}" data-path="owner" value="${esc(dr.owner)}" maxlength="4" autocomplete="off" spellcheck="false"
+                  aria-describedby="${id("owner")}-hint ${id("owner")}-err"${dr.placement === "parent" ? " disabled" : ""}>
+                <p class="mp-ed-hint" id="${id("owner")}-hint">For a daughter: its parent. For a related entry: the entry it is listed under.</p>
+                <p class="mp-field-err" id="${id("owner")}-err"></p></div>
+            </div>
+          </fieldset>
+          <fieldset><legend>mpstruc listing</legend>
+            <div class="mp-ed-tools" role="group" aria-label="Format the selected text">
+              <button type="button" class="mp-ed-tool" data-ed="sub" aria-label="Subscript" title="Subscript the selected text">X₂ <span>Subscript</span></button>
+              <button type="button" class="mp-ed-tool" data-ed="sup" aria-label="Superscript" title="Superscript the selected text">X² <span>Superscript</span></button>
+              <button type="button" class="mp-ed-tool" data-ed="i" aria-label="Italic" title="Italicise the selected text"><i>I</i> <span>Italic</span></button>
+              <button type="button" class="mp-ed-tool" data-ed="aring" aria-label="Insert Å (Ångström sign)" title="Insert the Ångström sign (&amp;Aring;)">Å</button>
+              <span class="mp-ed-target" id="${id("target")}" aria-live="polite">Applies to: Name</span>
+            </div>
+            <div class="mp-ed-row">
+              ${field("name", { wide: true, extra: " required" })}
+              ${field("species")}
+              <div class="mp-ed-field"><label for="${id("taxonomicDomain")}">Taxonomic domain</label>
+                <select id="${id("taxonomicDomain")}" data-path="taxonomicDomain"><option value="">Not stated</option>${[...new Set([...DOMAINS, ...(m.taxonomicDomain && !DOMAINS.includes(m.taxonomicDomain) ? [m.taxonomicDomain] : [])])]
+                  .map((x) => `<option${x === m.taxonomicDomain ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></div>
+              ${field("expressedInSpecies")}
+              ${field("resolution", { extra: ' inputmode="decimal"' })}
+              ${field("description", { type: "textarea", wide: true, hint: "First line: the method (for example 'cryo-EM structure'). Each further line: what differs, resolution and PDB ID, for example 'with bound ATP, 3.10 &amp;Aring;: 9ABC'." })}
+              <div class="mp-ed-related-line${dr.placement === "related" ? "" : " is-hidden"}">
+                ${field("relatedLine", { type: "textarea", wide: true, hint: "Related entries are listed under their owner: this is the line for the owner's description, for example 'with bound ATP, 3.10 &amp;Aring;: 9ABC'." })}
+              </div>
+            </div>
+          </fieldset>
+          <fieldset><legend>Paper</legend>
+            <div class="mp-ed-row">
+              ${field("bibliography.pubMedId", { extra: ' inputmode="numeric" spellcheck="false"' })}
+              ${field("bibliography.year", { extra: ' inputmode="numeric" maxlength="4"' })}
+              ${field("bibliography.doi", { wide: true, extra: ' spellcheck="false"' })}
+              ${field("bibliography.authors", { wide: true, hint: "As mpstruc writes them: 'Smith AB, Jones C, &amp;amp; Lee D'." })}
+              ${field("bibliography.title", { wide: true, type: "textarea" })}
+              ${field("bibliography.journal")}
+              ${field("bibliography.volume")}
+              ${field("bibliography.issue")}
+              ${field("bibliography.pages")}
+            </div>
+          </fieldset>
+          <fieldset><legend>Related PDB entries</legend>
+            <p class="mp-ed-hint" id="${id("rel")}-hint">Other structures of the same study listed with this entry (mpstruc's relatedPdbEntries).</p>
+            <ul class="mp-ed-rels" id="${id("rels")}" aria-label="Related PDB entries">${rels || '<li class="mp-ed-none">None yet.</li>'}</ul>
+            <div class="mp-ed-add">
+              <div class="mp-ed-field"><label for="${id("relnew")}">Add a PDB ID</label>
+                <input id="${id("relnew")}" data-ed-add="1" maxlength="12" autocomplete="off" spellcheck="false" placeholder="e.g. 9ABC"
+                  aria-describedby="${id("rel")}-hint ${id("relnew")}-err"></div>
+              <button type="button" class="mp-btn secondary" data-ed="add">Add</button>
+              <p class="mp-field-err" id="${id("relnew")}-err"></p>
+            </div>
+          </fieldset>
+          <fieldset><legend>Note</legend>
+            ${field("note", { type: "textarea", wide: true, value: dr.note, hint: "Seen by curators on this site only; not sent to mpstruc." })}
+          </fieldset>
+        </div>
+        <section class="mp-ed-preview" aria-labelledby="${id("prev")}">
+          <h5 id="${id("prev")}">Preview <span class="mp-of">as it will be listed</span></h5>
+          <div class="mp-ed-preview-body" id="${id("preview")}">${editorPreview(c, dr)}</div>
+        </section>
+      </div>
+      <p class="mp-form-note" id="${id("note-msg")}" aria-live="polite"></p>
+      <div class="mp-ed-bar">
+        <button class="mp-btn" type="submit">${ap ? "Save changes" : "Approve with these details"}</button>
+        <button class="mp-btn secondary" type="button" data-ed="cancel">Cancel</button>
+        <button class="mp-btn secondary" type="button" data-ed="reset">Reset to suggestion</button>
+      </div>
+    </form>`;
+  }
+
+  function editorPreview(c, dr) {
+    const head = `<p class="mp-ed-prevhead"><span class="mp-badge${dr.placement === "daughter" ? " daughter" : dr.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[dr.placement])}</span>
+      ${dr.placement === "parent" ? "" : `of ${esc(dr.owner.trim().toUpperCase() || "?")}`} in ${esc(sgName(dr.subgroup))}</p>
+      <h3 class="mp-ed-prevname">${safeMarkup(cleanField("name", dr.mp.name)) || '<span class="mp-of">No name</span>'}</h3>`;
+    return head + mpListing(c, { ...dr.mp, description: cleanField("description", dr.mp.description), relatedLine: cleanField("relatedLine", dr.mp.relatedLine) },
+                            { placement: dr.placement, owner: dr.owner.trim().toUpperCase() });
+  }
+
+  // Read the form back into the draft.
+  function readEditor(f) {
+    const pdb = f.dataset.pdb, dr = drafts.get(pdb);
+    if (!dr) return null;
+    for (const el of f.querySelectorAll("[data-path]")) {
+      const path = el.dataset.path;
+      if (path === "placement" || path === "subgroup" || path === "owner" || path === "note") dr[path] = el.value;
+      else if (path.startsWith("bibliography.")) dr.mp.bibliography[path.slice(13)] = el.value;
+      else dr.mp[path] = el.value;
+    }
+    return dr;
+  }
+  function showFieldError(f, path, msg) {
+    const pdb = f.dataset.pdb;
+    const el = document.getElementById(edId(pdb, path)), box = document.getElementById(`${edId(pdb, path)}-err`);
+    if (box) box.textContent = msg || "";
+    if (el) { if (msg) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid"); }
+  }
+  function refreshEditor(f, c) {
+    const dr = readEditor(f);
+    if (!dr) return;
+    const pdb = f.dataset.pdb;
+    document.getElementById(edId(pdb, "preview")).innerHTML = editorPreview(c, dr);
+    document.getElementById(edId(pdb, "owner")).disabled = dr.placement === "parent";
+    f.querySelector(".mp-ed-related-line").classList.toggle("is-hidden", dr.placement !== "related");
+  }
+  function paintRelated(f, focusAfter) {
+    const pdb = f.dataset.pdb, dr = drafts.get(pdb), list = document.getElementById(edId(pdb, "rels"));
+    list.innerHTML = dr.mp.related.map((r) => `<li><a class="mp-chip" href="#/pdb/${r}">${r}</a><button type="button" class="mp-ed-rm" data-ed="rm" data-id="${r}"
+        aria-label="Remove ${r} from the related PDB entries">×</button></li>`).join("") || '<li class="mp-ed-none">None yet.</li>';
+    if (focusAfter != null) {
+      const btns = list.querySelectorAll("button");
+      (btns[Math.min(focusAfter, btns.length - 1)] || document.getElementById(edId(pdb, "relnew"))).focus();
+    }
+  }
+  // Wrap the selection in a tag (or insert at the caret) in a text field.
+  function wrapSelection(el, before, after = "") {
+    const s = el.selectionStart ?? el.value.length, e = el.selectionEnd ?? s;
+    const sel = el.value.slice(s, e);
+    el.focus();
+    el.setRangeText(before + sel + after, s, e);
+    // Keep the wrapped text selected (or the caret inside empty tags); after an insert, the caret goes after it.
+    if (after) el.setSelectionRange(s + before.length, s + before.length + sel.length);
+    else el.setSelectionRange(s + before.length, s + before.length);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  function wireEditor(f) {
+    const pdb = f.dataset.pdb;
+    const c = auto.cands.candidates.find((x) => x.pdb === pdb);
+    if (!c) return;
+    let target = document.getElementById(edId(pdb, "name"));
+    const targetLabel = document.getElementById(edId(pdb, "target"));
+    f.addEventListener("focusin", (ev) => {
+      const el = ev.target;
+      if (el.dataset && el.dataset.path && ED_MARKUP.has(el.dataset.path) && el !== target) {
+        target = el;
+        targetLabel.textContent = `Applies to: ${ED_LABEL[el.dataset.path]}`;
+      }
+    });
+    f.addEventListener("input", (ev) => {
+      const el = ev.target;
+      if (el.dataset.edAdd) { showFieldError(f, "relnew", ""); return; }
+      if (el.getAttribute("aria-invalid")) {
+        // Re-check the field being fixed, so its message clears as soon as it is right.
+        const dr = readEditor(f), errs = checkDraft(dr, pdb);
+        showFieldError(f, el.dataset.path, errs[el.dataset.path] || "");
+      }
+      drafts.get(pdb).restored = false;
+      refreshEditor(f, c);
+    });
+    f.addEventListener("change", (ev) => {
+      if (ev.target.dataset.edAdd) return;
+      if (ev.target.dataset.path === "placement") { showFieldError(f, "owner", ""); f.querySelector(".mp-form-note").textContent = ""; }
+      refreshEditor(f, c);
+    });
+    // The format buttons keep the text selection: they do not take focus on a click.
+    f.querySelectorAll(".mp-ed-tool").forEach((b) => b.addEventListener("mousedown", (ev) => ev.preventDefault()));
+    f.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("[data-ed]");
+      if (!btn) return;
+      const act = btn.dataset.ed;
+      if (act === "sub" || act === "sup" || act === "i") wrapSelection(target, `<${act}>`, `</${act}>`);
+      else if (act === "aring") wrapSelection(target, "&Aring;");
+      else if (act === "add") addRelated();
+      else if (act === "rm") {
+        const dr = drafts.get(pdb), i = dr.mp.related.indexOf(btn.dataset.id);
+        dr.mp.related = dr.mp.related.filter((x) => x !== btn.dataset.id);
+        paintRelated(f, i);
+        refreshEditor(f, c);
+      } else if (act === "cancel") {
+        drafts.delete(pdb);
+        auto.editing = null;
+        afterAction(pdb, "[data-act=edit]");
+      } else if (act === "reset") {
+        const old = readEditor(f);
+        drafts.set(pdb, { ...suggestionDraft(c, old.note), base: old.base });
+        afterAction(pdb, `#${edId(pdb, "name")}`);
+        const msg = document.getElementById(edId(pdb, "note-msg"));
+        if (msg) { msg.textContent = "Every field is back to the weekly suggestion (your note is kept). Nothing is saved until you press Save."; msg.classList.add("ok"); }
+      }
+    });
+    const addInput = document.getElementById(edId(pdb, "relnew"));
+    function addRelated() {
+      const raw = addInput.value, id = relatedId(raw), dr = drafts.get(pdb);
+      let msg = "";
+      if (!raw.trim()) msg = "Type a PDB ID first, for example 9ABC.";
+      else if (!id) msg = `${raw.trim()} is not a PDB ID: it should be 4 characters, a digit then three letters or digits (for example 9ABC).`;
+      else if (id === pdb) msg = `${pdb} is this entry itself.`;
+      else if (dr.mp.related.includes(id)) msg = `${id} is already in the list.`;
+      showFieldError(f, "relnew", msg);
+      if (msg) { addInput.focus(); return; }
+      dr.mp.related.push(id);
+      addInput.value = "";
+      paintRelated(f);
+      refreshEditor(f, c);
+      addInput.focus();
+    }
+    addInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); addRelated(); }
+      // Escape here only clears this box.
+      else if (ev.key === "Escape") { ev.preventDefault(); addInput.value = ""; showFieldError(f, "relnew", ""); }
+    });
+    // Escape closes the form but keeps what was typed: only Cancel throws it away.
+    f.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape" || ev.defaultPrevented) return;
+      ev.preventDefault();
+      const dr = readEditor(f);
+      if (!dr || !draftChanges(dr).length) { f.querySelector('[data-ed="cancel"]').click(); return; }
+      dr.restored = true;
+      auto.editing = null;
+      afterAction(pdb, "[data-act=edit]");
+      toast(`Closed the form for ${pdb} without saving. Your changes are kept on this page: press ${decisionOf(c) && decisionOf(c).status === "approved" ? "Edit entry" : "Change"} to carry on, or Cancel in the form to throw them away.`);
+    });
+    f.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const dr = readEditor(f), msg = f.querySelector(".mp-form-note");
+      msg.classList.remove("ok");
+      // Someone else saved this entry since the form was opened: show their version first.
+      const now = decisionOf(c);
+      if (dr.base && (now ? now.at || null : null) !== dr.base.at) {
+        rebaseDraft(c, dr);
+        afterAction(pdb, `#${edId(pdb, "notice")}`);
+        return;
+      }
+      const errs = checkDraft(dr, pdb);
+      for (const el of f.querySelectorAll("[data-path]")) showFieldError(f, el.dataset.path, errs[el.dataset.path] || "");
+      // In the order the fields appear (only fields that can be seen).
+      const shown = [...f.querySelectorAll("[data-path]")].filter((el) => !el.closest(".is-hidden"));
+      const bad = [...new Set(shown.map((el) => el.dataset.path).filter((p) => errs[p]))];
+      if (bad.length) {
+        msg.textContent = `${bad.length === 1 ? "One field needs" : `${bad.length} fields need`} fixing before saving: ${bad.map((p) => ED_LABEL[p] || (p === "owner" ? "Parent or owner PDB ID" : p)).join(", ")}.`;
+        const first = shown.find((el) => errs[el.dataset.path]);
+        if (first) first.focus();
+        return;
+      }
+      const owner = dr.owner.trim().toUpperCase();
+      let sg = dr.subgroup;
+      if (dr.placement !== "parent") {
+        const check = checkOwner(owner, dr.placement, dr.subgroup);
+        if (check.error) {
+          showFieldError(f, "owner", check.error);
+          msg.textContent = "Check the parent or owner PDB ID.";
+          document.getElementById(edId(pdb, "owner")).focus();
+          return;
+        }
+        sg = check.subgroup;
+        if (check.moved) {
+          // The entry must share its owner's subfamily: show where it will go and
+          // let the curator confirm with a second Save.
+          document.getElementById(edId(pdb, "subgroup")).value = sg;
+          dr.subgroup = sg;
+          refreshEditor(f, c);
+          msg.textContent = `${owner} is in ${sgName(sg)} (${groupOf(sg)}), so ${pdb} will go there. The subfamily has been changed to match: press Save again to confirm.`;
+          return;
+        }
+      }
+      if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+      // The line for the owner's entry is only kept for a related entry.
+      const typed = dr.placement === "related" ? dr.mp : { ...dr.mp, relatedLine: fullMp(effectiveMp(now && now.status === "approved" ? now : null, c)).relatedLine };
+      const saved = approve(c, { placement: dr.placement, subgroup: sg, owner: dr.placement === "parent" ? "" : owner },
+                            { mp: savedMp(c, typed), note: dr.note.trim().replace(/\s+/g, " "),
+                              // Saving failed: bring the form back with what was typed. When someone
+                              // else saved the entry meanwhile, the form is rebuilt on their version.
+                              failed: (e) => { dr.restored = true; dr.rebase = Boolean(e && e.code === "stale"); drafts.set(pdb, dr); auto.editing = pdb; } });
+      if (saved === false) { msg.classList.add("ok"); msg.textContent = "Nothing has changed since the last save."; }
+    });
   }
 
   function candidateCard(c) {
     const d = decisionOf(c);
     const editing = auto.editing === c.pdb;
     const saving = optimistic.has(c.pdb);
-    const status = (d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>` : `<span class="mp-badge related">Rejected</span>`) : "")
+    const status = (d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>`
+      : `<span class="mp-badge related">${d.status === "deleted" ? "Deleted" : "Rejected"}</span>`) : "")
       + (saving ? '<span class="mp-saving">Saving…</span>' : "");
     const who = d && (d.byName || d.by) ? ` <span class="mp-of">by ${esc(d.byName || d.by)}${d.at ? `, ${esc(fmtDate(d.at))}` : ""}</span>` : "";
     const finalText = d && d.status === "approved"
-      ? `<p class="mp-final"><b>Decision:</b> ${esc(PLACEMENT_LABEL[d.placement] || d.placement)}${d.owner ? ` of ${esc(d.owner)}` : ""} in ${esc(sgName(d.subgroup))}${d.edited ? " (changed by curator)" : ""}${who}
-          ${!saving && d.placement !== "related" && state.byKey.has(`NEW-${c.pdb}`) ? ` · <a href="#/entry/NEW-${esc(c.pdb)}">View in the database</a>` : ""}</p>`
-      : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || "")}${who}</p>` : "";
+      ? `<p class="mp-final"><b>Decision:</b> ${esc(PLACEMENT_LABEL[d.placement] || d.placement)}${d.owner ? ` of ${esc(d.owner)}` : ""} in ${esc(sgName(d.subgroup))}${d.edited ? ` (${isObj(d.mpEdited) ? "entry edited" : "changed"} by curator)` : ""}${who}
+          ${!saving && d.placement !== "related" && state.byKey.has(`NEW-${c.pdb}`) ? ` · <a href="#/entry/NEW-${esc(c.pdb)}">View in the database</a>` : ""}</p>
+        ${d.note ? `<p class="mp-final mp-ed-savednote"><b>Curator note:</b> ${esc(plain(d.note))}</p>` : ""}`
+      : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || REASON_LABEL[reasonCode(d)])}${who}
+          · <a href="#/rejected/${reasonCode(d)}">See it in Rejected</a></p>` : "";
     const can = signedIn() && !saving;
     const off = can ? "" : " disabled";
-    const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
-      `<option value="${sg.k}"${sg.k === (d?.subgroup || c.subgroup) ? " selected" : ""}>${asText(sg.name)}</option>`).join("")}</optgroup>`).join("");
-    const editPlacement = d?.placement || (c.placement === "review" ? "daughter" : c.placement);
-    const editForm = editing ? `<form class="mp-edit" data-pdb="${esc(c.pdb)}" novalidate>
-        <label>Placement<select name="placement">${["parent", "daughter", "related"].map((p) =>
-          `<option value="${p}"${p === (d?.placement || (c.placement === "review" ? "daughter" : c.placement)) ? " selected" : ""}>${PLACEMENT_LABEL[p]}</option>`).join("")}</select></label>
-        <label>Subfamily<select name="subgroup">${sgOptions}</select></label>
-        <label>Parent or owner PDB ID (for daughters and related entries)<input name="owner" value="${esc(d?.owner || c.ownerPdb || "")}"
-          maxlength="4" autocomplete="off"${editPlacement === "parent" ? " disabled" : ""}></label>
-        <p class="mp-form-note" aria-live="polite"></p>
-        <div class="mp-actions"><button class="mp-btn" type="submit">Save decision</button>
-          <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
-      </form>` : "";
-    const rejectForm = auto.rejecting === c.pdb ? `<form class="mp-edit mp-reject" data-pdb="${esc(c.pdb)}">
-        <label>Why reject?<select name="reason">${REJECT_REASONS.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label>
+    const editForm = editing && can ? editorForm(c, d) : "";
+    // An approved card shows the entry as approved (the curator's edited copy, and its placement).
+    const ap = d && d.status === "approved" ? d : null;
+    const shownMp = effectiveMp(ap, c);
+    const shownRel = ap ? { placement: ap.placement, owner: ap.owner } : { placement: c.placement, owner: c.ownerPdb };
+    const rejectForm = auto.rejecting === c.pdb ? `<form class="mp-edit mp-reject" data-pdb="${esc(c.pdb)}" novalidate>
+        <label>Why reject? (required)<select name="reason" id="rej-reason-${esc(c.pdb)}" required aria-describedby="rej-err-${esc(c.pdb)}">${reasonOptions(c.awaiting ? "unpublished" : "", !c.awaiting)}</select></label>
+        <label>Note (optional)<input name="note" maxlength="200" autocomplete="off" placeholder="For example: only the soluble domain"></label>
+        <p class="mp-form-note" id="rej-err-${esc(c.pdb)}" aria-live="polite"></p>
         <div class="mp-actions"><button class="mp-btn" type="submit">Reject</button>
           <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
       </form>` : "";
@@ -698,10 +1247,13 @@ links.addEventListener("click", (event) => {
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
         ${status}
+        ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
+        ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
         <span class="mp-of">released ${esc(c.released || "")}</span>
-        <h3>${c.mp && c.mp.name ? c.mp.name : esc(c.title || c.pdb)}</h3>
+        <h3>${shownMp && shownMp.name ? safeMarkup(shownMp.name) : esc(c.title || c.pdb)}</h3>
       </div>
-      ${mpListing(c)}
+      ${c.awaiting ? awaitingNote(c) : ""}
+      ${mpListing(c, shownMp, shownRel)}
       <div class="mp-like">
         <span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${c.membrane}"></meter><b>${pct(c.membrane)} likely</b>
       </div>
@@ -716,30 +1268,34 @@ links.addEventListener("click", (event) => {
       </details>
       ${finalText}
       ${editForm}${rejectForm}
-      ${editing || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
-        <button class="mp-btn" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : ""}>Approve</button>
-        <button class="mp-btn secondary" type="button" id="act-edit-${esc(c.pdb)}" data-act="edit" data-pdb="${esc(c.pdb)}"${off}>${c.placement === "review" ? "Decide" : "Change"}</button>
+      ${editForm || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
+        ${ap ? "" : `<button class="mp-btn${c.awaiting && !d ? " secondary" : ""}" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : c.awaiting && !d ? " title='The paper is not out yet: approve only if you know it is published'" : ""}>${c.awaiting && !d ? "Approve anyway" : "Approve"}</button>`}
+        <button class="mp-btn secondary" type="button" id="act-edit-${esc(c.pdb)}" data-act="edit" data-pdb="${esc(c.pdb)}"${off}>${ap ? "Edit entry" : c.placement === "review" && !d ? "Decide" : "Change"}</button>
         <button class="mp-btn secondary" type="button" id="act-reject-${esc(c.pdb)}" data-act="reject" data-pdb="${esc(c.pdb)}"${off}>Reject</button>
+        ${c.awaiting && !d ? `<button class="mp-btn secondary" type="button" id="act-unpub-${esc(c.pdb)}" data-act="reject-unpublished" data-pdb="${esc(c.pdb)}"${off}>Reject: not published yet</button>` : ""}
         ${d ? `<button class="mp-btn secondary" type="button" id="act-undo-${esc(c.pdb)}" data-act="undo" data-pdb="${esc(c.pdb)}"${off}>Undo</button>` : ""}
         ${signedIn() ? "" : '<p class="mp-signin-note">Sign in on the <a href="#/curators">Curators tab</a> to decide</p>'}
       </div>`}
     </article>`;
   }
 
-  function filteredCands() {
-    const v = auto.view;
+  // view defaults to the current filters; pass one to count with other settings.
+  function filteredCands(view) {
+    const v = view || auto.view;
     const q = v.q.toLowerCase();
     const latest = latestRelease();
     const out = auto.cands.candidates.filter((c) => {
       const d = decisionOf(c);
+      if (d && d.status === "deleted") return false; // deleted for good: never suggested again
       if (v.status === "undecided" && d) return false;
       if (v.status === "approved" && d?.status !== "approved") return false;
       if (v.status === "rejected" && d?.status !== "rejected") return false;
       if (v.placement && c.placement !== v.placement) return false;
       if (c.membrane < Number(v.min || 0)) return false;
       if (v.age) {
-        const days = (Date.parse(auto.cands.window[1]) - Date.parse(c.released)) / 864e5;
-        if (v.age === "latest" && c.released !== latest) return false;
+        // A structure whose paper just came out counts as new from that day.
+        const days = (Date.parse(auto.cands.window[1]) - Date.parse(sortDay(c))) / 864e5;
+        if (v.age === "latest" && c.released !== latest && !newlyPublished(c)) return false;
         if (v.age === "new" && days > 28) return false;
         if (v.age === "mid" && (days <= 28 || days > 91)) return false;
         if (v.age === "old" && days <= 91) return false;
@@ -747,10 +1303,11 @@ links.addEventListener("click", (event) => {
       if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
       return true;
     });
-    // Newest release first (most likely membrane protein first within a week);
-    // otherwise the order the weekly job wrote, which is by membrane likelihood.
+    // Newest first (most likely membrane protein first within a week), where a
+    // structure whose paper just came out is dated by that; otherwise the
+    // order the weekly job wrote, which is by membrane likelihood.
     if (v.sort === "newest") {
-      out.sort((a, b) => String(b.released || "").localeCompare(String(a.released || "")) || (b.membrane || 0) - (a.membrane || 0));
+      out.sort((a, b) => sortDay(b).localeCompare(sortDay(a)) || (b.membrane || 0) - (a.membrane || 0));
     }
     return out;
   }
@@ -787,27 +1344,51 @@ links.addEventListener("click", (event) => {
     if (auto.error) return `<div class="mp-view"><h2>Automation</h2><p class="mp-empty">Could not load this week's suggestions (${esc(auto.error)}).</p></div>`;
     if (!auto.cands) { loadAutomation(); return '<div class="mp-view"><h2>Automation</h2><p class="mp-loading">Loading suggestions…</p></div>'; }
     if (sub === "accuracy") return viewAccuracy();
+    // #/automation/edit/<PDB> (from an approved entry's page): open its editor, then tidy the address.
+    const editMatch = /^edit\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
+    if (editMatch) {
+      const id = editMatch[1].toUpperCase();
+      history.replaceState(null, "", "#/automation");
+      lastRoute = "automation";
+      if (auto.cands.candidates.some((x) => x.pdb === id)) {
+        Object.assign(auto.view, { status: "all", placement: "", age: "", q: id, min: 0.1 });
+        if (signedIn()) { auto.editing = id; auto.rejecting = null; auto.focusEditor = id; }
+      }
+    }
     const c = auto.cands, v = auto.view;
     const list = filteredCands();
     const shown = list.slice(0, state.limit);
     const counts = { approved: 0, rejected: 0 };
     Object.values(decisions).forEach((d) => { if (counts[d.status] != null) counts[d.status]++; });
     const older = Object.keys(decisions).filter((pdb) => !c.candidates.some((x) => x.pdb === pdb)).length;
+    // Counted with the same filters as the list (all but Show), so the number in
+    // the menu matches the cards listed when you pick it.
+    const waiting = filteredCands({ ...v, status: "undecided" }).filter((x) => x.awaiting).length;
+    // 'Latest' also lists older releases whose paper just came out: say so.
+    const latestDay = latestRelease();
+    const latestLabel = `Latest: ${esc(shortDay(latestDay))}${c.candidates.some((x) => newlyPublished(x) && x.released !== latestDay) ? " releases + new papers" : ""}`;
+    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x)).length;
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
+      ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} in 'To decide' matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
+        (marked <i>Awaiting paper</i>: the PDB lists ${waiting === 1 ? "it" : "them"} as 'To be published' or as a preprint). The weekly check moves
+        ${waiting === 1 ? "it" : "them"} to the Rejected tab under 'Not published yet' until the paper is out.` : ""}
+        ${nowOut ? `<b>${nowOut.toLocaleString()} ${nowOut === 1 ? "paper has" : "papers have"} come out</b> since the last check; ${nowOut === 1 ? "that structure is" : "those structures are"} back in 'To decide'.` : ""}</p>` : ""}
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
         <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
-        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("latest", `Latest: ${esc(new Date(`${latestRelease()}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }))}`, v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
+        <label>Released<select name="age">${opt("", "Last 26 weeks", v.age)}${opt("latest", latestLabel, v.age)}${opt("new", "Last 4 weeks", v.age)}${opt("mid", "1 to 3 months ago", v.age)}${opt("old", "Over 3 months ago", v.age)}</select></label>
         <label>Sort<select name="sort">${opt("newest", "Newest first", v.sort)}${opt("membrane", "Most likely membrane protein", v.sort)}</select></label>
         <label>Search<input type="search" name="q" value="${esc(v.q)}" placeholder="PDB ID, protein, organism"></label>
       </form>
+      ${v.status === "rejected" ? `<p class="mp-summary mp-rej-pointer">${signedIn() ? `Sort, change the reason, move back to 'To decide' or delete rejected structures on the
+        <a href="#/rejected">Rejected tab</a>.` : "Curators manage rejected structures on the Rejected tab once signed in."} Only rejections from this week's suggestions are listed here.</p>` : ""}
       <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
@@ -926,17 +1507,34 @@ links.addEventListener("click", (event) => {
     dlNote(`Downloaded ${name}.`);
   }
 
-  const xmlEsc = (v) => String(v ?? "").replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+  // Characters XML 1.0 does not allow at all are dropped.
+  const xmlEsc = (v) => String(v ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, "")
+    .replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+  // mpstruc markup as XML text, the way mpstruc's own XML export writes its
+  // fields: the markup is text, so <sub> is written &lt;sub&gt; (a parser gives
+  // back "<sub>"). Named entities (&Aring;, &nbsp;, &alpha;) are not defined in
+  // XML, so they are first turned into the characters they stand for; only
+  // &amp; &lt; &gt; stay entities, as they are part of the markup.
+  const entityBox = document.createElement("textarea");
+  const decodeEntities = (s) => String(s).replace(/&(?!(?:amp|lt|gt|#0*38|#0*60|#0*62|#x0*26|#x0*3c|#x0*3e);)([a-z][a-z0-9]{1,11}|#\d{1,7}|#x[0-9a-f]{1,6});/gi, (all) => {
+    entityBox.innerHTML = all;
+    return entityBox.value;
+  });
+  const xmlText = (markup) => xmlEsc(decodeEntities(safeMarkup(markup)));
 
   function approvedXml() {
     const today = new Date().toISOString().slice(0, 10);
-    const out = [`<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`];
-    // Draft mp fields are already mpstruc markup (escaped); anything else is escaped here.
-    const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${raw}</${tag}>`);
+    const out = ['<?xml version="1.0" encoding="UTF-8"?>',
+      `<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`,
+      "<!-- Field text is mpstruc markup written as in mpstruc's own XML export: <sub> appears as &lt;sub&gt;, and entities such as &Aring; as the character itself. -->",
+      `<mpstrucApproved date="${today}">`];
+    // Every field goes through xmlText() (it is curator-edited markup), so the file is well-formed XML.
+    const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${xmlText(raw)}</${tag}>`);
     // Every value put in a comment goes through cm(): comments cannot contain "--",
     // and names, owners and subfamilies come from curation.json and GitHub profiles.
-    const cm = (v) => xmlEsc(v).replace(/-{2,}/g, "-");
+    const cm = (v) => xmlEsc(v).replace(/-{2,}/g, "-").replace(/-$/, "- ");
     const by = (d) => (d.byName || d.by ? `, approved by ${cm(d.byName || d.by)}` : "");
+    const edited = (d) => (isObj(d.mpEdited) ? ", entry edited by the curator" : "");
     const approved = Object.entries(decisions).filter(([, d]) => d.status === "approved");
     // Related entries approved under a structure that is itself approved here go
     // inside its <relatedPdbEntries>, as in mpstruc's own file.
@@ -944,47 +1542,63 @@ links.addEventListener("click", (event) => {
     const relatedOf = {};
     approved.forEach(([p, d]) => { if (d.placement === "related" && newHere.has(d.owner)) (relatedOf[d.owner] ||= []).push(p); });
     for (const [pdb, d] of approved) {
-      if (d.placement === "related" && newHere.has(d.owner)) continue;
       const live = auto.cands.candidates.find((x) => x.pdb === pdb);
-      const m = (live && live.mp) || safeMp(d.mp);
+      // The curator's edited copy when there is one, else the suggestion.
+      const m = safeMp(isObj(d.mpEdited) ? d.mpEdited : (live && live.mp) || d.mp);
       const b = m.bibliography || {};
       const sgRec = state.sgOf.get(d.subgroup);
       const where = `${sgRec ? sgRec.group.name : ""} : ${sgName(d.subgroup)} (${d.subgroup})`;
-      if (d.placement === "related") {
-        out.push(`<!-- Related: add to <relatedPdbEntries> of ${cm(d.owner)} in ${cm(where)}${by(d)} -->`, `<pdbCode>${xmlEsc(pdb)}</pdbCode>`);
+      const line = m.relatedLine ? `; line to add to its description: "${cm(decodeEntities(m.relatedLine))}"` : "";
+      if (d.placement === "related" && newHere.has(d.owner)) {
+        if (line) out.push(`<!-- Related entry ${cm(pdb)} of ${cm(d.owner)} (listed in ${cm(d.owner)}'s relatedPdbEntries below)${line} -->`);
         continue;
       }
+      if (d.placement === "related") {
+        out.push(`<!-- Related: add to <relatedPdbEntries> of ${cm(d.owner)} in ${cm(where)}${by(d)}${line} -->`, `<pdbCode>${xmlEsc(pdb)}</pdbCode>`);
+        continue;
+      }
+      const related = [...new Set([...(m.related || []), ...(relatedOf[pdb] || [])])].filter((r) => r !== pdb).sort();
       const fields = [`<pdbCode>${xmlEsc(pdb)}</pdbCode>`];
       if (d.placement === "daughter") fields.push(`<masterProteinPdbCode>${xmlEsc(d.owner)}</masterProteinPdbCode>`);
-      fields.push(leaf("name", m.name || xmlEsc(live ? live.title : d.title)), leaf("species", m.species),
-                  leaf("taxonomicDomain", m.taxonomicDomain && xmlEsc(m.taxonomicDomain)), leaf("expressedInSpecies", m.expressedInSpecies),
-                  leaf("resolution", m.resolution && xmlEsc(m.resolution)), leaf("description", m.description),
-                  "<bibliography>", leaf("pubMedId", b.pubMedId && xmlEsc(b.pubMedId)), leaf("authors", b.authors), leaf("year", b.year && xmlEsc(b.year)),
-                  leaf("title", b.title), leaf("journal", b.journal), leaf("volume", b.volume && xmlEsc(b.volume)),
-                  leaf("issue", b.issue && xmlEsc(b.issue)), leaf("pages", b.pages && xmlEsc(b.pages)), leaf("doi", b.doi && xmlEsc(b.doi)),
+      fields.push(leaf("name", m.name || esc(live ? live.title : d.title)), leaf("species", m.species),
+                  leaf("taxonomicDomain", m.taxonomicDomain), leaf("expressedInSpecies", m.expressedInSpecies),
+                  leaf("resolution", m.resolution), leaf("description", m.description),
+                  "<bibliography>", leaf("pubMedId", b.pubMedId), leaf("authors", b.authors), leaf("year", b.year),
+                  leaf("title", b.title), leaf("journal", b.journal), leaf("volume", b.volume),
+                  leaf("issue", b.issue), leaf("pages", b.pages), leaf("doi", b.doi),
                   "<notes/>", "</bibliography>", "<secondaryBibliographies/>",
-                  ...(relatedOf[pdb] ? ["<relatedPdbEntries>", ...relatedOf[pdb].sort().map((r) => `<pdbCode>${xmlEsc(r)}</pdbCode>`), "</relatedPdbEntries>"]
+                  ...(related.length ? ["<relatedPdbEntries>", ...related.map((r) => `<pdbCode>${xmlEsc(r)}</pdbCode>`), "</relatedPdbEntries>"]
                                      : ["<relatedPdbEntries/>"]));
       if (d.placement === "parent") {
-        out.push(`<!-- New parent in ${cm(where)}${by(d)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
+        out.push(`<!-- New parent in ${cm(where)}${by(d)}${edited(d)} -->`, "<protein>", ...fields, "<memberProteins/>", "</protein>");
       } else {
-        out.push(`<!-- Daughter: add to <memberProteins> of ${cm(d.owner)} in ${cm(where)}${by(d)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
+        out.push(`<!-- Daughter: add to <memberProteins> of ${cm(d.owner)} in ${cm(where)}${by(d)}${edited(d)} -->`, "<memberProtein>", ...fields, "</memberProtein>");
       }
     }
+    out.push("</mpstrucApproved>");
     return out.join("\n") + "\n";
   }
 
   function decisionsCsv() {
     // Names, reasons and PDB titles come from people: keep spreadsheets from reading
     // them as formulas (OWASP: a leading = + - @ tab or CR gets a ' in front).
-    const q = (v) => `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    // Quotes are written as quotes, not &quot; (the rest of an entry stays mpstruc markup).
+    const q = (v) => `"${unquote(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
     const cols = ["PDB ID", "Title", "Released", "Decision", "Placement", "Subfamily", "Group", "Parent or owner", "Changed from suggestion",
-                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Membrane protein (%)", "Decided at", "Decided by"];
+                  "Reject reason", "Suggested placement", "Suggested subfamily", "Suggested owner", "Membrane protein (%)", "Decided at", "Decided by",
+                  // The mpstruc entry (mpstruc markup), as the curator edited it when they did.
+                  "Entry edited by curator", "Name", "Species", "Taxonomic domain", "Expressed in", "Resolution (Å)", "Description",
+                  "Line for the owner's entry", "Authors", "Year", "Paper title", "Journal", "Volume", "Issue", "Pages", "PubMed ID", "DOI",
+                  "Related PDB IDs", "Curator note"];
     const rows = Object.entries(decisions).map(([pdb, d]) => {
       const c = auto.cands.candidates.find((x) => x.pdb === pdb) || {};
+      const m = safeMp(effectiveMp(d, c)), b = m.bibliography || {};
       return [pdb, c.title ?? d.title, c.released ?? d.released, d.status, d.placement || "", sgName(d.subgroup), groupOf(d.subgroup), d.owner || "",
               d.edited ? "yes" : "", d.reason || "", c.placement ?? d.suggested, sgName(c.subgroup ?? d.suggestedSubgroup), c.ownerPdb ?? d.suggestedOwner ?? "",
-              Math.round(100 * (c.membrane ?? d.membrane ?? 0)), d.at, d.byName ? `${d.byName} (${d.by})` : d.by || ""].map(q).join(",");
+              Math.round(100 * (c.membrane ?? d.membrane ?? 0)), d.at, d.byName ? `${d.byName} (${d.by})` : d.by || "",
+              d.status === "approved" && isObj(d.mpEdited) ? "yes" : "", m.name, m.species, m.taxonomicDomain, m.expressedInSpecies, m.resolution, m.description,
+              m.relatedLine, b.authors, b.year, b.title, b.journal, b.volume, b.issue, b.pages, b.pubMedId, b.doi,
+              (m.related || []).join(" "), d.note].map(q).join(",");
     });
     return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
   }
@@ -1043,10 +1657,15 @@ links.addEventListener("click", (event) => {
       }
       if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
       if (!c) return;
-      auto.editing = act === "edit" ? pdb : null;
-      auto.rejecting = act === "reject" ? pdb : null;
+      // Opening a form closes any other one; approving or undoing another card leaves an open form alone.
+      if (act === "edit" || act === "reject" || auto.editing === pdb) auto.editing = act === "edit" ? pdb : null;
+      if (act === "edit" || act === "reject" || auto.rejecting === pdb) auto.rejecting = act === "reject" ? pdb : null;
+      // Reopening a form whose changes were not saved: say they are back.
+      if (act === "edit" && drafts.has(pdb)) drafts.get(pdb).restored = true;
       if (act === "approve") {
-        approve(c, { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" }, false);
+        approve(c, { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" });
+      } else if (act === "reject-unpublished") {
+        reject(c, "unpublished", "", unpublishedText(c));
       } else if (act === "undo") {
         undoDecision(pdb);
       } else {
@@ -1056,53 +1675,36 @@ links.addEventListener("click", (event) => {
     app.querySelectorAll("form.mp-reject").forEach((f) => f.addEventListener("submit", (ev) => {
       ev.preventDefault();
       const rc = auto.cands.candidates.find((x) => x.pdb === f.dataset.pdb);
-      auto.rejecting = null;
-      if (rc && signedIn()) reject(rc, f.elements.reason.value);
-    }));
-    app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => f.addEventListener("submit", (ev) => {
-      ev.preventDefault();
-      const pdb = f.dataset.pdb;
-      const c = auto.cands.candidates.find((x) => x.pdb === pdb);
-      const placement = f.elements.placement.value, subgroup = f.elements.subgroup.value;
-      const owner = f.elements.owner.value.trim().toUpperCase();
-      const note = f.querySelector(".mp-form-note");
-      let sg = subgroup;
-      if (placement !== "parent") {
-        const check = checkOwner(owner, placement, subgroup);
-        if (check.error) {
-          note.textContent = check.error;
-          f.elements.owner.setAttribute("aria-invalid", "true");
-          f.elements.owner.focus();
-          return;
-        }
-        sg = check.subgroup;
-        if (check.moved) {
-          // The entry must share its owner's subfamily: show where it will go and
-          // let the curator confirm with a second Save.
-          f.elements.subgroup.value = sg;
-          note.textContent = `${owner} is in ${sgName(sg)} (${groupOf(sg)}), so ${pdb} will go there. The Subfamily has been changed to match: press Save decision again to confirm.`;
-          return;
-        }
+      const sel = f.elements.reason;
+      if (!sel.value) {
+        sel.setAttribute("aria-invalid", "true");
+        f.querySelector(".mp-form-note").textContent = "Choose why you are rejecting it.";
+        sel.focus();
+        return;
       }
-      if (!c || !signedIn()) return;
-      auto.editing = null;
-      approve(c, { placement, subgroup: sg, owner: placement === "parent" ? "" : owner },
-              placement !== c.placement || sg !== c.subgroup || (placement !== "parent" && owner !== (c.ownerPdb || "")));
+      auto.rejecting = null;
+      if (rc && signedIn()) reject(rc, sel.value, f.elements.note.value.trim().replace(/\s+/g, " "));
     }));
-    app.querySelectorAll("form.mp-edit:not(.mp-reject)").forEach((f) => {
-      const owner = f.elements.owner, note = f.querySelector(".mp-form-note");
-      f.elements.placement.addEventListener("change", () => {
-        owner.disabled = f.elements.placement.value === "parent";
-        owner.removeAttribute("aria-invalid");
-        note.textContent = "";
-      });
-      owner.addEventListener("input", () => { owner.removeAttribute("aria-invalid"); note.textContent = ""; });
-    });
+    app.querySelectorAll("form.mp-reject").forEach((f) => f.elements.reason.addEventListener("change", () => {
+      f.elements.reason.removeAttribute("aria-invalid");
+      f.querySelector(".mp-form-note").textContent = "";
+    }));
+    app.querySelectorAll("form.mp-ed").forEach(wireEditor);
+    if (auto.focusEditor) {
+      const el = document.getElementById(edId(auto.focusEditor, "placement"));
+      auto.focusEditor = null;
+      if (el) {
+        state.focusHeading = false;
+        el.focus({ preventScroll: true });
+        requestAnimationFrame(() => el.closest(".mp-ed").scrollIntoView({ block: "start" }));
+      }
+    }
   }
 
   // ---- curators: GitHub sign-in, shared decisions, activity log -----------
-  // Curators sign in with a fine-grained GitHub token (Contents: read and
-  // write on this repository only). Each decision is a commit to
+  // Curators sign in with a classic GitHub token with the public_repo scope
+  // (fine-grained tokens can only edit a personal repository when they belong
+  // to its owner; see verify()). Each decision is a commit to
   // data/curation.json made through the GitHub Contents API, so every visitor
   // sees it: approved structures are placed in the Database tab by
   // applyCuration(), and every change is a line in the activity log.
@@ -1111,6 +1713,7 @@ links.addEventListener("click", (event) => {
   // it is written to localStorage only when the curator ticks "Keep me signed
   // in", because web storage is shared by every page on andyyjiang.github.io.
   const GH_API = "https://api.github.com", REPO = "andyyjiang/team-website", BRANCH = "main";
+  const REPO_OWNER = REPO.split("/")[0];
   const TOKEN_KEY = "mpstruc-curator-token-v1", OFFER_KEY = "mpstruc-upload-offered-v1";
   const PDB_RE = /^[0-9][A-Z0-9]{3}$/;
   const cur = { token: null, user: null, verifying: false, error: "", signingIn: false, note: "", focusToken: false };
@@ -1126,16 +1729,28 @@ links.addEventListener("click", (event) => {
   const isObj = (v) => Boolean(v) && typeof v === "object" && !Array.isArray(v);
   function usableEntry(d) {
     if (!isObj(d)) return false;
-    if (d.status === "rejected") return true;
+    if (d.status === "rejected" || d.status === "deleted") return true;
     if (d.status !== "approved" || !state.sgOf.has(d.subgroup)) return false;
     if (d.placement === "parent") return true;
     return (d.placement === "daughter" || d.placement === "related") && PDB_RE.test(String(d.owner || ""));
+  }
+  // A curator's edited entry: an object of text fields (or null), a bibliography
+  // object of the same, and related as a list of PDB IDs.
+  const scalar = (v) => v == null || typeof v === "string" || typeof v === "number";
+  function goodMpEdited(m) {
+    if (!isObj(m)) return false;
+    return Object.entries(m).every(([k, v]) => (k === "related" ? Array.isArray(v) && v.every((x) => typeof x === "string")
+      : k === "bibliography" ? v == null || (isObj(v) && Object.values(v).every(scalar)) : scalar(v)));
   }
   function normaliseCuration(doc) {
     const out = emptyCuration();
     if (!isObj(doc)) return out;
     for (const [pdb, d] of Object.entries(isObj(doc.entries) ? doc.entries : {})) {
-      if (PDB_RE.test(pdb) && usableEntry(d)) out.entries[pdb] = d;
+      if (!PDB_RE.test(pdb) || !usableEntry(d)) continue;
+      if (d.mpEdited !== undefined && !goodMpEdited(d.mpEdited)) {
+        const { mpEdited, ...rest } = d;
+        out.entries[pdb] = rest;
+      } else out.entries[pdb] = d;
     }
     out.log = Array.isArray(doc.log) ? doc.log.filter(isObj) : [];
     return out;
@@ -1173,9 +1788,15 @@ links.addEventListener("click", (event) => {
     return parts.join("");
   }
   function safeMp(mp) {
-    if (!mp || typeof mp !== "object") return {};
+    if (!mp || typeof mp !== "object" || Array.isArray(mp)) return {};
     const out = {};
-    for (const [k, v] of Object.entries(mp)) out[k] = v && typeof v === "object" ? safeMp(v) : v == null ? v : safeMarkup(v);
+    for (const [k, v] of Object.entries(mp)) {
+      // related: a list of PDB IDs (in a curator's edited copy); only valid IDs are kept.
+      // Anything else of the wrong shape is dropped, so a hand-edited file cannot break the page.
+      if (k === "related") out[k] = Array.isArray(v) ? v.map((x) => String(x).toUpperCase()).filter((x) => PDB_RE.test(x)) : [];
+      else if (k === "bibliography") out[k] = isObj(v) ? safeMp(v) : {};
+      else out[k] = v == null ? v : typeof v === "string" || typeof v === "number" ? safeMarkup(v) : "";
+    }
     return out;
   }
   const plain = (v) => (v == null ? "" : String(v));
@@ -1203,7 +1824,8 @@ links.addEventListener("click", (event) => {
   class GhError extends Error {
     constructor(status, message, extra) { super(message); this.status = status; Object.assign(this, extra); }
   }
-  async function gh(path, { method = "GET", body, token = cur.token } = {}) {
+  // withHeaders: resolve to { data, headers } instead of the parsed body.
+  async function gh(path, { method = "GET", body, token = cur.token, withHeaders = false } = {}) {
     let r;
     try {
       r = await fetch(GH_API + path, {
@@ -1220,7 +1842,8 @@ links.addEventListener("click", (event) => {
       try { message = (await r.json()).message || ""; } catch { /* not JSON */ }
       throw new GhError(r.status, message || `GitHub answered ${r.status}`);
     }
-    return r.status === 204 ? null : r.json();
+    const data = r.status === 204 ? null : await r.json();
+    return withHeaders ? { data, headers: r.headers } : data;
   }
   // UTF-8 safe base64 (btoa/atob work on bytes, not characters).
   function toB64(text) {
@@ -1233,25 +1856,50 @@ links.addEventListener("click", (event) => {
     const bin = atob(String(b64 || "").replace(/\s+/g, ""));
     return new TextDecoder().decode(Uint8Array.from(bin, (ch) => ch.charCodeAt(0)));
   }
+  const CLASSIC_URL = "https://github.com/settings/tokens/new";
   function explain(e) {
     if (e.status === 401) return "GitHub did not accept this token. Check that you copied all of it and that it has not expired.";
-    if (e.code === "nosee") return `This token cannot see ${REPO}. When creating it, choose “Only select repositories” and pick team-website.`;
+    if (e.code === "finegrained") {
+      return `This is a fine-grained token, and GitHub does not let fine-grained tokens edit a personal repository that belongs to someone else `
+        + `(${REPO} belongs to ${REPO_OWNER}), so you could not save decisions with it. Create a classic token instead at ${CLASSIC_URL} : `
+        + "tick only the public_repo box, choose an expiry such as 30 days, and sign in with that token.";
+    }
+    if (e.code === "scope") {
+      return `This classic token cannot save changes: it was created without the public_repo box ticked${e.scopes ? ` (it has: ${e.scopes})` : " (it has no boxes ticked)"}. `
+        + `Create a new classic token at ${CLASSIC_URL} , tick public_repo (under “repo”), and sign in with that one.`;
+    }
+    if (e.code === "nosee") return `This token cannot see ${REPO}. A classic token needs the public_repo box ticked; a fine-grained token needs access to the team-website repository.`;
     if (e.code === "nopush") return "This GitHub account cannot edit the repository. Ask the repository owner to add you as a collaborator.";
-    if (e.status === 403) return "GitHub refused the change. The token needs “Contents: Read and write” on this repository (it may only have read access).";
+    if (e.status === 403) {
+      return "GitHub refused the change. The token needs “Contents: Read and write” on this repository (it may only have read access)."
+        + (e.message && !/^GitHub answered/.test(e.message) ? ` GitHub said: “${e.message}”` : "");
+    }
     if (e.code === "stale") return e.message;
     if (e.status === 409 || e.status === 422) return "Another curator saved at the same moment several times in a row. Please try again.";
     return e.status ? `GitHub could not save this (${e.status}: ${e.message}).` : e.message;
   }
 
+  // Check a token before accepting the sign-in, including that it will be able
+  // to save: fine-grained tokens (github_pat_) cannot write to a personal
+  // repository owned by someone else, and classic tokens (ghp_) need the repo
+  // or public_repo scope, which GitHub reports in the X-OAuth-Scopes header.
   async function verify(token) {
-    const user = await gh("/user", { token });
+    const { data: user, headers } = await gh("/user", { token, withHeaders: true });
+    const login = String((user && user.login) || "");
+    if (token.startsWith("github_pat_") && login.toLowerCase() !== REPO_OWNER.toLowerCase()) {
+      throw new GhError(403, "finegrained", { code: "finegrained" });
+    }
+    const scopeHeader = headers.get("X-OAuth-Scopes");
+    if (token.startsWith("ghp_") && scopeHeader !== null) {
+      const scopes = scopeHeader.split(",").map((x) => x.trim()).filter(Boolean);
+      if (!scopes.includes("repo") && !scopes.includes("public_repo")) throw new GhError(403, "scope", { code: "scope", scopes: scopes.join(", ") });
+    }
     let repo;
     try { repo = await gh(`/repos/${REPO}`, { token }); } catch (e) {
       if (e.status === 404 || e.status === 403) throw new GhError(e.status, "nosee", { code: "nosee" });
       throw e;
     }
     if (!repo || !repo.permissions || repo.permissions.push !== true) throw new GhError(403, "nopush", { code: "nopush" });
-    const login = String(user.login || "");
     return { login, name: String(user.name || login), avatar: /^https:\/\//.test(user.avatar_url || "") ? String(user.avatar_url) : "",
              url: /^https:\/\//.test(user.html_url || "") ? String(user.html_url) : "" };
   }
@@ -1337,12 +1985,13 @@ links.addEventListener("click", (event) => {
                    "SOLID-STATE NMR": "Solid-State NMR", "ELECTRON CRYSTALLOGRAPHY": "Electron Crystallography" };
   // An approved suggestion in the shape the database renderer uses.
   function newEntry(pdb, d, kind) {
-    const m = safeMp(d.mp), b = m.bibliography || {};
+    // The curator's edited copy of the entry (mpEdited) when there is one.
+    const m = safeMp(isObj(d.mpEdited) ? d.mpEdited : d.mp), b = m.bibliography || {};
     const host = strip(m.expressedInSpecies || "");
     const resText = plain(m.resolution) || (d.res != null ? String(d.res) : "");
     const method = METHOD[String(d.method || "").toUpperCase()] || plain(d.method);
     return {
-      k: `NEW-${pdb}`, pdb, kind, isNew: true, newBy: plain(d.byName || d.by), newAt: d.at,
+      k: `NEW-${pdb}`, pdb, kind, isNew: true, newBy: plain(d.byName || d.by), newAt: d.at, edited: isObj(d.mpEdited),
       name: m.name || esc(d.title || pdb), species: m.species || "", domain: strip(m.taxonomicDomain || ""),
       host, hostN: host || "Not stated", res: strip(resText), resV: Number.parseFloat(strip(resText)) || null,
       year: Number(strip(b.year || "")) || Number(String(d.released || "").slice(0, 4)) || null,
@@ -1351,6 +2000,7 @@ links.addEventListener("click", (event) => {
                                     volume: strip(b.volume || ""), issue: strip(b.issue || ""), pages: strip(b.pages || ""),
                                     doi: strip(b.doi || "") || plain(d.doi), pmid: strip(b.pubMedId || "") || plain(d.pmid) }] : [],
       x: { title: plain(d.title), method, res: Number(d.res) || null, released: plain(d.released) },
+      ...(m.related && m.related.length ? { rel: [...new Set(m.related.filter((r) => r !== pdb))] } : {}),
       ...(kind === "p" ? { d: [] } : {}),
     };
   }
@@ -1406,7 +2056,7 @@ links.addEventListener("click", (event) => {
         if (d.placement === "daughter") {
           owner.d = [...(owner.d || []), newEntry(pdb, d, "d")];
         } else {
-          owner.rel = [...(owner.rel || []), pdb];
+          if (!(owner.rel || []).includes(pdb)) owner.rel = [...(owner.rel || []), pdb];
           state.newRel.set(pdb, d);
           if (!data.relPdb[pdb]) {
             data.relPdb[pdb] = { title: plain(d.title), method: METHOD[String(d.method || "").toUpperCase()] || plain(d.method),
@@ -1417,6 +2067,19 @@ links.addEventListener("click", (event) => {
       }
       target.n++;
       add[d.placement]++;
+    }
+    // Related PDB IDs a curator added to an approved entry: show the PDB's
+    // details for them when they are among this week's suggestions.
+    for (const g of data.groups) for (const sg of g.subgroups) for (const p of sg.parents) {
+      for (const e of [p, ...(p.d || [])]) {
+        if (!e.isNew) continue;
+        for (const id of e.rel || []) {
+          const c = !data.relPdb[id] && auto.cands && auto.cands.candidates.find((x) => x.pdb === id);
+          if (!c) continue;
+          data.relPdb[id] = { title: plain(c.title), method: METHOD[String(c.method || "").toUpperCase()] || plain(c.method), res: Number(c.res) || null, released: plain(c.released) };
+          base.relPdb.push(id);
+        }
+      }
     }
     const c = data.meta.counts, b0 = base.counts;
     c.parents = b0.parents + add.parent;
@@ -1444,14 +2107,16 @@ links.addEventListener("click", (event) => {
     if (d.placement === "parent") return "as a new parent";
     return `as ${d.placement === "daughter" ? "a daughter" : "a related entry"} of ${d.owner}`;
   }
-  function staleError(pdb, now) {
-    return new GhError(-1, now
-      ? `${pdb} was just ${now.status} by ${now.byName || now.by || "another curator"}; the list now shows their decision.`
+  function staleError(pdb, now, before) {
+    const who = now && (now.byName || now.by || "another curator");
+    return new GhError(-1, now && before && before.status === "approved" && now.status === "approved"
+      ? `${pdb} was just edited by ${who}; the list now shows their version.`
+      : now ? `${pdb} was just ${now.status} by ${who}; the list now shows their decision.`
       : `${pdb} was just undone by another curator; the list now shows that.`, { code: "stale" });
   }
 
   // Show the change at once, save it, then confirm or put the page back.
-  function decide({ pdb, entry, action, detail, message, done }) {
+  function decide({ pdb, entry, action, detail, message, done, failed }) {
     const prev = curation.entries[pdb] || null;
     const expect = prev ? prev.at || null : null;
     const event = { at: new Date().toISOString(), by: cur.user.login, byName: cur.user.name, action, pdb, detail };
@@ -1460,7 +2125,7 @@ links.addEventListener("click", (event) => {
     if (lastRoute.startsWith("automation")) afterAction(pdb); else render();
     commit(message, (raw, view) => {
       const now = view.entries[pdb] || null;
-      if ((now ? now.at || null : null) !== expect) throw staleError(pdb, now);
+      if ((now ? now.at || null : null) !== expect) throw staleError(pdb, now, prev);
       if (entry) raw.entries[pdb] = entry; else delete raw.entries[pdb];
       raw.log.push(event);
     }).then(() => {
@@ -1471,6 +2136,7 @@ links.addEventListener("click", (event) => {
     }).catch((e) => {
       optimistic.delete(pdb);
       if (e.status === 401) signOut(true);
+      if (failed) failed(e);
       refreshView();
       rerender();
       toast(`Could not save the decision on ${pdb}. ${explain(e)}`, { kind: "error" });
@@ -1486,41 +2152,98 @@ links.addEventListener("click", (event) => {
 
   function stamp() { return { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() }; }
 
-  function approve(c, choice, edited) {
+  // Approve a suggestion, or save changes to an approved one. choice: where it
+  // goes; edit (from the Change editor): { mp, note, failed } where mp is the
+  // full entry as typed (saved as mpEdited when it differs from the suggestion).
+  // Returns false, saving nothing, when an approved entry would not change.
+  function approve(c, choice, edit) {
     const prev = curation.entries[c.pdb];
+    const prevAp = prev && prev.status === "approved" ? prev : null;
+    const mpNew = edit ? edit.mp : prevAp && isObj(prevAp.mpEdited) ? prevAp.mpEdited : null;
+    const fromSuggestion = mpNew ? diffMp(c.mp, mpNew) : [];
+    const note = edit ? edit.note : plain(prevAp && prevAp.note);
+    const moved = choice.placement !== c.placement || choice.subgroup !== c.subgroup
+      || (choice.placement !== "parent" && choice.owner !== (c.ownerPdb || ""));
     const entry = { status: "approved", placement: choice.placement, subgroup: choice.subgroup, owner: choice.owner || "",
-                    ...(edited ? { edited: true } : {}), ...stamp(), ...snapshot(c) };
-    const action = prev || edited ? "change" : "approve";
-    const was = prev ? (prev.status === "approved" ? ` (was ${where(prev).replace(/^as /, "")})` : " (had been rejected)")
-      : edited ? ` (suggested: ${c.placement === "review" ? "curator to decide" : where({ placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb }).replace(/^as /, "")})` : "";
+                    ...(moved || fromSuggestion.length ? { edited: true } : {}), ...stamp(), ...snapshot(c),
+                    ...(fromSuggestion.length ? { mpEdited: mpNew } : {}), ...(note ? { note } : {}) };
+    // What changed, for the log: against the saved entry when editing one, else against the suggestion.
+    const before = prevAp || { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" };
+    const changed = [
+      ...(before.placement !== entry.placement ? ["placement"] : []),
+      ...(before.subgroup !== entry.subgroup ? ["subfamily"] : []),
+      ...(entry.placement !== "parent" && (before.owner || "") !== entry.owner ? ["owner"] : []),
+      ...(edit ? diffMp(prevAp ? effectiveMp(prevAp, c) || {} : c.mp, mpNew) : []),
+      ...(edit && note !== plain(prevAp ? prevAp.note : "") ? ["note"] : []),
+    ];
+    if (prevAp && !changed.length) return false;
+    const fields = changeLabels(changed);
+    const action = prevAp ? "edit" : prev ? "change" : "approve";
+    const was = prevAp ? (before.placement !== entry.placement || before.subgroup !== entry.subgroup || (before.owner || "") !== entry.owner ? ` (was ${where(prevAp).replace(/^as /, "")})` : "")
+      : prev ? " (had been rejected)"
+      : moved ? ` (suggested: ${c.placement === "review" ? "curator to decide" : where({ placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb }).replace(/^as /, "")})` : "";
+    if (edit) { drafts.delete(c.pdb); auto.editing = null; }
     decide({
       pdb: c.pdb, entry, action,
-      detail: `Added ${c.pdb} ${where(entry)}${was}`,
-      message: `Curator ${cur.user.login}: ${action} ${c.pdb} ${shortWhere(entry)}`,
+      detail: prevAp ? `Edited ${c.pdb} ${where(entry)}${was}: changed ${fields}`
+        : `Added ${c.pdb} ${where(entry)}${was}${fields ? `; changed ${fields}` : ""}`,
+      message: `Curator ${cur.user.login}: ${action} ${c.pdb} ${shortWhere(entry)}${fields ? ` (changed ${fields})` : ""}`,
+      failed: edit && edit.failed,
       done: () => {
         const placed = !state.unplaced.includes(c.pdb) && !state.merged.includes(c.pdb);
+        const view = placed ? [{ label: "View", run: () => { location.hash = entry.placement === "related" ? `#/pdb/${c.pdb}` : `#/entry/NEW-${c.pdb}`; } }] : [];
+        if (prevAp) {
+          const t = toast(`Saved your changes to ${c.pdb} (${fields}). Alt+Z undoes them.`, {
+            kind: "success", actions: [...view, { label: "Undo", keys: "Alt+Z", run: () => undoEdit(c.pdb, prevAp) }] });
+          noteDecision(c.pdb, entry, t, () => undoEdit(c.pdb, prevAp));
+          return;
+        }
         noteDecision(c.pdb, entry, toast((placed ? `Approved ${c.pdb}: added to ${sgName(entry.subgroup)} ${role(entry)}.`
                      : `Approved ${c.pdb} ${role(entry)}. It is saved, but ${state.merged.includes(c.pdb) ? "mpstruc already lists it" : `${entry.owner} is not listed in the database, so it is not shown there yet`}.`)
-                     + " Alt+Z undoes it.", {
+                     + (fields ? ` Your changes (${fields}) are saved with it.` : "") + " Alt+Z undoes it.", {
           kind: "success",
-          actions: [
-            ...(placed ? [{ label: "View", run: () => { location.hash = entry.placement === "related" ? `#/pdb/${c.pdb}` : `#/entry/NEW-${c.pdb}`; } }] : []),
-            { label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) },
-          ],
+          actions: [...view, { label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) }],
         }));
       },
     });
+    return true;
   }
 
-  function reject(c, reason) {
+  // Put back the entry as it was before an edit, or before a rejection replaced
+  // it (an approval with the curator's edits and note, or an earlier rejection),
+  // if nobody changed it since. what: "edit" or "rejection".
+  function undoEdit(pdb, before, what = "edit") {
+    if (!curation.entries[pdb]) return;
+    if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+    if (lastDecision && lastDecision.pdb === pdb) lastDecision = null;
+    const savedBy = `${plain(before.byName || before.by)}${before.at ? ` on ${fmtDate(before.at)}` : ""}`;
+    const was = before.status === "approved" ? `approved ${where(before).replace(/^as /, "")}` : `rejected (${plain(before.reason)})`;
+    decide({
+      pdb, entry: before, action: "undo",
+      detail: what === "edit" ? `Undid the edit of ${pdb}: back to the version saved by ${savedBy}`
+        : `Undid the rejection of ${pdb}: back to ${was}, as saved by ${savedBy}`,
+      message: `Curator ${cur.user.login}: undo ${what} of ${pdb}`,
+      done: () => toast(what === "edit" ? `Undid your changes to ${pdb}: it is back as it was before.`
+        : `Undid the rejection of ${pdb}: it is ${before.status === "approved" ? "approved again, with its saved details" : "back as it was rejected before"}.`),
+    });
+  }
+
+  // code: one of REASONS; note: the curator's own words (optional); text
+  // overrides the saved reason text (the "Not published yet" shortcut uses it).
+  function reject(c, code, note, text) {
     const prev = curation.entries[c.pdb];
-    const entry = { status: "rejected", reason, ...stamp(), ...snapshot(c) };
+    const reason = text || reasonText(code, note);
+    const entry = { status: "rejected", reasonCode: code, reason, ...stamp(), ...snapshot(c) };
+    // Undo puts back what the rejection replaced (an approval keeps its edits and note).
+    const back = prev && (prev.status === "approved" || prev.status === "rejected") ? prev : null;
+    const undo = back ? () => undoEdit(c.pdb, back, "rejection") : () => undoDecision(c.pdb);
     decide({
       pdb: c.pdb, entry, action: prev ? "change" : "reject",
       detail: `Rejected ${c.pdb}: ${reason}${prev && prev.status === "approved" ? ` (was approved ${where(prev).replace(/^as /, "")})` : ""}`,
       message: `Curator ${cur.user.login}: reject ${c.pdb} (${reason})`,
-      done: () => noteDecision(c.pdb, entry, toast(`Rejected ${c.pdb}: ${reason}. Alt+Z undoes it.`,
-        { actions: [{ label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) }] })),
+      done: () => noteDecision(c.pdb, entry, toast(`Rejected ${c.pdb} - reason: ${reason}. It is now on the Rejected tab. Alt+Z undoes it.`, {
+        actions: [{ label: "Undo", keys: "Alt+Z", run: undo },
+                  { label: "View in Rejected", run: () => { location.hash = `#/rejected/${code}`; } }] }), undo),
     });
   }
 
@@ -1536,12 +2259,13 @@ links.addEventListener("click", (event) => {
           .map(([p, d]) => `${p} (${d.placement === "related" ? "related entry" : "daughter"} of ${pdb})`) : [];
     const stranded = orphans.length
       ? `${orphans.join(", ")} ${orphans.length === 1 ? "stays approved but is" : "stay approved but are"} now not shown in the database` : "";
+    const backTo = "To decide";
     decide({
       pdb, entry: null, action: "undo",
-      detail: (prev.status === "approved" ? `Undid the approval of ${pdb} (was ${where(prev).replace(/^as /, "")}); back in To decide`
-                                           : `Undid the rejection of ${pdb}; back in To decide`) + (stranded ? `; ${stranded}` : ""),
-      message: `Curator ${cur.user.login}: undo ${prev.status === "approved" ? "approval" : "rejection"} of ${pdb}`,
-      done: () => toast(`Undid the decision on ${pdb}: it is back in To decide${prev.status === "approved" ? " and out of the database" : ""}.`
+      detail: (prev.status === "approved" ? `Undid the approval of ${pdb} (was ${where(prev).replace(/^as /, "")}); back in ${backTo}`
+                                           : `Undid the rejection of ${pdb}; back in ${backTo}`) + (stranded ? `; ${stranded}` : ""),
+      message: `Curator ${cur.user.login}: undo ${prev.status === "approved" ? "approval" : prev.status === "deleted" ? "deletion" : "rejection"} of ${pdb}`,
+      done: () => toast(`Undid the decision on ${pdb}: it is back in ${backTo}${prev.status === "approved" ? " and out of the database" : ""}.`
         + (stranded ? ` ${stranded[0].toUpperCase()}${stranded.slice(1)}: approve ${pdb} again, or change ${orphans.length === 1 ? "it" : "them"}.` : ""),
         { timeout: stranded ? 12000 : undefined }),
     });
@@ -1549,19 +2273,24 @@ links.addEventListener("click", (event) => {
 
   // Alt+Z undoes the latest decision this curator made here, so keyboard users
   // do not have to reach the notification before it closes.
-  let lastDecision = null; // { pdb, at, close }
-  function noteDecision(pdb, entry, t) { lastDecision = { pdb, at: entry.at, close: t.close }; }
+  // lastDecision: { pdb, close, valid(), run() } for the latest change made here
+  // (an approval or rejection, or an action on the Rejected tab).
+  let lastDecision = null;
+  function noteDecision(pdb, entry, t, run = () => undoDecision(pdb)) {
+    lastDecision = { pdb, close: t.close, run,
+                     valid: () => Boolean(curation.entries[pdb]) && curation.entries[pdb].at === entry.at && !optimistic.has(pdb) };
+  }
   document.addEventListener("keydown", (ev) => {
     if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.code !== "KeyZ") return;
     ev.preventDefault();
     const d = lastDecision;
-    if (!d || !curation.entries[d.pdb] || curation.entries[d.pdb].at !== d.at || optimistic.has(d.pdb)) {
-      toast("Nothing to undo: Alt+Z undoes your latest approval or rejection on this page.");
+    if (!d || !d.valid()) {
+      toast("Nothing to undo: Alt+Z undoes your latest change on this page.");
       return;
     }
     lastDecision = null;
     d.close();
-    undoDecision(d.pdb);
+    d.run();
   });
 
   // ---- decisions made in this browser before sign-in existed ----
@@ -1622,6 +2351,9 @@ links.addEventListener("click", (event) => {
     const who = document.getElementById("mp-whoami");
     const logTab = document.querySelector('.mp-tabs a[data-tab="log"]');
     if (logTab) logTab.hidden = !signedIn();
+    const rejTab = document.getElementById("mp-rej-tab");
+    if (rejTab) rejTab.hidden = !signedIn();
+    if (!signedIn()) rejMenu.close(false);
     if (!who) return;
     who.hidden = !signedIn();
     who.innerHTML = signedIn()
@@ -1689,12 +2421,14 @@ links.addEventListener("click", (event) => {
     cur.token = null;
     cur.user = null;
     cur.error = "";
-    cur.focusToken = lastRoute.startsWith("log") || lastRoute.startsWith("curators");
+    cur.focusToken = lastRoute.startsWith("log") || lastRoute.startsWith("rejected") || lastRoute.startsWith("curators");
+    rej.selected.clear();
+    rej.changing = null;
     updateWho();
     logTimer(false);
     if (expired) toast("GitHub no longer accepts your token, so you have been signed out. Sign in again on the Curators tab.", { kind: "error" });
     else toast(`Signed out${name ? ` ${name}` : ""}. Your token has been removed from this browser.`);
-    if (lastRoute.startsWith("log")) location.hash = "#/curators"; else rerender();
+    if (lastRoute.startsWith("log") || lastRoute.startsWith("rejected")) location.hash = "#/curators"; else rerender();
   }
 
   // ---- Curators tab ----
@@ -1714,6 +2448,9 @@ links.addEventListener("click", (event) => {
       <tbody>${rows}</tbody></table></div>`;
   }
 
+  // Error text from explain() is plain text; only the classic-token page becomes a link.
+  const linkify = (text) => esc(text).split(CLASSIC_URL).join(`<a href="${CLASSIC_URL}" rel="noopener">${CLASSIC_URL.replace("https://", "")} ↗</a>`);
+
   function viewCurators() {
     if (cur.verifying) return '<div class="mp-view"><h2>Curators</h2><p class="mp-loading">Checking your sign-in with GitHub…</p></div>';
     if (signedIn()) {
@@ -1730,7 +2467,8 @@ links.addEventListener("click", (event) => {
         </div>
         <p>Your approvals and rejections on the <a href="#/automation">Automation</a> tab are saved as commits to
           <code>${esc(CUR_PATH)}</code> on the ${esc(BRANCH)} branch, and approved structures appear in the <a href="#/">Database</a> tab
-          straight away. Every change is listed in the <a href="#/log">Activity log</a>. ${mine ? `You have ${mine} current ${mine === 1 ? "decision" : "decisions"}.` : ""}</p>
+          straight away. Rejected structures are listed, with their reasons, on the <a href="#/rejected">Rejected</a> tab.
+          Every change is listed in the <a href="#/log">Activity log</a>. ${mine ? `You have ${mine} current ${mine === 1 ? "decision" : "decisions"}.` : ""}</p>
         <h3>Curators</h3>
         ${curatorTable()}
       </div>`;
@@ -1738,20 +2476,25 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view mp-narrow">
       <h2>Curators</h2>
       ${cur.error ? `<p class="mp-flags error">${esc(cur.error)}</p>` : ""}
-      <p>Curators sign in with a GitHub <a href="https://github.com/settings/personal-access-tokens/new" rel="noopener">fine-grained personal access token ↗</a>.
-        Create one with access to only the <code>${esc(REPO)}</code> repository and the permission <b>Contents: Read and write</b>
-        (nothing else), with a short expiry such as 30 days, then paste it below.
-        Each decision you make is then saved to the repository under your GitHub name, so every curator sees it.
-        The token is sent only to GitHub.</p>
+      <p>Curators sign in with a GitHub <b>classic</b> personal access token. To make one:</p>
+      <ol class="mp-steps">
+        <li>Open <a href="${CLASSIC_URL}" rel="noopener">github.com/settings/tokens/new ↗</a> (signed in to GitHub).</li>
+        <li>Give it a name such as “mpstruc curator” and a short expiry, such as 30 days.</li>
+        <li>Tick only the <b>public_repo</b> box (inside “repo”). Nothing else is needed.</li>
+        <li>Click <b>Generate token</b>, copy it (it starts with <code>ghp_</code>) and paste it below.</li>
+      </ol>
+      <p class="mp-summary">Your GitHub account must also be a collaborator on <code>${esc(REPO)}</code>. Fine-grained tokens
+        (starting <code>github_pat_</code>) only work for the repository owner: GitHub does not let them edit someone else's personal repository.
+        Each decision you make is saved to the repository under your GitHub name, so every curator sees it. The token is sent only to GitHub.</p>
       <form class="mp-signin" id="mp-signin" novalidate>
         <label for="mp-token">GitHub token</label>
-        <input id="mp-token" name="token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"
+        <input id="mp-token" name="token" type="password" autocomplete="off" spellcheck="false" placeholder="ghp_…"
           aria-describedby="mp-signin-note"${cur.note ? ' aria-invalid="true"' : ""}${cur.signingIn ? " disabled" : ""}>
         <label class="mp-check"><input type="checkbox" name="keep" aria-describedby="mp-keep-warn"> Keep me signed in on this device</label>
         <p class="mp-summary mp-keep-warn" id="mp-keep-warn"><b>Only on your own computer.</b> Unticked, the token is kept in this page's memory
           and you are signed out when you reload or close it. Ticked, it is saved in this browser for the whole <code>andyyjiang.github.io</code>
           site, where any other GitHub Pages site of that account could read it.</p>
-        <p class="mp-form-note" id="mp-signin-note" aria-live="polite">${esc(cur.note)}</p>
+        <p class="mp-form-note" id="mp-signin-note" aria-live="polite">${linkify(cur.note)}</p>
         <div class="mp-actions"><button class="mp-btn" type="submit"${cur.signingIn ? " disabled" : ""}>${cur.signingIn ? "Signing in…" : "Sign in"}</button></div>
       </form>
       <h3>Curators</h3>
@@ -1784,16 +2527,28 @@ links.addEventListener("click", (event) => {
     return `${m[5]}-${pad(mon)}-${pad(m[2])}T${m[3]}${zones[m[4]] || "Z"}`;
   }
 
+  // Log actions as shown in the terminal, and a plain sentence for lines saved without one.
+  const LOG_ACT = { approve: "APPROVE", reject: "REJECT", undo: "UNDO", change: "CHANGE", edit: "EDIT", reason: "REASON",
+                    unarchive: "UNARCHIVE", delete: "DELETE", restore: "RESTORE", "auto-reject": "AUTO-REJECT", "auto-unreject": "AUTO-UNREJECT" };
+  const LOG_SAY = { approve: "Approved", reject: "Rejected", undo: "Undid the last decision on", change: "Changed the decision on",
+                    edit: "Edited the mpstruc entry for", reason: "Changed the reject reason of", unarchive: "Moved back to To decide:",
+                    delete: "Deleted permanently (never suggested again):", restore: "Restored from Deleted to To decide:",
+                    "auto-reject": "Rejected automatically as not published yet:", "auto-unreject": "Paper now published, back in To decide:" };
+  const isAuto = (x) => x && x.by === AUTO_BY;
   function logLines() {
-    const lines = curation.log.map((x) => ({
-      at: x.at, who: plain(x.by), act: plain(x.action).toUpperCase(), pdb: PDB_RE.test(x.pdb || "") ? x.pdb : "", msg: plain(x.detail),
-    }));
+    const lines = curation.log.map((x) => {
+      const action = plain(x.action), pdb = PDB_RE.test(x.pdb || "") ? x.pdb : "";
+      return { at: x.at, who: isAuto(x) ? AUTO_NAME : plain(x.by), auto: isAuto(x), act: Object.hasOwn(LOG_ACT, action) ? LOG_ACT[action] : action.toUpperCase(), pdb,
+               msg: plain(x.detail) || (Object.hasOwn(LOG_SAY, action) ? `${LOG_SAY[action]} ${pdb}` : "") };
+    });
     for (const r of importRuns) {
       const w = Array.isArray(r.window) ? r.window : [];
       lines.push({ at: r.at, who: "weekly-job", act: "IMPORT", pdb: "", msg:
         `Checked ${Number(r.released || 0).toLocaleString()} PDB releases from ${plain(w[0])} to ${plain(w[1])}: `
         + `${Number(r.candidates || 0).toLocaleString()} suggestions, ${Number(r.membrane50 || 0).toLocaleString()} at least 50% likely to be membrane proteins`
-        + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "") });
+        + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "")
+        + (r.awaiting ? `, ${Number(r.awaiting).toLocaleString()} waiting for their paper` : "")
+        + (r.newly_published ? `, ${Number(r.newly_published).toLocaleString()} with a paper newly published` : "") });
     }
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).
@@ -1813,9 +2568,9 @@ links.addEventListener("click", (event) => {
       return terms.every((x) => t.includes(x));
     });
     const max = 500;
-    const rows = shown.slice(0, max).map((l) => `<li class="mp-term-line act-${esc(l.act.toLowerCase())}${l.snapshot ? " snapshot" : ""}">`
+    const rows = shown.slice(0, max).map((l) => `<li class="mp-term-line act-${esc(String(l.act || "").toLowerCase().replace(/[^a-z0-9-]/g, ""))}${l.snapshot ? " snapshot" : ""}${l.auto ? " auto" : ""}">`
       + `<time datetime="${esc(l.at || "")}">${esc(fmtStamp(l.at))}</time>`
-      + `<span class="who">${esc(l.who || "-")}</span><span class="act">${esc(l.act || "-")}</span>`
+      + `<span class="who" title="${esc(l.who || "")}">${esc(l.who || "-")}</span><span class="act">${esc(l.act || "-")}</span>`
       + `<span class="pdb">${l.pdb ? `<a href="#/pdb/${esc(l.pdb)}">${esc(l.pdb)}</a>` : "----"}</span>`
       + `<span class="msg">${esc(l.msg)}</span></li>`).join("");
     return {
@@ -1889,6 +2644,565 @@ links.addEventListener("click", (event) => {
     clearInterval(logInterval);
     logInterval = on ? setInterval(() => { if (!document.hidden) refreshLog(false); }, 60000) : 0;
   }
+
+  // ---- Rejected tab ----------------------------------------------------------
+  // Every rejected structure in data/curation.json, joined with this week's
+  // suggestions for fresh details when it is still among them, by reason.
+  // Curators can move one back to 'To decide' (unarchive: the entry is
+  // removed), change its reason, or delete it for good: a tombstone
+  // {status: "deleted"} that the weekly job never suggests again, listed under
+  // Deleted so a curator can restore it. Every action is one commit through
+  // commit() (so other curators' saves are merged) with an Undo.
+  const AUTO_BY = "mpstruc-automation", AUTO_NAME = "Automation (Claude)";
+  const rej = { sort: "reason", q: "", selected: new Set(), changing: null };
+  const REJ_SORTS = [["reason", "Reason (grouped)"], ["newest", "Newest rejected first"], ["oldest", "Oldest rejected first"],
+                     ["released", "Release date, newest first"], ["pdb", "PDB ID"], ["who", "Who rejected it"]];
+  const rejFilterOf = (arg) => (arg === "deleted" || Object.hasOwn(REASON_LABEL, arg) ? arg : "");
+  const filterName = (f) => (f === "deleted" ? "Deleted" : f ? REASON_LABEL[f] : "All rejected");
+  const dayText = (iso) => (/^\d{4}-\d\d-\d\d/.test(iso || "") ? fmtDate(`${iso.slice(0, 10)}T12:00:00Z`) : "");
+
+  function candIndex() {
+    if (!auto.cands) return new Map();
+    if (candIndex.src !== auto.cands) { candIndex.src = auto.cands; candIndex.map = new Map(auto.cands.candidates.map((c) => [c.pdb, c])); }
+    return candIndex.map;
+  }
+
+  function rejRows() {
+    const cands = candIndex();
+    return Object.entries(curation.entries).filter(([, d]) => d.status === "rejected" || d.status === "deleted").map(([pdb, d]) => {
+      const c = cands.get(pdb) || null;
+      const mp = (c && c.mp) || (isObj(d.mp) ? d.mp : null);
+      const code = reasonCode(d), deleted = d.status === "deleted";
+      const auto = d.auto === true || d.by === AUTO_BY;
+      // Unpublished ones: since when (the weekly job's record, else the day it was rejected), or the day the paper came out.
+      const published = c && !c.awaiting && c.publishedOn ? c.publishedOn : "";
+      const waiting = code === "unpublished" && !deleted && !published ? (c && c.awaiting && c.awaiting.since) || plain(d.at).slice(0, 10) : "";
+      return { pdb, d, c, code, label: reasonLabel(d), note: reasonNote(d), deleted, auto, waiting, published,
+               title: plain((c && c.title) ?? d.title), name: mp && mp.name ? safeMarkup(mp.name) : "",
+               released: plain((c && c.released) ?? d.released),
+               membrane: c && c.membrane != null ? Number(c.membrane) : d.membrane != null && d.membrane !== "" ? Number(d.membrane) : null,
+               who: auto ? AUTO_NAME : plain(d.byName || d.by), at: plain(d.at) };
+    });
+  }
+
+  function rejCounts(rows = rejRows()) {
+    const n = { all: 0, deleted: 0 };
+    REASONS.forEach((r) => { n[r.code] = 0; });
+    rows.forEach((r) => { if (r.deleted) n.deleted++; else { n.all++; n[r.code]++; } });
+    return n;
+  }
+
+  function rejList(filter) {
+    const rows = rejRows();
+    const terms = rej.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const order = Object.fromEntries(REASONS.map((r, i) => [r.code, i]));
+    const cmp = {
+      reason: (a, b) => order[a.code] - order[b.code] || b.at.localeCompare(a.at),
+      newest: (a, b) => b.at.localeCompare(a.at),
+      oldest: (a, b) => a.at.localeCompare(b.at),
+      released: (a, b) => b.released.localeCompare(a.released),
+      pdb: () => 0,
+      who: (a, b) => a.who.localeCompare(b.who, "en", { sensitivity: "base" }) || b.at.localeCompare(a.at),
+    };
+    const shown = rows.filter((r) => (filter === "deleted" ? r.deleted : !r.deleted && (!filter || r.code === filter)))
+      .filter((r) => {
+        const t = `${r.pdb} ${r.title} ${strip(r.name)} ${r.label} ${r.note} ${r.who} ${r.d.by || ""}`.toLowerCase();
+        return terms.every((x) => t.includes(x));
+      })
+      .sort((a, b) => (cmp[rej.sort] || cmp.reason)(a, b) || a.pdb.localeCompare(b.pdb));
+    return { rows, shown, counts: rejCounts(rows) };
+  }
+
+  function reasonForm(pdb, r) {
+    const key = pdb || "bulk";
+    return `<form class="mp-edit mp-rej-reason" data-pdb="${esc(pdb)}" novalidate aria-label="${pdb ? `New reason for ${esc(pdb)}` : "New reason for the selected structures"}">
+        <label>Reason<select name="reason" id="rej-new-${esc(key)}">${reasonOptions(r ? r.code : "", !r)}</select></label>
+        <label>Note (optional)<input name="note" maxlength="200" autocomplete="off" value="${esc(r ? r.note : "")}"></label>
+        <p class="mp-form-note" aria-live="polite"></p>
+        <div class="mp-actions"><button class="mp-btn" type="submit">Save reason</button>
+          <button class="mp-btn secondary" type="button" data-rej="cancel" data-pdb="${esc(pdb)}">Cancel</button></div>
+      </form>`;
+  }
+
+  function rejRow(r) {
+    const id = esc(r.pdb), saving = optimistic.has(r.pdb), off = saving ? " disabled" : "";
+    const checked = rej.selected.has(r.pdb);
+    const who = r.auto ? `<span class="mp-badge mp-badge-auto" title="Rejected by the weekly automatic check">${AUTO_NAME}</span>` : esc(r.who || "unknown");
+    const actions = r.deleted
+      ? `<button class="mp-btn secondary" type="button" id="rej-restore-${id}" data-rej="restore" data-pdb="${id}"${off}>Restore</button>`
+      : `<button class="mp-btn secondary" type="button" id="rej-unarchive-${id}" data-rej="unarchive" data-pdb="${id}"${off}
+           title="Move ${id} back to 'To decide' on the Automation tab">Unarchive</button>
+         <button class="mp-btn secondary" type="button" id="rej-reason-${id}" data-rej="reason" data-pdb="${id}"${off}>Change reason</button>
+         <button class="mp-btn secondary danger" type="button" id="rej-delete-${id}" data-rej="delete" data-pdb="${id}"${off}>Delete permanently</button>`;
+    return `<article class="mp-rej-row${checked ? " selected" : ""}${saving ? " saving" : ""}" id="rej-${id}" aria-labelledby="rej-h-${id}">
+      <input type="checkbox" class="mp-rej-check" id="rej-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
+      <div class="mp-rej-main">
+        <div class="mp-rej-head">
+          <a class="mp-pdb" id="rej-h-${id}" href="#/pdb/${id}">${id}</a>
+          <span class="mp-badge mp-reason reason-${r.code}">${esc(r.label)}</span>
+          ${r.deleted ? '<span class="mp-badge related">Deleted</span>' : ""}
+          ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
+        </div>
+        ${r.name ? `<p class="mp-rej-name">${r.name}</p>` : ""}
+        <p class="mp-rej-title"><span class="mp-of">PDB title:</span> ${esc(r.title || "not known")}</p>
+        ${r.note ? `<p class="mp-rej-note"><span class="mp-of">Note:</span> ${esc(r.note)}</p>` : ""}
+        ${r.waiting ? `<p class="mp-rej-wait">Waiting for paper since ${esc(dayText(r.waiting))}. It comes back to 'To decide' by itself when the paper is published.</p>` : ""}
+        ${r.published && r.code === "unpublished" && !r.deleted ? `<p class="mp-rej-wait">Paper published ${esc(dayText(r.published))}: it goes back to 'To decide' at the next weekly check.</p>` : ""}
+        <dl class="mp-rej-facts">
+          <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
+          <div><dt>Membrane protein</dt><dd>${r.membrane != null && Number.isFinite(r.membrane) ? `${pct(r.membrane)} likely` : "—"}</dd></div>
+          <div><dt>${r.deleted ? "Deleted by" : "Rejected by"}</dt><dd>${who}</dd></div>
+          <div><dt>When</dt><dd><time datetime="${esc(r.at)}">${esc(fmtDate(r.at) || "—")}</time></dd></div>
+        </dl>
+        ${rej.changing === r.pdb ? reasonForm(r.pdb, r) : `<div class="mp-actions">${actions}
+          <a class="mp-btn secondary" href="${rcsb(r.pdb)}" rel="noopener" target="_blank">Open in PDB ↗<span class="mp-visually-hidden"> (opens in a new tab)</span></a></div>`}
+      </div>
+    </article>`;
+  }
+
+  function viewRejected(arg) {
+    if (cur.verifying) return '<div class="mp-view"><h2>Rejected</h2><p class="mp-loading">Checking your sign-in with GitHub…</p></div>';
+    if (!signedIn()) {
+      return `<div class="mp-view"><h2>Rejected</h2>
+        <p class="mp-empty">The list of rejected structures is for curators. <a href="#/curators">Sign in on the Curators tab</a> to see it.</p></div>`;
+    }
+    loadAutomation();
+    const filter = rejFilterOf(arg);
+    const { rows, shown, counts } = rejList(filter);
+    const page = shown.slice(0, state.limit);
+    // A selection survives a search (and a save in progress, so a failed save
+    // keeps it); it is dropped only for structures that left this list. The
+    // buttons act on the selected rows that are listed right now.
+    const inList = new Set(rows.filter((r) => (filter === "deleted" ? r.deleted : !r.deleted && (!filter || r.code === filter))).map((r) => r.pdb));
+    [...rej.selected].forEach((p) => { if (!inList.has(p) && !optimistic.has(p)) rej.selected.delete(p); });
+    const nSel = page.filter((r) => rej.selected.has(r.pdb) && !optimistic.has(r.pdb)).length, noSel = nSel ? "" : " disabled";
+    const nHidden = [...rej.selected].filter((p) => inList.has(p) && !optimistic.has(p)).length - nSel;
+    const nPage = page.filter((r) => !optimistic.has(r.pdb)).length;
+    if (!nSel && rej.changing === "*") rej.changing = null;
+    const opt = (val, label, curv) => `<option value="${val}"${String(curv) === String(val) ? " selected" : ""}>${label}</option>`;
+    let body = "";
+    if (rej.sort === "reason") {
+      let last = null;
+      for (const r of page) {
+        if (r.code !== last) {
+          last = r.code;
+          const n = shown.filter((x) => x.code === r.code).length;
+          body += `<h3 class="mp-rej-group" id="rej-g-${r.code}">${esc(REASON_LABEL[r.code])} <span class="mp-count">${n}</span></h3>`;
+        }
+        body += rejRow(r);
+      }
+    } else {
+      body = page.map(rejRow).join("");
+    }
+    const empty = filter === "deleted" ? "No structure has been deleted." : rej.q ? "No rejected structure matches the search."
+      : filter ? `No structure is rejected as “${esc(REASON_LABEL[filter])}”.` : "No structure has been rejected yet.";
+    const intro = filter === "deleted"
+      ? `Deleted structures are never suggested again, even when the weekly check finds them. Restore one to move it back to 'To decide'.`
+      : filter === "unpublished"
+        ? `These structures are waiting for their paper (the PDB lists them as 'To be published' or only as a preprint). The weekly check rejects
+           them automatically and brings each one back to 'To decide' by itself when its paper is published.`
+        : `Structures that curators, or the weekly automatic check, decided not to add to mpstruc. <b>Unarchive</b> moves one back to 'To decide'
+           on the <a href="#/automation">Automation</a> tab; <b>Delete permanently</b> means it is never suggested again (it can still be restored from Deleted).`;
+    return `<div class="mp-view">
+      ${filter ? `<p class="mp-crumbs"><a href="#/rejected">Rejected</a> › ${esc(filterName(filter))}</p>` : ""}
+      <h2>${filter === "deleted" ? "Deleted structures" : filter ? `Rejected: ${esc(REASON_LABEL[filter])}` : "Rejected structures"}</h2>
+      <p class="mp-summary">${intro}</p>
+      <form class="mp-filters mp-rej-filters" id="mp-rej-filters" role="search" aria-label="Filter rejected structures">
+        <label>Reason<select name="filter" id="mp-rej-filter">${opt("", `All rejected (${counts.all})`, filter)}${REASONS.map((r) => opt(r.code, `${esc(r.label)} (${counts[r.code]})`, filter)).join("")}${opt("deleted", `Deleted (${counts.deleted})`, filter)}</select></label>
+        <label>Sort<select name="sort" id="mp-rej-sort">${REJ_SORTS.map(([v, l]) => opt(v, l, rej.sort)).join("")}</select></label>
+        <label class="mp-rej-q">Search<input type="search" name="q" id="mp-rej-q" value="${esc(rej.q)}" placeholder="PDB ID, title, reason, curator" autocomplete="off"></label>
+      </form>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-rej-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${rej.q ? " match the search" : ""}</p>
+        <span><button type="button" class="mp-btn secondary" id="mp-rej-csv">Download rejected (CSV)</button></span></div>
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
+      ${page.length ? `<div class="mp-rej-bulk" role="group" aria-label="Act on selected structures">
+        <label class="mp-check"><input type="checkbox" id="mp-rej-all"${nSel && nSel === nPage ? " checked" : ""}> Select all ${page.length} listed</label>
+        <span class="mp-rej-selcount" id="mp-rej-selcount">${nSel} selected${nHidden > 0 ? ` (${nHidden} more selected but ${rej.q ? "hidden by the search" : "not shown"}: the buttons leave ${nHidden === 1 ? "it" : "them"} alone)` : ""}</span>
+        <span class="mp-rej-bulk-btns">${filter === "deleted"
+          ? `<button class="mp-btn secondary" type="button" id="rej-bulk-restore" data-bulk="restore"${noSel}>Restore selected</button>`
+          : `<button class="mp-btn secondary" type="button" id="rej-bulk-unarchive" data-bulk="unarchive"${noSel}>Unarchive selected</button>
+             <button class="mp-btn secondary" type="button" id="rej-bulk-reason" data-bulk="reason"${noSel}>Change reason</button>
+             <button class="mp-btn secondary danger" type="button" id="rej-bulk-delete" data-bulk="delete"${noSel}>Delete permanently</button>`}</span>
+        ${rej.changing === "*" && nSel ? reasonForm("", null) : ""}
+      </div>` : ""}
+      <div class="mp-rej-list">${body || `<p class="mp-empty">${empty}</p>`}</div>
+      ${more(page.length, shown.length)}
+    </div>`;
+  }
+
+  function rejCsv(list) {
+    const q = (v) => `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    const cols = ["PDB ID", "Status", "Reason", "Reason code", "Note", "PDB title", "mpstruc name (draft)", "Released", "Membrane protein (%)",
+                  "Rejected by", "Automatic", "Rejected at", "Waiting for paper since", "RCSB PDB page"];
+    const rows = list.map((r) => [r.pdb, r.deleted ? "deleted" : "rejected", r.label, r.code, r.note, r.title, strip(r.name), r.released,
+      r.membrane != null && Number.isFinite(r.membrane) ? Math.round(100 * r.membrane) : "",
+      r.auto ? AUTO_NAME : r.d.byName && r.d.by && r.d.byName !== r.d.by ? `${r.d.byName} (${r.d.by})` : r.who, r.auto ? "yes" : "",
+      r.at, r.waiting, rcsb(r.pdb)].map(q).join(","));
+    return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+  }
+
+  // ---- saving Rejected-tab actions ----
+  // changes: [{ pdb, entry (null removes it), detail, expect? }]. Each structure
+  // must still be as this page last saw it (or as `expect`, a JSON string);
+  // in a bulk action the ones another curator changed meanwhile are skipped
+  // and reported. One commit, one log line per structure.
+  function mutate({ changes, action, message, what, done }) {
+    const before = new Map(changes.map((ch) => [ch.pdb, curation.entries[ch.pdb] || null]));
+    const expect = new Map(changes.map((ch) => [ch.pdb, ch.expect ?? JSON.stringify(before.get(ch.pdb))]));
+    const who = { by: cur.user.login, byName: cur.user.name }, at = new Date().toISOString();
+    changes.forEach((ch) => optimistic.set(ch.pdb, ch.entry));
+    refreshView();
+    rerender();
+    let applied = [], skipped = [];
+    commit(message, (raw) => {
+      applied = [];
+      skipped = [];
+      for (const ch of changes) {
+        if (JSON.stringify(raw.entries[ch.pdb] ?? null) !== expect.get(ch.pdb)) { skipped.push(ch.pdb); continue; }
+        if (ch.entry) raw.entries[ch.pdb] = ch.entry; else delete raw.entries[ch.pdb];
+        raw.log.push({ at, ...who, action, pdb: ch.pdb, detail: ch.detail });
+        applied.push(ch.pdb);
+      }
+      if (!applied.length) {
+        const now = raw.entries[skipped[0]];
+        throw changes.length === 1 ? staleError(skipped[0], isObj(now) ? now : null)
+          : new GhError(-1, "Another curator changed all of these structures a moment ago; the list now shows their changes.", { code: "stale" });
+      }
+    }).then(() => {
+      changes.forEach((ch) => optimistic.delete(ch.pdb));
+      applied.forEach((p) => rej.selected.delete(p));
+      refreshView();
+      rerender();
+      done(applied, skipped, before);
+    }).catch((e) => {
+      changes.forEach((ch) => optimistic.delete(ch.pdb));
+      if (e.status === 401) signOut(true);
+      refreshView();
+      rerender();
+      toast(`Could not save: ${what}. ${explain(e)}`, { kind: "error" });
+    });
+  }
+
+  const listIds = (ids) => (ids.length <= 4 ? ids.join(", ") : `${ids.slice(0, 3).join(", ")} and ${ids.length - 3} more`);
+  const nStruct = (n) => `${n} ${n === 1 ? "structure" : "structures"}`;
+  const subject = (ids) => (ids.length === 1 ? ids[0] : nStruct(ids.length));
+  function stateText(d) {
+    if (!d) return "To decide";
+    if (d.status === "deleted") return "Deleted";
+    return `Rejected (${d.reason || REASON_LABEL[reasonCode(d)]})`;
+  }
+
+  // Toast after a Rejected-tab action, with Undo (also Alt+Z): puts back what
+  // each structure was before, if nobody has changed it since.
+  function afterRej(text, applied, skipped, before, written, label) {
+    const run = () => {
+      const ids = applied.filter((p) => !optimistic.has(p));
+      if (!ids.length) return;
+      mutate({
+        changes: ids.map((p) => ({ pdb: p, entry: before.get(p), expect: written.get(p),
+                                   detail: `Undid ${label} for ${p}: back to ${stateText(before.get(p))}` })),
+        action: "undo", what: `undo ${label}`,
+        message: `Curator ${cur.user.login}: undo ${label} for ${listIds(ids)}`,
+        done: (ok, miss) => toast(`Undone: ${subject(ok)} ${ok.length === 1 ? "is" : "are"} back as before.`
+          + (miss.length ? ` ${listIds(miss)} changed meanwhile, so ${miss.length === 1 ? "it was" : "they were"} left alone.` : ""), { kind: "success" }),
+      });
+    };
+    const note = skipped.length ? ` ${listIds(skipped)} ${skipped.length === 1 ? "was" : "were"} changed by another curator a moment ago, so ${skipped.length === 1 ? "it was" : "they were"} left alone.` : "";
+    const t = toast(`${text}${note} Alt+Z undoes it.`, { kind: "success", timeout: 8000, actions: [{ label: "Undo", keys: "Alt+Z", run }] });
+    lastDecision = { pdb: applied[0], close: t.close, run,
+                     valid: () => applied.some((p) => !optimistic.has(p) && JSON.stringify(curation.entries[p] || null) === written.get(p)) };
+  }
+
+  function rejTargets(ids, deleted) {
+    return ids.filter((p) => curation.entries[p] && (curation.entries[p].status === "deleted") === deleted && !optimistic.has(p));
+  }
+  // Not among this week's suggestions: it shows in 'To decide' again only once the weekly check lists it.
+  function laterNote(ids) {
+    const cands = candIndex();
+    const out = auto.cands ? ids.filter((p) => !cands.has(p)) : [];
+    return out.length ? ` ${out.length === ids.length && ids.length === 1 ? "It is" : `${listIds(out)} ${out.length === 1 ? "is" : "are"}`} not in this week's
+      suggestions, so ${out.length === 1 ? "it" : "they"} will be listed there again after the next weekly check (if released in the last 26 weeks).` : "";
+  }
+
+  function unarchive(ids) {
+    ids = rejTargets(ids, false);
+    if (!ids.length || !signedIn()) return;
+    const changes = ids.map((p) => ({ pdb: p, entry: null,
+      detail: `Moved ${p} back to To decide (was rejected: ${curation.entries[p].reason || REASON_LABEL[reasonCode(curation.entries[p])]})` }));
+    const written = new Map(ids.map((p) => [p, "null"]));
+    mutate({ changes, action: "unarchive", what: `move ${subject(ids)} back to To decide`,
+             message: `Curator ${cur.user.login}: unarchive ${listIds(ids)}`,
+             done: (ok, miss, before) => afterRej(`Moved ${subject(ok)} back to 'To decide' on the Automation tab.${laterNote(ok)}`,
+                                                  ok, miss, before, written, "the move back to To decide") });
+  }
+
+  function restore(ids) {
+    ids = rejTargets(ids, true);
+    if (!ids.length || !signedIn()) return;
+    const written = new Map(ids.map((p) => [p, "null"]));
+    mutate({ changes: ids.map((p) => ({ pdb: p, entry: null, detail: `Restored ${p} from Deleted: back in To decide` })),
+             action: "restore", what: `restore ${subject(ids)}`,
+             message: `Curator ${cur.user.login}: restore ${listIds(ids)}`,
+             done: (ok, miss, before) => afterRej(`Restored ${subject(ok)}: back in 'To decide' on the Automation tab.${laterNote(ok)}`,
+                                                  ok, miss, before, written, "the restore") });
+  }
+
+  function changeReason(ids, code, note) {
+    ids = rejTargets(ids, false);
+    if (!ids.length || !signedIn()) return;
+    const text = reasonText(code, note);
+    const written = new Map();
+    const changes = ids.map((p) => {
+      const prev = curation.entries[p];
+      // The curator now owns this rejection, so it is no longer an automatic one.
+      const { auto: _auto, ...rest } = prev;
+      const entry = { ...rest, reasonCode: code, reason: text, ...stamp() };
+      written.set(p, JSON.stringify(entry));
+      return { pdb: p, entry, detail: `Changed the reason for rejecting ${p} from “${prev.reason || REASON_LABEL[reasonCode(prev)]}” to “${text}”` };
+    });
+    mutate({ changes, action: "reason", what: `change the reason for ${subject(ids)}`,
+             message: `Curator ${cur.user.login}: reject reason of ${listIds(ids)} -> ${text}`,
+             done: (ok, miss, before) => afterRej(`Changed the reason for ${subject(ok)} to “${text}”.`, ok, miss, before, written, "the reason change") });
+  }
+
+  async function deleteForever(ids, opener) {
+    ids = rejTargets(ids, false);
+    if (!ids.length || !signedIn()) return;
+    const one = ids.length === 1;
+    const ok = await confirmDialog({
+      title: one ? `Delete ${ids[0]} permanently?` : `Delete ${ids.length} structures permanently?`,
+      text: `${one ? `${ids[0]} will` : `${listIds(ids)} will`} leave the Rejected list and will never be suggested again, even if the weekly
+        check finds ${one ? "it" : "them"} again. A curator can still bring ${one ? "it" : "them"} back from Rejected › Deleted.`,
+      confirm: one ? "Delete permanently" : `Delete ${ids.length} permanently`, opener,
+    });
+    if (!ok) return;
+    ids = rejTargets(ids, false);
+    if (!ids.length) return;
+    const written = new Map();
+    const changes = ids.map((p) => {
+      const prev = curation.entries[p];
+      const entry = { status: "deleted", reasonCode: reasonCode(prev), reason: plain(prev.reason) || REASON_LABEL[reasonCode(prev)], ...stamp(),
+                      deletedFrom: "rejected", title: prev.title ?? null, released: prev.released ?? null };
+      written.set(p, JSON.stringify(entry));
+      return { pdb: p, entry, detail: `Deleted ${p} permanently (was rejected: ${entry.reason}); it will never be suggested again` };
+    });
+    mutate({ changes, action: "delete", what: `delete ${subject(ids)}`,
+             message: `Curator ${cur.user.login}: delete ${listIds(ids)} permanently`,
+             done: (ok2, miss, before) => afterRej(`Deleted ${subject(ok2)} permanently: never suggested again. Find ${ok2.length === 1 ? "it" : "them"} under Rejected › Deleted.`,
+                                                   ok2, miss, before, written, "the permanent deletion") });
+  }
+
+  // A modal yes/no question (native <dialog>: focus stays inside, Escape cancels).
+  // Focus goes back to the opener afterwards, or to the view heading if it is gone.
+  function confirmDialog({ title, text, confirm, opener }) {
+    return new Promise((resolve) => {
+      const dlg = document.createElement("dialog");
+      dlg.className = "mp-dialog";
+      dlg.setAttribute("aria-labelledby", "mp-dialog-title");
+      dlg.setAttribute("aria-describedby", "mp-dialog-text");
+      dlg.innerHTML = `<form method="dialog">
+          <h2 id="mp-dialog-title">${esc(title)}</h2>
+          <p id="mp-dialog-text">${esc(text)}</p>
+          <div class="mp-actions"><button class="mp-btn secondary" value="cancel" autofocus>Cancel</button>
+            <button class="mp-btn danger-solid" value="ok">${esc(confirm)}</button></div>
+        </form>`;
+      document.body.appendChild(dlg);
+      dlg.addEventListener("close", () => {
+        const yes = dlg.returnValue === "ok";
+        dlg.remove();
+        const back = opener && opener.isConnected && !opener.disabled ? opener : app.querySelector(".mp-view h2");
+        if (back && !yes) focusEl(back);
+        resolve(yes);
+      });
+      dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close("cancel"); }); // click on the backdrop
+      dlg.showModal();
+    });
+  }
+
+  // After a row leaves the list, keep keyboard focus nearby: the next row, else the heading.
+  function focusRowAt(ids, rowsBefore) {
+    const idx = rowsBefore.indexOf(`rej-${ids[0]}`);
+    const rows = [...app.querySelectorAll(".mp-rej-row")];
+    const next = rowsBefore.slice(idx + 1).map((x) => document.getElementById(x)).find(Boolean) || rows[rows.length - 1];
+    const target = next ? next.querySelector("button:not([disabled]), .mp-pdb") : app.querySelector(".mp-view h2");
+    if (target) focusEl(target);
+  }
+
+  function wireRejected(arg) {
+    const filter = rejFilterOf(arg);
+    const form = document.getElementById("mp-rej-filters");
+    if (!form) return;
+    form.addEventListener("submit", (ev) => ev.preventDefault());
+    form.elements.filter.addEventListener("change", () => {
+      const v = form.elements.filter.value;
+      location.hash = v ? `#/rejected/${v}` : "#/rejected";
+    });
+    form.elements.sort.addEventListener("change", () => { rej.sort = form.elements.sort.value; state.limit = PAGE; rerender(); });
+    form.elements.q.addEventListener("input", () => { rej.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    document.getElementById("mp-rej-csv").addEventListener("click", () => {
+      const { shown } = rejList(filter);
+      if (!shown.length) { dlNote("Nothing to download: no structure is listed."); return; }
+      download(`mpstruc_${filter === "deleted" ? "deleted" : "rejected"}${filter && filter !== "deleted" ? `_${filter}` : ""}.csv`, rejCsv(shown), "text/csv");
+    });
+    const rowIds = () => [...app.querySelectorAll(".mp-rej-row")].map((el) => el.id);
+    // Selected and listed right now (not hidden by the search, not saving).
+    const visibleSelected = () => [...app.querySelectorAll(".mp-rej-check:checked:not([disabled])")].map((b) => b.dataset.pdb);
+    app.querySelectorAll(".mp-rej-check").forEach((box) => box.addEventListener("change", () => {
+      if (box.checked) rej.selected.add(box.dataset.pdb); else rej.selected.delete(box.dataset.pdb);
+      if (!rej.selected.size && rej.changing === "*") rej.changing = null;
+      rerender();
+    }));
+    const all = document.getElementById("mp-rej-all");
+    if (all) {
+      const boxes = [...app.querySelectorAll(".mp-rej-check:not([disabled])")];
+      const nOn = boxes.filter((b) => b.checked).length;
+      all.indeterminate = nOn > 0 && nOn < boxes.length;
+      all.addEventListener("change", () => {
+        boxes.forEach((b) => { if (all.checked) rej.selected.add(b.dataset.pdb); else rej.selected.delete(b.dataset.pdb); });
+        if (!rej.selected.size && rej.changing === "*") rej.changing = null;
+        rerender();
+      });
+    }
+    app.querySelectorAll("[data-rej]").forEach((btn) => btn.addEventListener("click", () => {
+      const pdb = btn.dataset.pdb, act = btn.dataset.rej, before = rowIds();
+      if (act === "cancel") {
+        rej.changing = null;
+        rerender();
+        const back = document.getElementById(pdb ? `rej-reason-${pdb}` : "rej-bulk-reason");
+        if (back) focusEl(back);
+        return;
+      }
+      if (!signedIn()) return;
+      if (act === "reason") {
+        rej.changing = pdb;
+        rerender();
+        const sel = document.getElementById(`rej-new-${pdb}`);
+        if (sel) sel.focus();
+      } else if (act === "unarchive") {
+        unarchive([pdb]);
+        focusRowAt([pdb], before);
+      } else if (act === "restore") {
+        restore([pdb]);
+        focusRowAt([pdb], before);
+      } else if (act === "delete") {
+        deleteForever([pdb], btn).then(() => { if (!document.getElementById(`rej-${pdb}`) || optimistic.has(pdb)) focusRowAt([pdb], before); });
+      }
+    }));
+    app.querySelectorAll("[data-bulk]").forEach((btn) => btn.addEventListener("click", () => {
+      const ids = visibleSelected(), act = btn.dataset.bulk;
+      if (!ids.length || !signedIn()) return;
+      const head = () => { const h = app.querySelector(".mp-view h2"); if (h) focusEl(h); };
+      if (act === "reason") {
+        rej.changing = "*";
+        rerender();
+        const sel = document.getElementById("rej-new-bulk");
+        if (sel) sel.focus();
+        return;
+      }
+      if (act === "delete") {
+        deleteForever(ids, btn).then(() => { if (ids.some((p) => optimistic.has(p))) head(); });
+        return;
+      }
+      if (act === "unarchive") unarchive(ids); else restore(ids);
+      head();
+    }));
+    app.querySelectorAll("form.mp-rej-reason").forEach((f) => {
+      f.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const sel = f.elements.reason;
+        if (!sel.value) {
+          sel.setAttribute("aria-invalid", "true");
+          f.querySelector(".mp-form-note").textContent = "Choose the new reason.";
+          sel.focus();
+          return;
+        }
+        const pdb = f.dataset.pdb, ids = pdb ? [pdb] : visibleSelected();
+        const note = f.elements.note.value.trim().replace(/\s+/g, " ");
+        rej.changing = null;
+        changeReason(ids, sel.value, note);
+        const back = document.getElementById(pdb ? `rej-reason-${pdb}` : "rej-bulk-reason");
+        if (back && !back.disabled) focusEl(back); else { const h = app.querySelector(".mp-view h2"); if (h) focusEl(h); }
+      });
+      f.elements.reason.addEventListener("change", () => { f.elements.reason.removeAttribute("aria-invalid"); f.querySelector(".mp-form-note").textContent = ""; });
+      f.addEventListener("keydown", (ev) => {
+        if (ev.key === "Escape") { ev.preventDefault(); f.querySelector('[data-rej="cancel"]').click(); }
+      });
+    });
+  }
+
+  // ---- the Rejected tab's menu (a menu button in the tab bar) ----
+  // The menu lives outside the tab bar (which scrolls sideways on phones and
+  // would clip it) and is placed under the button while open.
+  const rejMenu = (() => {
+    const btn = document.getElementById("mp-rej-tab"), menu = document.getElementById("mp-rej-menu");
+    if (!btn || !menu) return { close() {} };
+    const items = () => [...menu.querySelectorAll('[role="menuitem"]')];
+    const isOpen = () => !menu.hidden;
+    function place() {
+      const r = btn.getBoundingClientRect();
+      const w = menu.offsetWidth, vw = document.documentElement.clientWidth;
+      menu.style.top = `${Math.round(r.bottom + 4)}px`;
+      menu.style.left = `${Math.round(Math.max(8, Math.min(r.left, vw - w - 8)))}px`;
+    }
+    function build() {
+      const n = rejCounts();
+      const [kind, f] = lastRoute.split("/");
+      const curF = kind === "rejected" ? rejFilterOf(f || "") : null;
+      const item = (href, label, count, on) => `<a role="menuitem" tabindex="-1" href="${href}"${on ? ' aria-current="true"' : ""}>
+          <span>${esc(label)}</span> <span class="mp-count">(${count})</span></a>`;
+      menu.innerHTML = item("#/rejected", "All rejected", n.all, curF === "")
+        + '<div role="separator" class="mp-menu-sep"></div>'
+        + REASONS.map((r) => item(`#/rejected/${r.code}`, r.label, n[r.code], curF === r.code)).join("")
+        + '<div role="separator" class="mp-menu-sep"></div>'
+        + item("#/rejected/deleted", "Deleted", n.deleted, curF === "deleted");
+    }
+    function open(which = "first") {
+      build();
+      menu.hidden = false;
+      btn.setAttribute("aria-expanded", "true");
+      place();
+      const list = items();
+      const on = list.find((a) => a.hasAttribute("aria-current"));
+      (which === "last" ? list[list.length - 1] : which === "current" && on ? on : list[0]).focus();
+    }
+    function close(returnFocus) {
+      if (!isOpen()) return;
+      menu.hidden = true;
+      btn.setAttribute("aria-expanded", "false");
+      if (returnFocus) btn.focus();
+    }
+    btn.addEventListener("click", () => (isOpen() ? close(true) : open("current")));
+    btn.addEventListener("keydown", (ev) => {
+      if (ev.key === "ArrowDown" || ev.key === "ArrowUp") { ev.preventDefault(); open(ev.key === "ArrowUp" ? "last" : "first"); }
+    });
+    menu.addEventListener("keydown", (ev) => {
+      const list = items(), i = list.indexOf(document.activeElement);
+      const go = (j) => { ev.preventDefault(); list[(j + list.length) % list.length].focus(); };
+      if (ev.key === "ArrowDown") go(i + 1);
+      else if (ev.key === "ArrowUp") go(i - 1);
+      else if (ev.key === "Home") go(0);
+      else if (ev.key === "End") go(list.length - 1);
+      else if (ev.key === "Escape") { ev.preventDefault(); close(true); }
+      else if (ev.key === "Tab") close(false);
+      else if (ev.key === " ") { ev.preventDefault(); document.activeElement.click(); }
+    });
+    menu.addEventListener("click", (ev) => {
+      const a = ev.target.closest('[role="menuitem"]');
+      if (!a) return;
+      close(false);
+      // Choosing the list already shown: no route change, so move focus to it by hand.
+      if (a.getAttribute("href") === location.hash || (a.getAttribute("href") === "#/rejected" && location.hash === "#/rejected/")) {
+        ev.preventDefault();
+        const h = app.querySelector(".mp-view h2");
+        if (h) focusEl(h);
+      }
+    });
+    document.addEventListener("pointerdown", (ev) => { if (isOpen() && !menu.contains(ev.target) && !btn.contains(ev.target)) close(false); });
+    window.addEventListener("resize", () => { if (isOpen()) place(); });
+    window.addEventListener("scroll", () => { if (isOpen()) place(); }, { passive: true });
+    document.querySelector(".mp-tabs").addEventListener("scroll", () => { if (isOpen()) place(); }, { passive: true });
+    return { close, open };
+  })();
 
   // ---- notifications ----
   const toastBox = document.createElement("div");
@@ -1974,7 +3288,9 @@ links.addEventListener("click", (event) => {
     const h = location.hash.replace(/^#\/?/, "");
     if (h !== lastRoute) state.limit = PAGE;
     state.focusHeading = lastRoute !== "" || h !== "";
+    if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; }
     lastRoute = h;
+    rejMenu.close(false);
     logTimer(h.split("/")[0] === "log");
     // Presentation only: the view fade-in runs on navigation, not on every filter or search re-render.
     app.classList.remove("mp-enter");
@@ -2025,28 +3341,39 @@ links.addEventListener("click", (event) => {
     const active = document.activeElement;
     const hadFocus = Boolean(active && app.contains(active));
     const focusName = hadFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
-    const tab = ["automation", "curators", "log"].includes(kind) ? kind : "database";
-    document.querySelectorAll(".mp-tabs a[data-tab]").forEach((a) => {
+    // A text field being typed in (the Change editor): put the caret back where it was.
+    const caret = hadFocus && active.id && /^(TEXTAREA|INPUT)$/.test(active.tagName) && active.type !== "search" && typeof active.selectionStart === "number"
+      ? { id: active.id, start: active.selectionStart, end: active.selectionEnd, dir: active.selectionDirection, top: active.scrollTop } : null;
+    const tab = ["automation", "curators", "log", "rejected"].includes(kind) ? kind : "database";
+    document.querySelectorAll(".mp-tabs [data-tab]").forEach((a) => {
       a.classList.toggle("active", a.dataset.tab === tab);
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
     // If the tab bar is ever wider than the screen, keep the current tab in view
     // (scrolling only the bar, never the page).
-    const bar = document.querySelector(".mp-tabs"), on = bar && bar.querySelector("a.active");
+    const bar = document.querySelector(".mp-tabs"), on = bar && bar.querySelector("[data-tab].active");
     if (on && bar.scrollWidth > bar.clientWidth) {
       const l = on.offsetLeft - bar.offsetLeft, r = l + on.offsetWidth;
       if (l < bar.scrollLeft) bar.scrollLeft = l;
       else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth;
     }
-    if (kind === "automation" || kind === "curators" || kind === "log") {
+    if (kind === "automation" || kind === "curators" || kind === "log" || kind === "rejected") {
       if (kind === "automation") { app.innerHTML = viewAutomation(arg); wireAutomation(); }
       else if (kind === "curators") { app.innerHTML = viewCurators(); wireCurators(); }
+      else if (kind === "rejected") { app.innerHTML = viewRejected(arg); wireRejected(arg); }
       else { app.innerHTML = viewLog(); wireLog(); }
       mountPreviews();
       const st = document.getElementById("mp-status");
       const sum = app.querySelector(".mp-toolbar .mp-summary"), head = app.querySelector(".mp-view h2");
       if (st) st.textContent = sum ? sum.textContent : (head ? head.textContent : "");
       restoreFocus(focusName, hadFocus, head);
+      if (caret && document.activeElement && document.activeElement.id === caret.id) {
+        try { document.activeElement.setSelectionRange(caret.start, caret.end, caret.dir || "none"); } catch { /* not a text field */ }
+        document.activeElement.scrollTop = caret.top;
+      }
+      // A search box re-rendered while typing: keep the caret at the end.
+      const typing = document.activeElement;
+      if (typing && typing.type === "search" && app.contains(typing)) typing.setSelectionRange(typing.value.length, typing.value.length);
       if (cur.focusToken && kind === "curators") {
         cur.focusToken = false;
         const t = document.getElementById("mp-token");
@@ -2054,13 +3381,13 @@ links.addEventListener("click", (event) => {
       }
       const moreA = document.getElementById("mp-more");
       if (moreA) moreA.addEventListener("click", () => {
-        const before = app.querySelectorAll(".mp-cand").length;
+        const before = app.querySelectorAll(".mp-cand, .mp-rej-row").length;
         state.limit += PAGE;
         const y = window.scrollY;
         setTimeout(() => {
           render();
           window.scrollTo(0, y);
-          const next = app.querySelectorAll(".mp-cand")[before];
+          const next = app.querySelectorAll(".mp-cand, .mp-rej-row")[before];
           if (next) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
         }, 0);
       });

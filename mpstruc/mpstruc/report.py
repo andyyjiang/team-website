@@ -18,16 +18,19 @@ from .validate import compare, unexplained
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "fixtures" / "mpstruc_2026-10-02.xml"
+# The newest saved snapshot (file names sort by date). FIXTURE stays the
+# older line-format export, which the byte-identical round-trip checks use.
+LATEST = max((ROOT / "fixtures").glob("mpstruc_20*.xml"))
 XLSX = ROOT / "fixtures" / "mpstruc_XML.xlsx"
 EXPECTED_SHA256 = "4174f67bb5685afe0c0cf046f0c5bc5ceaa53162f8fd9568cf679f5187ea9f7a"
 
 
 def source_xml() -> Path:
     """The mpstruc XML the website and automation use: $MPSTRUC_XML if set
-    (the weekly job points it at a freshly downloaded copy), else the fixture."""
+    (the weekly job points it at a freshly downloaded copy), else the newest saved snapshot."""
     import os
     p = os.environ.get("MPSTRUC_XML")
-    return Path(p) if p and Path(p).exists() else FIXTURE
+    return Path(p) if p and Path(p).exists() else LATEST
 
 CHECK_TITLES = {
     "pdb_id_points_elsewhere": "PDB ID points to an unrelated structure",

@@ -1,0 +1,19 @@
+{
+ "runs": [
+  {
+   "at": "2026-11-06T03:08+00:00",
+   "window": [
+    "2026-05-08",
+    "2026-11-06"
+   ],
+   "released": 9497,
+   "candidates": 1139,
+   "membrane50": 937,
+   "already_decided": 6,
+   "awaiting": 438,
+   "newly_published": 0,
+   "autoRejected": 438,
+   "autoUnrejected": 0
+  }
+ ]
+}

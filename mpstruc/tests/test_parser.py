@@ -214,3 +214,16 @@ def test_integrity_known_issues(findings):
 def test_empty_header_subgroup_is_kept(db):
     sg = {s.key: s for s in db.subgroups()}
     assert sg["G03-S050"].name == "G PROTEIN-COUPLED RECEPTORS (GPCRs)" and sg["G03-S050"].parents == []
+
+
+def test_live_export_format_reads_like_the_line_format():
+    """Since Nov 2026 the live export is well-formed XML (DTD, indentation,
+    escaped markup); it must give the same field text as the older format."""
+    from mpstruc.model import load
+    new = ROOT / "fixtures" / "mpstruc_2026-10-15.xml"
+    a = {e.pdbCode: e for e in load(FIXTURE).entries()}
+    b = {e.pdbCode: e for e in load(new).entries()}
+    assert set(a) <= set(b) and len(b) - len(a) == 19
+    assert b["1EQG"].description == a["1EQG"].description
+    same = sum(" ".join((a[p].description or "").split()) == " ".join((b[p].description or "").split()) for p in a)
+    assert same / len(a) > 0.99

@@ -711,27 +711,87 @@ def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, th
     return "\n".join(L) + "\n"
 
 
-def add_listings(props: list[dict]) -> None:
+def add_listings(props: list[dict], db: Database | None = None,
+                 summaries: dict[str, dict | None] | None = None) -> None:
     """Attach a draft mpstruc entry to each suggestion (see listing.py).
 
     `mp` holds the fields in mpstruc raw markup, used both by the XML download
     and (being escaped text) by the page. A structure suggested as the
     lead of other new structures lists them in its description, as mpstruc does.
+
+    What mpstruc already holds is passed along so the draft reads like the
+    curators' own text: for a daughter (or a related entry, or one to review)
+    the name mpstruc uses for the same protein in that family, and for a
+    related entry the entry it goes under with its related structures, so
+    `mp.relatedLine` names only what differs from them. When the family gives
+    no name (a new parent, say), the name mpstruc uses for entries with exactly
+    the same membrane protein(s) anywhere in the database is reused instead
+    (from PR #4's known_names; `summaries` are those of the mpstruc entries,
+    looked up when needed).
     """
     from . import listing
-    ids = [p["pdb"] for p in props]
-    det = rcsb.entry_details(ids)
+    db = db or load(source_xml())
+    known = {e.pdbCode.upper(): e for e in db.entries()}
     by_owner = defaultdict(list)
     for p in props:
         if p["placement"] == "related" and p.get("ownerPdb"):
             by_owner[p["ownerPdb"]].append(p["pdb"])
+    plan = {}
+    for p in props:
+        owner = known.get((p.get("ownerPdb") or "").upper())
+        family, group = [], []
+        if owner and p["placement"] in ("daughter", "related", "review"):
+            parent = owner if owner.kind == "parent" else known.get((owner.masterProteinPdbCode or "").upper())
+            family = [parent] + parent.daughters if parent else [owner]
+        if p["placement"] == "related" and p.get("ownerPdb"):
+            lead = p["ownerPdb"].upper()
+            group = [lead] + ([r.pdb.upper() for r in owner.related] if owner else [])
+            group += [x for x in sorted(by_owner.get(p["ownerPdb"], [])) if x != p["pdb"]]
+        plan[p["pdb"]] = (family, group)
+    need = {p["pdb"] for p in props} | {e.pdbCode.upper() for f, _ in plan.values() for e in f} | \
+           {x for _, g in plan.values() for x in g}
+    det = listing.enrich(rcsb.entry_details(sorted(need)))
+    by_core: dict[frozenset, list] | None = None
+
+    def same_core() -> dict[frozenset, list]:
+        """mpstruc entries by their exact set of membrane proteins (built once, when first needed)."""
+        nonlocal by_core, summaries
+        if by_core is None:
+            by_core = {}
+            try:
+                summaries = summaries if summaries is not None else _full_summaries(db)
+            except Exception as err:  # the drafts still work without it
+                print(f"listing: could not look up mpstruc names by protein ({err})")
+                summaries = {}
+            for e in db.entries():
+                s = summaries.get(e.pdbCode.upper())
+                if s and s.get("core"):
+                    by_core.setdefault(frozenset(s["core"]), []).append(e)
+        return by_core
+
     for p in props:
         core = set(p.get("uniprot") or []) - FUSION_UNIPROT
-        mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))])
+        family, group = plan[p["pdb"]]
+
+        def proteins(e):
+            d = det.get(e.pdbCode.upper()) or {}
+            return {u for x in d.get("polymer_entities") or []
+                    for u in (x.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []}
+        # Reuse mpstruc's name only from entries of the same protein: all of its
+        # membrane proteins if any entry has them, else any of them (a review
+        # case shares just part of it, so its family name may not fit).
+        names = [(e.name, e.bibliography.year) for e in family if core and core <= proteins(e)] or \
+                [(e.name, e.bibliography.year) for e in family if core & proteins(e)]
+        if not names and p["placement"] in ("daughter", "related"):
+            names = [(e.name, e.bibliography.year) for e in family]
+        if not names and core:
+            names = [(e.name, e.bibliography.year) for e in same_core().get(frozenset(core), [])]
+        ctx = {"family_names": names, "group": [(x, det.get(x)) for x in group]}
+        mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))], ctx)
         if not mp:
             continue
         # Name, species, description, authors and title are built from escaped
-        # text plus <br />, <sup> and entities only, so the page shows them as HTML.
+        # text plus <br />, <sub>, <sup> and entities only, so the page shows them as HTML.
         p["mp"] = mp
 
 
@@ -780,13 +840,33 @@ def main() -> None:
     conf, model = settings.get("confidence", {}), settings.get("model")
     kb = build_kb(db, _full_summaries(db))
     ids = released_between(since, until)
+    # Structures waiting for their paper (data/awaiting.json) are re-checked
+    # every week, even after they leave the release window (see awaiting.py).
+    from . import autoreject, awaiting
+    # Structures curators already approved or rejected (data/curation.json, written
+    # by the site's Curators tab) are not suggested again, except rejections
+    # waiting for a paper ("Not published yet", see autoreject.py): those stay
+    # tracked and checked so they come back to "To decide" when it is out.
+    curation_path = SITE_DATA / "curation.json"
+    curation = json.loads(curation_path.read_text(encoding="utf-8")) if curation_path.exists() else {}
+    decided = autoreject.decided_ids(curation)
+    unpub_rejected = set(autoreject.unpublished_rejections(curation))
+    wait_path = SITE_DATA / "awaiting.json"
+    wait_rec, _ = autoreject.track_unpublished(awaiting.load(wait_path), curation, until)
+    wait_rec, given_up = awaiting.drop_stale(wait_rec, until)
+    if given_up:
+        print(f"awaiting: stopped tracking {len(given_up)} structures still without a paper "
+              f"{awaiting.GIVE_UP_DAYS // 365} years after release")
+    ids = awaiting.with_tracked(ids, wait_rec)
+    try:
+        fresh_cits = awaiting.fresh_citations(sorted(awaiting.tracked(wait_rec)))
+        awaiting.forget_changed(fresh_cits)
+    except Exception as err:  # keep last week's state for these if the PDB is unreachable
+        print(f"awaiting: could not re-check tracked structures ({err})")
+        fresh_cits = {}
     # Score every new structure for how likely it is to be a membrane protein
     # (mpstruc/membrane.py), and place those at 10% or more.
     from . import membrane
-    # Structures curators already approved or rejected (data/curation.json, written
-    # by the site's Curators tab) are not suggested again.
-    curation_path = SITE_DATA / "curation.json"
-    decided = set((json.loads(curation_path.read_text()).get("entries") or {}).keys()) if curation_path.exists() else set()
     fresh = [p for p in ids if p not in kb.by_pdb and p.upper() not in decided]
     mem = membrane.score_structures(fresh, db)
     floor = 0.1
@@ -798,12 +878,30 @@ def main() -> None:
         p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
     props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
     props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
+    # Citations first: any cached entry whose paper turns out to be out now is
+    # dropped from the cache, so the draft listing below cites that paper.
+    cits = awaiting.citations_for(props, fresh_cits)
     add_listings(props)
+    run_day = dt.datetime.now(dt.timezone.utc).date().isoformat()
+    wait_rec, wait_stats = awaiting.update(props, {**fresh_cits, **cits}, wait_rec, run_day, hold=unpub_rejected)
+    wait_stats["given_up"] = len(given_up)
+    awaiting.save(wait_path, wait_rec)
+    # Record suggestions still waiting for their paper as rejected by the
+    # automation, and bring back those whose paper is now out. Read-modify-
+    # write: the site may have saved curator decisions since we read the file.
+    cur_text = curation_path.read_text(encoding="utf-8") if curation_path.exists() else None
+    cur_new, cur_raw, auto = autoreject.update_text(cur_text, props, wait_rec, autoreject.now_iso())
+    if cur_new != cur_text:
+        curation_path.write_text(cur_new, encoding="utf-8")
+    autoreject.mark_candidates(props, cur_raw)
+    autoreject.set_stats(stats, auto)
+    stats["awaiting publication"] = wait_stats["awaiting"]
     snap = (db.meta.get("lastDatabaseEditDate") or db.meta.get("lastNewProteinDate") or "")[:10]
     age = (today - dt.date.fromisoformat(snap)).days if snap else None
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
            "window": [since, until], "snapshot": db.meta.get("timeStamp"), "snapshotAgeDays": age, "stats": stats,
-           "threshold": 0.5, "confidence": conf, "candidates": props}
+           "threshold": 0.5, "confidence": conf, "runDate": run_day,
+           "awaiting": wait_stats, "candidates": props}
     mem_report = ROOT / "reports" / "membrane.json"
     if mem_report.exists():
         mr = json.loads(mem_report.read_text())
@@ -822,7 +920,9 @@ def main() -> None:
     runs = json.loads(log_path.read_text()).get("runs", []) if log_path.exists() else []
     runs.append({"at": out["generated"], "window": [since, until], "released": stats.get("released", 0),
                  "candidates": len(props), "membrane50": sum(p["membrane"] >= 0.5 for p in props),
-                 "already_decided": len(decided & set(ids))})
+                 "already_decided": len(decided & set(ids)),
+                 "awaiting": wait_stats["awaiting"], "newly_published": wait_stats["newly_published"],
+                 "autoRejected": len(auto["rejected"]), "autoUnrejected": len(auto["unrejected"])})
     log_path.write_text(json.dumps({"runs": runs[-200:]}, indent=1))
     print(f"{stats}; {sum(p['membrane'] >= 0.5 for p in props)} at least 50% likely to be membrane proteins; "
           f"wrote {SITE_DATA / 'candidates.json'}")
