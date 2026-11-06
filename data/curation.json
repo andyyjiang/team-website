@@ -154,6 +154,44 @@
    "suggestedSubgroup": "G03-S084",
    "suggestedOwner": "23JK",
    "membrane": 0.949
+  },
+  "23JK": {
+   "status": "rejected",
+   "reason": "Other",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "at": "2026-11-06T00:41:18.747Z",
+   "title": "Complex structure of a permease",
+   "released": "2026-11-04",
+   "organism": "Escherichia coli K-12",
+   "res": 2.97,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "PTS system mannitol-specific EIICBA component",
+    "species": "Escherichia coli K-12",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.97",
+    "description": "cryo-EM structure<br /> with bound D-Mannitol-1-phosphate<br /> with bound D-Mannitol-1-phosphate, 3.16 &Aring;: 23JL",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhang J, &amp; Zhang J",
+     "year": null,
+     "title": "Complex structure of a permease",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Complex structure of a permease"
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S084",
+   "suggestedOwner": "",
+   "membrane": 0.949
   }
  },
  "log": [
@@ -204,6 +242,14 @@
    "action": "reject",
    "pdb": "23JL",
    "detail": "Rejected 23JL: Other"
+  },
+  {
+   "at": "2026-11-06T00:41:18.747Z",
+   "by": "jaylinantwerp-beep",
+   "byName": "jaylinantwerp-beep",
+   "action": "reject",
+   "pdb": "23JK",
+   "detail": "Rejected 23JK: Other"
   }
  ]
 }
