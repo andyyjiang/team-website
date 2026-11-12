@@ -29,6 +29,21 @@
    "newly_published": 0,
    "autoRejected": 433,
    "autoUnrejected": 0
+  },
+  {
+   "at": "2026-11-12T15:35+00:00",
+   "window": [
+    "2026-05-14",
+    "2026-11-12"
+   ],
+   "released": 9472,
+   "candidates": 1106,
+   "membrane50": 936,
+   "already_decided": 3,
+   "awaiting": 446,
+   "newly_published": 6,
+   "autoRejected": 15,
+   "autoUnrejected": 6
   }
  ]
 }
