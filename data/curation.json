@@ -18325,6 +18325,45 @@
    "suggestedSubgroup": "G03-S102",
    "suggestedOwner": "9I1Z",
    "membrane": 0.945
+  },
+  "36QU": {
+   "status": "rejected",
+   "reasonCode": "not_membrane",
+   "reason": "Not a membrane protein",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T06:51:46.553Z",
+   "title": "Arabidopsis thaliana V-type ATPase, State 1",
+   "released": "2026-09-09",
+   "organism": "Arabidopsis thaliana",
+   "res": 3,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": "42950819",
+   "doi": "10.1016/j.str.2026.10.002",
+   "mp": {
+    "name": "V-type proton ATPase subunit AP1 fragment / V-type proton ATPase subunit c''1 in complex with V-type with bound ADP",
+    "species": "Arabidopsis thaliana",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "3",
+    "description": "cryo-EM structure<br /> state 2, 3.00 &Aring;: 36QV<br /> state 3, 3.00 &Aring;: 36QW<br /> in complex with OXR5, state 1, 4.30 &Aring;: 36QX",
+    "bibliography": {
+     "pubMedId": "42950819",
+     "authors": "Khamina M, Wunsch N, Lupanga U, Fink F, Wang H, Hemsley PA, Schulze WX, Schumacher K, &amp; Rubinstein JL",
+     "year": "2026",
+     "title": "Cryo-EM structure of the Arabidopsis thaliana V-type ATPase.",
+     "journal": "Structure",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1016/j.str.2026.10.002"
+    },
+    "pdbTitle": "Arabidopsis thaliana V-type ATPase, State 1"
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S130",
+   "suggestedOwner": "",
+   "membrane": 0.862
   }
  },
  "log": [
@@ -22135,6 +22174,14 @@
    "action": "reject",
    "pdb": "9TIB",
    "detail": "Rejected 9TIB: Not a membrane protein"
+  },
+  {
+   "at": "2026-11-13T06:51:46.553Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "reject",
+   "pdb": "36QU",
+   "detail": "Rejected 36QU: Not a membrane protein"
   }
  ]
 }
