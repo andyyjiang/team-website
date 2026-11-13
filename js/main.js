@@ -4632,20 +4632,28 @@ links.addEventListener("click", (event) => {
   function vercelIndex() {
     if (vc.idx) return vc.idx;
     const latest = vcWeeks()[0];
-    const missedLatest = new Set(latest ? vcRows(latest.missed).map((r) => r.pdb) : []);
+    // Every membrane protein a comparison found missing from Vercel: the week it was
+    // released in (newest week first), or null when only the whole-database check found it.
+    const missed = new Map();
+    vcWeeks().forEach((w) => vcRows(w.missed).forEach((r) => { if (!missed.has(r.pdb)) missed.set(r.pdb, w.week); }));
+    if (vcWhole()) vcRows(vcWhole().missed).forEach((r) => { if (!missed.has(r.pdb)) missed.set(r.pdb, null); });
     const status = new Map();
     const rows = [...vcWeeks().flatMap((w) => [...vcRows(w.missed), ...vcRows(w.notMembrane)]),
                   ...(vcWhole() ? [...vcRows(vcWhole().missed), ...vcRows(vcWhole().notMembrane)] : [])];
     rows.forEach((r) => { if (!status.has(r.pdb)) status.set(r.pdb, r.vercelStatus ?? null); });
-    vc.idx = { latest, missedLatest, status };
+    vc.idx = { latest, missed, status };
     return vc.idx;
   }
   function vercelBadge(pdb) {
     if (!vc.data) return "";
     const ix = vercelIndex();
-    if (ix.missedLatest.has(pdb)) {
-      return `<a class="mp-badge vc-flag vc-flag-missed" href="#/automation/vercel" title="A membrane protein released in the week of ${esc(shortDay(ix.latest.week))} that the Vercel demo does not list">Vercel missed this</a>`;
+    if (ix.missed.has(pdb)) {
+      const week = ix.missed.get(pdb);
+      const when = week ? `released in the week of ${esc(shortDay(week))}` : "released within the period Vercel's database covers";
+      return `<a class="mp-badge vc-flag vc-flag-missed" href="#/automation/vercel" title="A membrane protein ${when} that the Vercel demo does not list">Vercel missed this</a>`;
     }
+    // Not in Vercel's database, with no finding that it should be (not a membrane protein,
+    // not known to be one, or released outside the period Vercel covers).
     const absent = vc.snap instanceof Set ? !vc.snap.has(pdb) : ix.status.has(pdb) && ix.status.get(pdb) === null;
     return absent ? `<span class="mp-badge vc-flag" title="The Vercel demo's database does not list this structure">Not in Vercel</span>` : "";
   }
