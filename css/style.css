@@ -1573,3 +1573,17 @@ a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
   .mp-mark, .mp-pipe ol, .mp-placed { border-color: CanvasText; }
   .mp-pipe li.current .mp-pipe-n, .mp-stage-dots i.now, .mp-stage-dots i.done { background: Highlight; border-color: Highlight; }
 }
+
+/* Copy a suggestion as an mpstruc entry (clipboard button on cards and rows). */
+.mp-copy { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px; padding: 0;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; color: var(--color-muted); cursor: pointer; }
+.mp-copy:hover { color: var(--color-text); border-color: var(--color-border-strong); background: var(--color-bg-alt); }
+.mp-copy:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.mp-copy.done { color: var(--color-daughter); border-color: var(--color-daughter); }
+.mp-copy svg { display: block; pointer-events: none; }
+@media (max-width: 720px), (pointer: coarse) {
+  .mp-copy { width: 44px; height: 44px; }
+}
+@media (forced-colors: active) {
+  .mp-copy { border-color: ButtonText; color: ButtonText; }
+}
