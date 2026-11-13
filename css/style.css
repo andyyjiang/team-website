@@ -1283,3 +1283,89 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .mp-body :focus-visible, .mp-search:has(:focus-visible), .mp-hero-mol canvas:focus-visible { outline: 2px solid Highlight; }
   .mp-search input:focus { box-shadow: none; }
 }
+
+/* ---- In mpstruc or not, and the upload steps ----------------------------
+   Every database entry and related line carries a small marker: listed in the
+   official mpstruc ("in"), added by curators and not there yet ("out"), or
+   sent to the mpstruc maintainers and waiting ("sent"). */
+.mp-mark {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 500; line-height: 1.5;
+  padding: 0 7px; border-radius: 999px; border: 1px solid var(--color-border-strong); color: var(--color-muted);
+}
+.mp-mark::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.mp-mark.out {
+  color: var(--color-daughter); border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-daughter) 50%, transparent);
+  background: color-mix(in srgb, var(--color-daughter) 7%, transparent);
+}
+.mp-mark.out::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.mp-mark.sent { color: var(--color-warn-text); background: var(--color-warn-bg); border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+.mp-chipgroup { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.mp-chipgroup + .mp-chipgroup { margin-left: 6px; padding-left: 10px; border-left: 1px solid var(--color-border); }
+.mp-legend .mp-mark { vertical-align: 1px; }
+.mp-upload-link { font-weight: 600; }
+.mp-filters .mp-upload-link { align-self: center; font-size: 0.86rem; }
+.mp-home-filter { grid-template-columns: minmax(0, 260px); }
+
+/* The listing a search or PDB link opened: where it is placed, and what it was opened for. */
+.mp-placed {
+  margin: 0 0 14px; padding: 8px 12px; border: 1px solid var(--color-border); border-left: 3px solid var(--color-daughter);
+  border-radius: 8px; background: var(--color-surface); font-size: 0.88rem; line-height: 1.6; overflow-wrap: anywhere;
+}
+.mp-placed .mp-pdb { font-size: 0.92rem; text-decoration: none; }
+.mp-placed .mp-mark { vertical-align: 1px; }
+.mp-entry.mp-hit { border-color: var(--color-daughter); box-shadow: 0 0 0 1px var(--color-daughter); }
+.mp-table tr.mp-hit td { background: color-mix(in srgb, var(--color-daughter) 11%, transparent); }
+.mp-table tr.mp-hit td:first-child { box-shadow: inset 3px 0 0 var(--color-daughter); }
+.mp-table tr { scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px); }
+.mp-chip.mp-hit-chip { border-color: var(--color-daughter); color: var(--color-daughter); font-weight: 600; }
+
+/* The curation steps strip: Automation > Edit > Approve > Push > Upload > In mpstruc. */
+.mp-pipe { margin: 4px 0 16px; }
+.mp-pipe ol {
+  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); overflow: hidden;
+}
+.mp-pipe li { position: relative; min-width: 0; }
+.mp-pipe li + li { border-left: 1px solid var(--color-border); }
+.mp-pipe a {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; padding: 8px 10px 9px; height: 100%;
+  text-decoration: none; color: var(--color-text); font-family: var(--font-ui); line-height: 1.3;
+}
+.mp-pipe a:hover { background: var(--color-bg-alt); }
+.mp-pipe a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+.mp-pipe-n {
+  grid-row: span 2; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; border: 1px solid var(--color-border-strong); color: var(--color-muted);
+}
+.mp-pipe-t { font-size: 0.8rem; font-weight: 600; overflow-wrap: anywhere; }
+.mp-pipe-c { font-size: 0.74rem; color: var(--color-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.mp-pipe li.current a { background: color-mix(in srgb, var(--color-daughter) 9%, transparent); box-shadow: inset 0 -2px 0 var(--color-daughter); }
+.mp-pipe li.current .mp-pipe-n { background: var(--color-daughter); border-color: var(--color-daughter); color: var(--color-surface-solid); }
+
+/* Which step one structure is at (Decisions lists, Ready to upload). */
+.mp-stage { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 0; font-size: 0.86rem; }
+.mp-stage-dots { display: inline-flex; gap: 3px; flex: none; }
+.mp-stage-dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-border-strong); }
+.mp-stage-dots i.done { background: var(--color-muted); border-color: var(--color-muted); }
+.mp-stage-dots i.now { background: var(--color-daughter); border-color: var(--color-daughter); }
+.mp-stage-step { color: var(--color-muted); }
+.mp-differs { background: var(--color-warn-bg); color: var(--color-warn-text); }
+.mp-list-head { margin: 22px 0 10px; font-family: var(--font-ui); font-size: 0.98rem; font-weight: 600; }
+.mp-list-head:first-child { margin-top: 4px; }
+.mp-term-line.act-in-mpstruc .act, .mp-term-line.act-submit .act { color: var(--term-accent); }
+
+@media (max-width: 720px) {
+  .mp-pipe ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mp-pipe li:nth-child(4) { border-left: 0; }
+  .mp-pipe li:nth-child(n + 4) { border-top: 1px solid var(--color-border); }
+  .mp-pipe a { padding: 7px 8px 8px; column-gap: 5px; }
+  .mp-pipe-n { width: 18px; height: 18px; }
+  .mp-chipgroup + .mp-chipgroup { margin-left: 0; padding-left: 0; border-left: 0; }
+  .mp-stage { flex-direction: column; gap: 3px; }
+}
+@media (forced-colors: active) {
+  .mp-mark, .mp-pipe ol, .mp-placed { border-color: CanvasText; }
+  .mp-pipe li.current .mp-pipe-n, .mp-stage-dots i.now, .mp-stage-dots i.done { background: Highlight; border-color: Highlight; }
+}
