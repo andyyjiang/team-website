@@ -48,17 +48,21 @@ links.addEventListener("click", (event) => {
   const rcsb = (id) => `https://www.rcsb.org/structure/${encodeURIComponent(id)}`;
   // The PDB's own picture of a structure (as on rcsb.org). Falls back to the
   // model image, then disappears, if the PDB has no assembly picture.
+  // Only a well-formed PDB ID becomes part of the URL ("" otherwise), and the URL
+  // is escaped where it goes into markup: IDs come from the address and data files.
+  const isPdbId = (id) => /^[0-9][A-Z0-9]{3}$/.test(String(id ?? "").toUpperCase());
   const thumbSrc = (id, kind = "assembly-1") => {
+    if (!isPdbId(id)) return "";
     const l = String(id).toLowerCase();
     return `https://cdn.rcsb.org/images/structures/${l.slice(1, 3)}/${l}/${l}_${kind}.jpeg`;
   };
   window.mpThumbFallback = (img) => {
-    if (img.dataset.tried) { img.remove(); return; }
+    if (img.dataset.tried || !isPdbId(img.dataset.pdb)) { img.remove(); return; }
     img.dataset.tried = "1";
     img.src = thumbSrc(img.dataset.pdb, "model-1");
   };
-  const thumb = (id, cls = "mp-thumb") =>
-    `<img class="${cls}" loading="lazy" decoding="async" src="${thumbSrc(id)}" data-pdb="${esc(id)}"
+  const thumb = (id, cls = "mp-thumb") => !isPdbId(id) ? "" :
+    `<img class="${cls}" loading="lazy" decoding="async" src="${esc(thumbSrc(id))}" data-pdb="${esc(id)}"
       alt="3D structure of PDB ${esc(id)} (image: RCSB PDB)" onerror="mpThumbFallback(this)">`;
   const fmtRes = (v) => (v == null ? "" : `${Number(v).toFixed(2).replace(/0$/, "")} Å`);
   // Interactive 3D preview of a structure (C-alpha trace from the RCSB
@@ -222,12 +226,33 @@ links.addEventListener("click", (event) => {
   const isSubmitted = (pdb) => { const d = curation.entries[String(pdb).toUpperCase()]; return isPushed(d) && isObj(d.submitted); };
   const MP_MARK = { in: ["in", "In mpstruc", "Listed in the official mpstruc database"],
                     out: ["out", "Not in mpstruc yet", "In this site's database, added by curators; not yet in the official mpstruc"],
-                    sent: ["sent", "Submitted, waiting for mpstruc", "Sent to the mpstruc maintainers; marked In mpstruc once the official file lists it"] };
+                    sent: ["sent", "Submitted, waiting for mpstruc", "Sent to the mpstruc maintainers; marked In mpstruc once the official file lists it"],
+                    // A weekly suggestion: a new PDB release the official mpstruc does not list.
+                    sug: ["out", "Not in mpstruc", "A new PDB release that the official mpstruc does not list (as an entry, a related entry or in a description)"] };
   function mpMark(kind) {
     const [cls, label, tip] = MP_MARK[kind];
     return `<span class="mp-mark ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
   }
   const markOf = (e) => (!e.isNew ? "in" : isSubmitted(e.pdb) ? "sent" : "out");
+  // In the official mpstruc file in any way: an entry, a related code, or only
+  // named in an entry's description (as the weekly run counts it). The file can
+  // be newer than this week's suggestions, so a suggestion may already be there.
+  const inMpNow = (id) => { const k = String(id || "").toUpperCase(); return inOfficial(k) || base.mentioned.has(k); };
+  // The address of where the official file has it, or null.
+  function officialHash(id) {
+    const k = String(id || "").toUpperCase();
+    if (inOfficial(k)) {
+      const to = listingHash(k);
+      return to && !/^#\/entry\/NEW-/.test(to) ? to : `#/pdb/${k}/about`;
+    }
+    return base.mentioned.has(k) ? `#/pdb/${k}/about` : null;
+  }
+  // The label on a suggestion: 'Not in mpstruc', or 'In mpstruc' (a link to its listing) once the official file lists it.
+  function candMark(pdb) {
+    const to = officialHash(pdb);
+    return to ? `<a class="mp-mark in" href="${esc(to)}" title="The official mpstruc now lists ${esc(pdb)} (its file is newer than this week's suggestions): see where">In mpstruc</a>`
+      : mpMark("sug");
+  }
   const filtersActive = () => Object.values(state.filters).some(Boolean);
 
   function options(values, current, allLabel) {
@@ -317,8 +342,10 @@ links.addEventListener("click", (event) => {
       const id = q.toUpperCase();
       // An exact PDB ID goes straight to its listing in the database; one that is
       // only mentioned (or known from the PDB) to its PDB page; anything else to the results.
+      // An exact PDB ID found nowhere in the database goes to #/find/<ID>, which
+      // opens its suggestion or curator decision, or says it is not known.
       const to = !PDB_RE.test(id) ? null : listingHash(id)
-        || (state.byPdb.has(id) || state.data.relPdb[id] ? `#/pdb/${id}/about` : null);
+        || (state.byPdb.has(id) || state.data.relPdb[id] ? `#/pdb/${id}/about` : `#/find/${id}`);
       const target = to || (q ? `#/search/${encodeURIComponent(q)}` : "");
       if (!target) return;
       if (location.hash === target) route(); else location.hash = target;
@@ -628,6 +655,54 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
+  // #/find/<ID> (an exact PDB ID searched for that the database does not
+  // list): where to send it instead. Its card on the Automation tab when it is
+  // one of this week's suggestions; for curators, the Decisions list its
+  // decision is in. "" while the suggestions load; null for the 'not found' page.
+  function findTarget(id) {
+    if (!PDB_RE.test(id)) return `#/search/${encodeURIComponent(id)}`;
+    const listed = listingHash(id);
+    if (listed) return listed;
+    if (state.byPdb.has(id) || state.data.relPdb[id]) return `#/pdb/${id}/about`;
+    const d = Object.hasOwn(curation.entries, id) && isObj(curation.entries[id]) ? curation.entries[id] : null;
+    if (!auto.cands && !auto.error) { loadAutomation(); return ""; }
+    if (auto.cands && candIndex().has(id) && !(d && d.status === "deleted")) return `#/automation/card/${id}`;
+    if (d && signedIn()) {
+      if (d.status === "rejected" || d.status === "deleted") { rej.q = id; return `#/rejected/${d.status === "deleted" ? "deleted" : reasonCode(d)}`; }
+      if (d.status === "approved") { appr.q = id; return `#/approved${inOfficial(id) ? "/inmpstruc" : isPushed(d) ? "/pushed" : ""}`; }
+    }
+    return null;
+  }
+  // What the Vercel demo's snapshot says about a PDB ID (null when it is not there, undefined while loading or unavailable).
+  function vercelEntry(id) {
+    if (!(vc.snap instanceof Set)) return undefined;
+    return vc.snapEntries && isObj(vc.snapEntries[id]) ? vc.snapEntries[id] : null;
+  }
+  function viewFind(id) {
+    const loading = !auto.cands && !auto.error;
+    const d = Object.hasOwn(curation.entries, id) && isObj(curation.entries[id]) ? curation.entries[id] : null;
+    loadVercel();
+    loadVercelSnapshot();
+    const v = vercelEntry(id);
+    const vcLine = v ? `<p class="mp-find-vc"><b>The Vercel demo lists it</b>${v.status != null ? `: ${esc(vcStatusText(v.status))}` : ""}${v.family ? ` · ${esc(plain(v.family))}` : ""}${v.name ? ` · “${esc(plain(v.name))}”` : ""}${v.released ? ` · released ${esc(plain(v.released))}` : ""}${v.tm && v.tm !== "N/A" ? ` · ${esc(plain(v.tm))} TM ${String(v.tm) === "1" ? "helix" : "helices"}` : ""}.
+        <a href="#/automation/vercel">Compared with the Vercel demo</a></p>`
+      : v === null ? '<p class="mp-find-vc">The Vercel demo does not list it either.</p>'
+      : vc.loading || vc.snapLoading ? '<p class="mp-find-vc mp-of">Checking the Vercel demo…</p>' : "";
+    const decided = d && !signedIn() ? `<p class="mp-newnote">A curator ${d.status === "approved" ? "approved it" : d.status === "deleted" ? "deleted it from the suggestions" : `rejected it (${esc(reasonLabel(d))})`}${d.at ? ` on ${esc(fmtDate(plain(d.at)))}` : ""}.
+        <a href="#/curators">Sign in</a> to see it in Decisions.</p>` : "";
+    return `<div class="mp-view mp-find">
+      <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
+      <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${loading ? `<p class="mp-loading">Checking this week's suggestions for ${esc(id)}…</p>`
+        : `<p class="mp-empty">${esc(id)} is not in the database or in this week's suggestions${auto.error ? " (they could not be loaded)" : ""}.</p>`}
+      ${decided}
+      ${vcLine}
+      <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
+        <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
+      <p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>
+    </div>`;
+  }
+
   // On a PDB page, for curators: this structure was rejected (or deleted) on the Automation tab.
   function rejectedNote(id) {
     const d = signedIn() && Object.hasOwn(curation.entries, id) ? curation.entries[id] : null;
@@ -782,9 +857,13 @@ links.addEventListener("click", (event) => {
     auto.loading = true;
     Promise.all([fetch("data/candidates.json").then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))),
                  fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
-      .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5; })
+      .then(([c, b]) => {
+        // A suggestion without a well-formed PDB ID is dropped: the ID goes into links and image URLs.
+        if (isObj(c) && Array.isArray(c.candidates)) c.candidates = c.candidates.filter((x) => isObj(x) && PDB_RE.test(String(x.pdb ?? "")));
+        auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5;
+      })
       .catch((err) => { auto.error = err.message; })
-      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc)/.test(lastRoute)) rerender(); });
+      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc|find)/.test(lastRoute)) rerender(); });
   }
 
   const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
@@ -1413,6 +1492,7 @@ links.addEventListener("click", (event) => {
         ${status}
         ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
         ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
+        ${candMark(c.pdb)}
         ${vercelBadge(c.pdb)}
         <span class="mp-of">released ${esc(c.released || "")}</span>
         <h3>${shownMp && shownMp.name ? safeMarkup(shownMp.name) : esc(c.title || c.pdb)}</h3>
@@ -1451,6 +1531,8 @@ links.addEventListener("click", (event) => {
     const d = decisionOf(c);
     if (d && d.status === "deleted") return "deleted"; // deleted for good: never suggested again
     if (v.status === "undecided" && d) return d.status === "approved" ? "approved" : "rejected";
+    // Listed by the official mpstruc since the suggestions were made: nothing to decide.
+    if (v.status === "undecided" && inMpNow(c.pdb)) return "already in mpstruc";
     if (v.status === "approved" && d?.status !== "approved") return d ? "rejected" : "not decided yet";
     if (v.status === "rejected" && d?.status !== "rejected") return d ? "approved" : "not decided yet";
     if (v.placement && c.placement !== v.placement) return `suggested as ${(PLACEMENT_LABEL[c.placement] || c.placement).toLowerCase()}`;
@@ -1620,7 +1702,7 @@ links.addEventListener("click", (event) => {
   // approved only with an owner that is (or will be, in the same save)
   // approved; the others are held back.
   function studyPlan(s) {
-    const free = (c) => !decisionOf(c) && !optimistic.has(c.pdb);
+    const free = (c) => !decisionOf(c) && !optimistic.has(c.pdb) && !inMpNow(c.pdb);
     const und = s.members.filter(free);
     const kids = und.filter((c) => c !== s.lead);
     const lead = s.lead, ld = lead && decisionOf(lead);
@@ -1696,6 +1778,7 @@ links.addEventListener("click", (event) => {
           <h5 class="mp-relitem-id"><a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a></h5>
           ${status}${who}${saving ? '<span class="mp-saving">Saving…</span>' : ""}
           ${c.awaiting ? '<span class="mp-badge related">Awaiting paper</span>' : ""}
+          ${candMark(c.pdb)}
         </div>
         <p class="mp-relitem-line">${m.relatedLine ? relLineHtml(m.relatedLine) : `<span class="mp-of">No related line drafted:</span> ${esc(c.title || "")}`}</p>
         <p class="mp-relitem-title"><span class="mp-of">PDB title:</span> ${esc(c.title || "")}</p>
@@ -1737,7 +1820,7 @@ links.addEventListener("click", (event) => {
       ${studyCrumbs(c)}
       <h3 class="mp-study-title" id="gt-${esc(s.key)}">Related to <a href="${rcsb(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a> – ${m.name || esc(c.title || "")}
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : ""}">${esc(PLACEMENT_LABEL[c.placement] || c.placement)}</span>
-        ${d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "related"}">${esc(d.status === "approved" ? "Approved" : d.status === "deleted" ? "Deleted" : "Rejected")}</span>` : ""}</h3>
+        ${d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "dropped"}">${esc(d.status === "approved" ? "Approved" : d.status === "deleted" ? "Deleted" : "Rejected")}</span>` : ""}</h3>
       <p class="mp-study-note">${esc(why)}. The related entries below go under it.</p>
       <div class="mp-actions">
         ${d && d.status === "deleted" ? "" : `<button class="mp-btn secondary" type="button" id="g-lead-${esc(s.key)}" data-gact="lead" data-group="${esc(s.key)}">Show ${esc(c.pdb)}'s card</button>`}
@@ -1765,6 +1848,83 @@ links.addEventListener("click", (event) => {
       ${rows ? `<div class="mp-rel-tree"><h4 class="mp-rel-tree-h">Related entries (${nRel})${lead ? ` <span class="mp-of">· lines in ${esc(lead.pdb)}'s mpstruc entry</span>` : ""}</h4>
         <ul class="mp-rel-list" aria-label="Related entries${lead ? ` of ${esc(lead.pdb)}` : ""}">${rows}</ul></div>` : ""}
     </div>`;
+  }
+
+  // ---- new releases mpstruc already has ----------------------------------
+  // The weekly run lists them in candidates.json "inMpstruc" ({ pdb, as:
+  // parent | daughter | related | description, key: the mpstruc record of the
+  // entry it is or is listed under, ownerPdb, subgroup, subgroupName }) and
+  // leaves them out of the suggestions; files from before that have none.
+  // Suggestions the official file lists since (it can be newer) are added from
+  // the database, marked late.
+  const hasInMpList = () => Boolean(auto.cands && Array.isArray(auto.cands.inMpstruc));
+  function alreadyRows() {
+    if (alreadyRows.src === auto.cands) return alreadyRows.list;
+    const rows = [], seen = new Set();
+    for (const r of hasInMpList() ? auto.cands.inMpstruc : []) {
+      if (!isObj(r) || typeof r.pdb !== "string" || seen.has(r.pdb.toUpperCase())) continue;
+      seen.add(r.pdb.toUpperCase());
+      rows.push({ pdb: r.pdb.toUpperCase(), as: String(r.as || ""), key: plain(r.key), ownerPdb: plain(r.ownerPdb).toUpperCase(),
+                  subgroup: plain(r.subgroup), subgroupName: plain(r.subgroupName), late: false });
+    }
+    for (const c of auto.cands.candidates) {
+      if (seen.has(c.pdb) || !inMpNow(c.pdb)) continue;
+      seen.add(c.pdb);
+      const refs = (state.byPdb.get(c.pdb) || []).filter((x) => !x.entry.isNew && (x.type !== "related" || relInMp(x.entry, c.pdb)));
+      const r = refs.find((x) => x.type === "parent") || refs.find((x) => x.type === "daughter") || refs.find((x) => x.type === "related");
+      if (r) {
+        rows.push({ pdb: c.pdb, as: r.type, key: r.entry.k, ownerPdb: r.type === "related" ? r.entry.pdb.toUpperCase() : "",
+                    subgroup: r.entry.sg.k, subgroupName: strip(r.entry.sg.name), late: true });
+      } else {
+        const e = state.byKey.get(base.mentioned.get(c.pdb));
+        rows.push({ pdb: c.pdb, as: "description", key: e ? e.k : "", ownerPdb: e ? e.pdb.toUpperCase() : "",
+                    subgroup: e ? e.sg.k : "", subgroupName: e ? strip(e.sg.name) : "", late: true });
+      }
+    }
+    alreadyRows.src = auto.cands;
+    alreadyRows.list = rows;
+    return rows;
+  }
+  // Where it is, in plain English: "related entry of 9T7P in GPCRs: Class A".
+  function alreadyWhere(r) {
+    const e = r.key ? state.byKey.get(r.key) : null;
+    const sg = (r.subgroup && state.sgOf.get(r.subgroup)) || (e && e.sg);
+    const inSg = sg ? ` in <a href="#/sg/${esc(sg.k)}">${safeMarkup(sg.name)}</a>` : r.subgroupName ? ` in ${esc(r.subgroupName)}` : "";
+    const ent = (pdb, k) => (k && state.byKey.has(k) ? `<a href="#/entry/${esc(k)}">${esc(pdb)}</a>` : pdb ? `<a href="#/pdb/${esc(pdb)}">${esc(pdb)}</a>` : "");
+    if (r.as === "parent") return `parent entry${inSg}`;
+    if (r.as === "daughter") {
+      const p = e && e.parent;
+      return p ? `daughter of ${ent(p.pdb, p.k)}${inSg}` : `daughter entry${inSg}`;
+    }
+    if (r.as === "related") {
+      const o = r.ownerPdb || (e ? e.pdb : "");
+      return o ? `related entry of ${ent(o, r.key)}${inSg}` : `related entry${inSg}`;
+    }
+    if (r.as === "description") {
+      const o = r.ownerPdb || (e ? e.pdb : "");
+      return o ? `named in ${ent(o, r.key)}'s description${sg ? ` <span class="mp-of">(${safeMarkup(sg.name)})</span>` : ""}` : "named in an entry's description";
+    }
+    return `listed${inSg}`;
+  }
+  // The PDB's title, when the database has it.
+  function pdbTitle(id) {
+    const x = state.data.relPdb[id] || ((state.byPdb.get(id) || []).find((r) => r.type !== "mentioned" && r.entry.pdb.toUpperCase() === id) || { entry: {} }).entry.x;
+    return x && x.title ? plain(x.title) : "";
+  }
+  function alreadyList(q) {
+    const terms = String(q || "").toLowerCase().split(/\s+/).filter(Boolean);
+    return alreadyRows().filter((r) => {
+      const t = `${r.pdb} ${r.ownerPdb} ${r.subgroupName} ${sgName(r.subgroup)} ${pdbTitle(r.pdb)}`.toLowerCase();
+      return terms.every((x) => t.includes(x));
+    });
+  }
+  function alreadyRow(r) {
+    const id = esc(r.pdb), title = pdbTitle(r.pdb);
+    return `<li class="mp-inmp-row" id="im-${id}">
+      <span class="mp-inmp-id"><a class="mp-pdb" href="#/pdb/${id}">${id}</a>${mpMark("in")}</span>
+      <span class="mp-inmp-where">${alreadyWhere(r)}${r.late ? ' <span class="mp-of">(listed since this week\'s suggestions were made)</span>' : ""}</span>
+      ${title ? `<span class="mp-inmp-title">${esc(title)}</span>` : ""}
+    </li>`;
   }
 
   function latestRelease() {
@@ -1830,9 +1990,11 @@ links.addEventListener("click", (event) => {
     for (const pdb of auto.formOpened) {
       if (auto.editing !== pdb && auto.rejecting !== pdb) { auto.open.delete(pdb); auto.formOpened.delete(pdb); }
     }
-    const list = filteredStudies();
+    // Show: Already in mpstruc lists new releases mpstruc has (not suggestions).
+    const nAlready = alreadyRows().length, inMode = v.status === "inmpstruc";
+    const list = inMode ? alreadyList(v.q) : filteredStudies();
     const shown = list.slice(0, state.limit);
-    const nStructs = list.reduce((n, x) => n + x.hit.size, 0);
+    const nStructs = inMode ? list.length : list.reduce((n, x) => n + x.hit.size, 0);
     const counts = { approved: 0, rejected: 0 };
     Object.values(decisions).forEach((d) => { if (counts[d.status] != null) counts[d.status]++; });
     const older = Object.keys(decisions).filter((pdb) => !c.candidates.some((x) => x.pdb === pdb)).length;
@@ -1842,7 +2004,7 @@ links.addEventListener("click", (event) => {
     // 'Latest' also lists older releases whose paper just came out: say so.
     const latestDay = latestRelease();
     const latestLabel = `Latest: ${esc(shortDay(latestDay))}${c.candidates.some((x) => newlyPublished(x) && x.released !== latestDay) ? " releases + new papers" : ""}`;
-    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x)).length;
+    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x) && !inMpNow(x.pdb)).length;
     const nStaged = Object.values(decisions).filter(isStaged).length;
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
@@ -1858,7 +2020,7 @@ links.addEventListener("click", (event) => {
         ${nowOut ? `<b>${nowOut.toLocaleString()} ${nowOut === 1 ? "paper has" : "papers have"} come out</b> since the last check; ${nowOut === 1 ? "that structure is" : "those structures are"} back in 'To decide'.` : ""}</p>` : ""}
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
-        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
+        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}${hasInMpList() || nAlready || inMode ? opt("inmpstruc", `Already in mpstruc (${nAlready.toLocaleString()})`, v.status) : ""}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
@@ -1868,8 +2030,9 @@ links.addEventListener("click", (event) => {
       </form>
       ${v.status === "rejected" ? `<p class="mp-summary mp-rej-pointer">${signedIn() ? `Sort, change the reason, move back to 'To decide' or delete rejected structures in
         <a href="#/rejected">Decisions › Rejected</a>.` : "Curators manage rejected structures in Decisions › Rejected once signed in."} Only rejections from this week's suggestions are listed here.</p>` : ""}
-      <div class="mp-toolbar"><p class="mp-summary">${list.length.toLocaleString()} ${list.length === 1 ? "entry" : "entries"} with their related entries
-        (${nStructs.toLocaleString()} ${nStructs === 1 ? "structure matches" : "structures match"} the filters)</p>
+      <div class="mp-toolbar"><p class="mp-summary">${inMode ? `${list.length.toLocaleString()} new ${list.length === 1 ? "release" : "releases"} already in mpstruc${v.q ? " matching the search" : ""}`
+        : `${list.length.toLocaleString()} ${list.length === 1 ? "entry" : "entries"} with their related entries
+        (${nStructs.toLocaleString()} ${nStructs === 1 ? "structure matches" : "structures match"} the filters)`}</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
@@ -1885,11 +2048,15 @@ links.addEventListener("click", (event) => {
       ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve, change or reject them,
         <a href="#/curators">sign in on the Curators tab</a>.</p>`}
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
-      ${shown.length ? `<p class="mp-summary mp-study-intro">Each new parent or daughter is listed once, with its related entries (the lines
+      ${inMode ? `<p class="mp-summary mp-study-intro">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} that the official mpstruc already
+        lists, as an entry, a related entry or only in an entry's description, so they are not suggested. Only the search applies here.
+        ${hasInMpList() ? "" : "This week's file was made before the weekly run listed them; only suggestions mpstruc has listed since are shown."}</p>
+        ${shown.length ? `<ul class="mp-inmp-list" aria-label="New releases already in mpstruc">${shown.map(alreadyRow).join("")}</ul>` : '<p class="mp-empty">None to show.</p>'}
+        ${more(shown.length, list.length)}` : `${shown.length ? `<p class="mp-summary mp-study-intro">Each new parent or daughter is listed once, with its related entries (the lines
         mpstruc adds to its entry) nested under it. Related entries that the filters would hide stay listed, dimmed, with the reason,
         while their entry is shown.</p>` : ""}
       ${shown.map(studyBlock).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
-      ${more(shown.length, list.length)}
+      ${more(shown.length, list.length)}`}
     </div>`;
   }
 
@@ -2263,7 +2430,7 @@ links.addEventListener("click", (event) => {
         state.focusHeading = false;
         card.setAttribute("tabindex", "-1");
         card.focus({ preventScroll: true });
-        requestAnimationFrame(() => card.scrollIntoView({ block: "start" }));
+        pendingScroll.set(card.id);
       }
     }
     if (auto.focusEditor) {
@@ -2272,10 +2439,37 @@ links.addEventListener("click", (event) => {
       if (el) {
         state.focusHeading = false;
         el.focus({ preventScroll: true });
-        requestAnimationFrame(() => el.closest(".mp-ed").scrollIntoView({ block: "start" }));
+        pendingScroll.set(el.id);
       }
     }
+    // A card opened from a link stays at the top while background loads re-render the list.
+    if (pendingScroll.id) requestAnimationFrame(() => pendingScroll.apply());
   }
+
+  // A card (or editor) opened from a link (#/automation/card/<ID>, an exact
+  // search, #/automation/edit/<ID>) is scrolled to the top of the view. The
+  // suggestions, the Vercel comparison and its snapshot can finish loading just
+  // after, and each re-renders the list; while the target is pending, those
+  // re-renders scroll back to it instead of restoring the old position. It is
+  // dropped once the reader scrolls or presses a key, on navigation, or after 10 s.
+  // The scroll is instant: a smooth one (html { scroll-behavior: smooth }) would
+  // be cancelled by the next re-render.
+  const pendingScroll = {
+    id: null, until: 0,
+    set(id) { this.id = id; this.until = Date.now() + 10000; },
+    clear() { this.id = null; },
+    // Scroll to the target; false when there is none (any more) on the page.
+    apply() {
+      if (!this.id) return false;
+      if (Date.now() > this.until) { this.clear(); return false; }
+      const el = document.getElementById(this.id);
+      if (!el) return false;
+      (el.closest(".mp-ed") || el).scrollIntoView({ block: "start", behavior: "instant" });
+      return true;
+    },
+  };
+  ["wheel", "touchmove", "keydown", "mousedown"].forEach((t) =>
+    window.addEventListener(t, () => pendingScroll.clear(), { capture: true, passive: true }));
 
   // ---- curators: GitHub sign-in, shared decisions, activity log -----------
   // Curators sign in with a classic GitHub token with the public_repo scope
@@ -2563,7 +2757,7 @@ links.addEventListener("click", (event) => {
   }
 
   // ---- placing pushed structures in the database ----
-  const base = { counts: null, listed: new Set(), related: new Set(), relPdb: [] };
+  const base = { counts: null, listed: new Set(), related: new Set(), mentioned: new Map(), relPdb: [] };
   function snapshotBase() {
     base.counts = { ...state.data.meta.counts };
     for (const g of state.data.groups) for (const sg of g.subgroups) sg.n0 = sg.n;
@@ -2571,6 +2765,11 @@ links.addEventListener("click", (event) => {
       e.rel0 = e.rel;
       base.listed.add(e.pdb.toUpperCase());
       (e.rel || []).forEach((r) => base.related.add(r.toUpperCase()));
+    }
+    // PDB IDs named only in an official entry's description: PDB ID -> that entry's key.
+    for (const [id, refs] of state.byPdb) {
+      const m = refs.find((r) => r.type === "mentioned");
+      if (m && !base.listed.has(id) && !base.related.has(id)) base.mentioned.set(id, m.entry.k);
     }
   }
 
@@ -2764,7 +2963,7 @@ links.addEventListener("click", (event) => {
   function rerender() {
     const y = window.scrollY;
     render();
-    window.scrollTo(0, y);
+    if (!pendingScroll.apply()) window.scrollTo({ top: y, behavior: "instant" });
   }
 
   function stamp() { return { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() }; }
@@ -4007,7 +4206,7 @@ links.addEventListener("click", (event) => {
           <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
         </dl>
         <details class="mp-appr-listing"><summary>Full listing as drafted</summary>
-          <div class="mp-appr-preview"><h4 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h4>
+          <div class="mp-appr-preview"><h3 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h3>
           ${c ? mpListing(c, effectiveMp(d, r.c) || {}, { placement: d.placement, owner: d.owner }) : ""}</div></details>
         ${editing && signedIn() ? editorForm(c, d) : actions}
       </div>
@@ -4045,7 +4244,7 @@ links.addEventListener("click", (event) => {
     const n = (function count(x) { return x.kids.reduce((k, y) => k + 1 + count(y), 0); })(g);
     return `<div class="mp-appr-group has-rel">${apprRow(g.r)}
       <div class="mp-appr-kids" role="group" aria-label="Related entries of ${esc(g.r.pdb)}">
-        <h4 class="mp-rel-tree-h">Related entries (${n}) <span class="mp-of">· lines in ${esc(g.r.pdb)}'s mpstruc entry</span></h4>
+        <h3 class="mp-rel-tree-h">Related entries (${n}) <span class="mp-of">· lines in ${esc(g.r.pdb)}'s mpstruc entry</span></h3>
         ${g.kids.map(apprGroup).join("")}
       </div></div>`;
   }
@@ -4414,7 +4613,7 @@ links.addEventListener("click", (event) => {
         vc.idx = null;
       })
       .catch((err) => { vc.error = err.message || "could not read it"; })
-      .finally(() => { vc.loading = false; if (/^automation/.test(lastRoute)) rerender(); });
+      .finally(() => { vc.loading = false; if (/^(automation|find)/.test(lastRoute)) rerender(); });
   }
   // Vercel's snapshot, only to know which suggestions it does not list at all.
   function loadVercelSnapshot() {
@@ -4422,9 +4621,12 @@ links.addEventListener("click", (event) => {
     vc.snapLoading = true;
     fetch("data/vercel_snapshot.json", { cache: "no-cache" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { vc.snap = d && isObj(d.entries) ? new Set(Object.keys(d.entries).map((k) => k.toUpperCase())) : false; })
+      .then((d) => {
+        vc.snap = d && isObj(d.entries) ? new Set(Object.keys(d.entries).map((k) => k.toUpperCase())) : false;
+        vc.snapEntries = vc.snap ? Object.fromEntries(Object.entries(d.entries).map(([k, x]) => [k.toUpperCase(), x])) : null;
+      })
       .catch(() => { vc.snap = false; })
-      .finally(() => { vc.snapLoading = false; if (vc.snap && lastRoute.split("/")[0] === "automation" && !/^automation\/vercel/.test(lastRoute)) rerender(); });
+      .finally(() => { vc.snapLoading = false; if (/^find\//.test(lastRoute) || (vc.snap && lastRoute.split("/")[0] === "automation" && !/^automation\/vercel/.test(lastRoute))) rerender(); });
   }
   // What the comparison itself says about a PDB ID (without the snapshot).
   function vercelIndex() {
@@ -4686,7 +4888,9 @@ links.addEventListener("click", (event) => {
   function pipeCounts() {
     const ap = Object.entries(curation.entries).filter(([, d]) => d.status === "approved");
     return {
-      automation: auto.cands ? auto.cands.candidates.filter((c) => !decisionOf(c)).length : null,
+      // What the Automation tab lists with its default filters (To decide, at least the
+      // weekly job's membrane-protein threshold, last 26 weeks), so the number matches the link.
+      automation: auto.cands ? filteredCands({ status: "undecided", min: auto.cands.threshold ?? 0.5, placement: "", q: "", age: "", sort: "" }).length : null,
       edit: ap.filter(([, d]) => isObj(d.mpEdited)).length,
       approve: ap.filter(([p, d]) => !isPushed(d) && !inOfficial(p)).length,
       push: ap.filter(([, d]) => isPushed(d)).length,
@@ -4839,7 +5043,7 @@ links.addEventListener("click", (event) => {
           <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
         </dl>
         <details class="mp-appr-listing" open><summary>Listing to enter in mpstruc${r.edited ? " (with the curator's edits)" : ""}</summary>
-          <div class="mp-appr-preview"><h4 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h4>
+          <div class="mp-appr-preview"><h3 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h3>
           ${c ? mpListing(c, effectiveMp(d, r.c) || {}, { placement: d.placement, owner: d.owner }) : ""}</div></details>
         <div class="mp-actions">
           ${signedIn() ? (sent
@@ -5126,6 +5330,7 @@ links.addEventListener("click", (event) => {
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
     if (h !== lastRoute) state.limit = PAGE;
+    pendingScroll.clear();
     state.focusHeading = lastRoute !== "" || h !== "";
     if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); up.selected.clear(); }
     lastRoute = h;
@@ -5164,7 +5369,8 @@ links.addEventListener("click", (event) => {
     if (focusName) {
       let el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
       // A card that had focus while saving: move to its first usable control.
-      if (el && el.matches(".mp-cand, .mp-relitem, .mp-appr-row")) el = el.querySelector("[data-act]:not([disabled])") || el;
+      // (Not the card opened from a link, which keeps focus while it is pending.)
+      if (el && el.matches(".mp-cand, .mp-relitem, .mp-appr-row") && el.id !== pendingScroll.id) el = el.querySelector("[data-act]:not([disabled])") || el;
       if (el && !el.disabled) ok = focusEl(el);
     } else if (state.focusHeading && head) {
       ok = focusEl(head);
@@ -5181,16 +5387,38 @@ links.addEventListener("click", (event) => {
     // Remember which control had focus, so re-rendering does not drop keyboard users.
     const active = document.activeElement;
     const hadFocus = Boolean(active && app.contains(active));
-    const focusName = hadFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
+    // After #/find sent the reader to another tab, the control that had focus (the
+    // Database search box) is gone: do not move focus to a same-named one there.
+    const focusName = hadFocus && !renderNow.dropFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
+    renderNow.dropFocus = false;
     // A text field being typed in (the Change editor): put the caret back where it was.
     const caret = hadFocus && active.id && /^(TEXTAREA|INPUT)$/.test(active.tagName) && active.type !== "search" && typeof active.selectionStart === "number"
       ? { id: active.id, start: active.selectionStart, end: active.selectionEnd, dir: active.selectionDirection, top: active.scrollTop } : null;
+    // #/pdb/<not a PDB ID>: search the text of the database for it instead.
+    if (kind === "pdb" && arg && !PDB_RE.test(arg.replace(/\/about$/i, "").toUpperCase())) {
+      const to = `#/search/${encodeURIComponent(arg)}`;
+      history.replaceState(null, "", to);
+      lastRoute = to.slice(2);
+      renderNow();
+      return;
+    }
     // #/pdb/<ID> of a PDB ID listed in the database opens its listing (#/pdb/<ID>/about keeps the PDB page).
     if (kind === "pdb" && arg && !/\/about$/i.test(arg)) {
       const to = listingHash(arg.toUpperCase());
       if (to) {
         history.replaceState(null, "", to);
         lastRoute = to.slice(2);
+        renderNow();
+        return;
+      }
+    }
+    // #/find/<ID>: open the suggestion or decision it is, if any (see findTarget).
+    if (kind === "find" && arg) {
+      const to = findTarget(arg.toUpperCase());
+      if (to) {
+        history.replaceState(null, "", to);
+        lastRoute = to.slice(2);
+        renderNow.dropFocus = /^#\/(automation|rejected|approved)/.test(to);
         renderNow();
         return;
       }
@@ -5240,7 +5468,7 @@ links.addEventListener("click", (event) => {
       }
       const moreA = document.getElementById("mp-more");
       // What a page counts: studies on the Automation tab, rows (or groups of rows) on the Decisions lists.
-      const TOPSEL = ".mp-study, .mp-rej-list > .mp-rej-row, .mp-rej-list > .mp-appr-group, .mp-vc-row";
+      const TOPSEL = ".mp-study, .mp-inmp-row, .mp-rej-list > .mp-rej-row, .mp-rej-list > .mp-appr-group, .mp-vc-row";
       if (moreA) moreA.addEventListener("click", () => {
         const before = app.querySelectorAll(TOPSEL).length;
         state.limit += PAGE;
@@ -5267,6 +5495,8 @@ links.addEventListener("click", (event) => {
       main = viewEntry(e, focus); currentSg = e.sg;
     } else if (kind === "pdb" && arg) {
       main = viewPdb(arg.replace(/\/about$/i, "").toUpperCase());
+    } else if (kind === "find" && arg) {
+      main = viewFind(arg.toUpperCase());
     } else if (kind === "search" && arg) {
       const v = viewSearch(arg);
       main = v.html; csv = [v.pool.filter(matches), v.filename];
@@ -5276,7 +5506,7 @@ links.addEventListener("click", (event) => {
     } else {
       main = viewHome();
     }
-    const q = kind === "search" && !arg.startsWith("*") ? arg : "";
+    const q = kind === "search" && !arg.startsWith("*") ? arg : kind === "find" ? arg.toUpperCase() : "";
     app.innerHTML = `<div class="mp-layout">${sidebar(currentSg)}<div>${searchBox(q)}${main}</div></div>`;
     mountPreviews();
     wireSearch();

@@ -615,6 +615,8 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 }
 .mp-badge.daughter { color: var(--color-daughter); background: color-mix(in srgb, var(--color-daughter) 9%, transparent); border-color: color-mix(in srgb, var(--color-daughter) 34%, transparent); }
 .mp-badge.related { color: var(--color-related); background: color-mix(in srgb, var(--color-related) 9%, transparent); border-color: color-mix(in srgb, var(--color-related) 34%, transparent); }
+/* A rejected or deleted lead (study header): the error tokens keep AA contrast on the grey study head. */
+.mp-badge.dropped { color: var(--color-error-text); background: var(--color-error-bg); border-color: color-mix(in srgb, var(--color-error-text) 30%, transparent); }
 .mp-of { color: var(--color-muted); font-size: 0.8rem; }
 .mp-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 12px 0 10px; font-size: 0.9rem; }
 .mp-meta dt {
@@ -1440,6 +1442,29 @@ a.mp-badge.vc-flag-missed:hover { text-decoration: underline; }
 .mp-upload-link { font-weight: 600; }
 .mp-filters .mp-upload-link { align-self: center; font-size: 0.86rem; }
 .mp-home-filter { grid-template-columns: minmax(0, 260px); }
+
+/* On suggestion cards: 'Not in mpstruc', or 'In mpstruc' as a link to where the official file lists it. */
+a.mp-mark { text-decoration: none; }
+a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
+.mp-relitem-head .mp-mark, .mp-entry-head .mp-mark { align-self: center; }
+
+/* Automation › Show: Already in mpstruc (new releases mpstruc already has). */
+.mp-inmp-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-border); }
+.mp-inmp-row {
+  display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 2px 14px; align-items: baseline;
+  padding: 9px 2px; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; line-height: 1.5;
+}
+.mp-inmp-id { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.mp-inmp-id .mp-pdb { font-size: 0.9rem; }
+.mp-inmp-where { overflow-wrap: anywhere; }
+.mp-inmp-title { grid-column: 2; color: var(--color-muted); font-size: 0.84rem; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .mp-inmp-row { grid-template-columns: minmax(0, 1fr); }
+  .mp-inmp-title { grid-column: 1; }
+}
+
+/* #/find/<ID>: an exact PDB ID found nowhere. */
+.mp-find-vc { font-size: 0.9rem; max-width: 75ch; overflow-wrap: anywhere; }
 
 /* The listing a search or PDB link opened: where it is placed, and what it was opened for. */
 .mp-placed {
