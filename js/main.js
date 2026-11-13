@@ -2964,11 +2964,21 @@ links.addEventListener("click", (event) => {
     constructor(status, message, extra) { super(message); this.status = status; Object.assign(this, extra); }
   }
   // withHeaders: resolve to { data, headers } instead of the parsed body.
+  // A request GitHub never answers is given up on (reads after 30 s, writes after 2 min), so
+  // one stuck save cannot hold the queue of saves behind it for ever.
   async function gh(path, { method = "GET", body, token = cur.token, withHeaders = false } = {}) {
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), method === "GET" ? 30000 : 120000);
+    try { return await ghSend(path, { method, body, token, withHeaders, signal: stop.signal }); } catch (e) {
+      if (stop.signal.aborted) throw new GhError(0, "GitHub did not answer in time. Check your connection and try again.");
+      throw e;
+    } finally { clearTimeout(timer); }
+  }
+  async function ghSend(path, { method, body, token, withHeaders, signal }) {
     let r;
     try {
       r = await fetch(GH_API + path, {
-        method, cache: "no-store",
+        method, cache: "no-store", signal,
         headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28",
                    ...(body ? { "Content-Type": "application/json" } : {}) },
         body: body ? JSON.stringify(body) : undefined,
@@ -5755,6 +5765,8 @@ links.addEventListener("click", (event) => {
   const fb = { raw: { version: 1, items: [] }, ops: [], items: [], byPdb: new Map(), gen: 0, fromApi: false,
                open: new Set(), form: null, drafts: new Map(), view: { status: "open", cat: "", q: "" }, selected: new Set() };
   const fbStr = (v, n) => (typeof v === "string" ? v : typeof v === "number" ? String(v) : "").slice(0, n);
+  // One-line fields (names, dates): a line break in the file cannot start a new line in the brief.
+  const fbLine = (v, n) => fbStr(v, n * 4).replace(/\s+/g, " ").trim().slice(0, n);
   const fbIsDone = (i) => i.status === "done";
   const fbOpenCount = () => fb.items.filter((i) => !fbIsDone(i)).length;
   const fbFor = (pdb) => fb.byPdb.get(pdb) || [];
@@ -5767,9 +5779,9 @@ links.addEventListener("click", (event) => {
       if (typeof x.pdb !== "string" || !PDB_RE.test(x.pdb) || typeof x.text !== "string" || !x.text.trim()) continue;
       seen.add(x.id);
       out.push({ id: x.id, pdb: x.pdb, category: Object.hasOwn(FB_CAT, x.category) ? x.category : "other", text: x.text.slice(0, FB_MAX * 2),
-                 similar: x.similar === true, by: fbStr(x.by, 100), byName: fbStr(x.byName, 100), at: fbStr(x.at, 40), editedAt: fbStr(x.editedAt, 40),
-                 status: x.status === "done" ? "done" : "open", resolution: fbStr(x.resolution, FB_MAX), resolvedAt: fbStr(x.resolvedAt, 40),
-                 resolvedBy: fbStr(x.resolvedBy, 100), context: isObj(x.context) ? x.context : {}, src: x });
+                 similar: x.similar === true, by: fbLine(x.by, 100), byName: fbLine(x.byName, 100), at: fbLine(x.at, 40), editedAt: fbLine(x.editedAt, 40),
+                 status: x.status === "done" ? "done" : "open", resolution: fbStr(x.resolution, FB_MAX), resolvedAt: fbLine(x.resolvedAt, 40),
+                 resolvedBy: fbLine(x.resolvedBy, 100), context: isObj(x.context) ? x.context : {}, src: x });
     }
     return out.sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
   }
@@ -5846,8 +5858,10 @@ links.addEventListener("click", (event) => {
     return p;
   }
   // One change: shown at once, saved in the background, taken back if the save fails.
-  function fbDo({ message, apply, what, done, failed }) {
-    const op = { apply };
+  // pdbs: the structures it is about ('Saving…' shows on those only). failed(e) may return a
+  // sentence for the error message (where the text that was typed is kept).
+  function fbDo({ message, apply, what, done, failed, pdbs = [] }) {
+    const op = { apply, pdbs };
     fb.ops.push(op);
     fbRefresh();
     rerender();
@@ -5862,28 +5876,43 @@ links.addEventListener("click", (event) => {
       if (done) done();
     }).catch((e) => {
       settle(e.fresh);
-      if (failed) failed();
+      const kept = failed ? failed(e) : "";
       if (e.status === 401) { signOut(true); return; }
       rerender();
-      toast(`Could not save: ${what}. ${explain(e)}`, { kind: "error" });
+      toast(`Could not save: ${what}. ${explain(e)}${kept ? ` ${kept}` : ""}`, { kind: "error" });
     });
   }
   const fbIndex = (doc, id) => doc.items.findIndex((x) => isObj(x) && x.id === id);
   const fbGone = () => new GhError(-1, "Another curator deleted this feedback a moment ago.", { code: "stale" });
   const fbFocus = (id) => { const el = document.getElementById(id); if (el && !el.disabled) el.focus({ preventScroll: true }); };
 
+  // What was typed in a form whose save failed is never dropped: it goes back into that
+  // form's draft (after anything typed there since), and the form opens again unless another
+  // one is open. An edit of an item that is gone is kept as the draft of a new note on that
+  // structure. Returns the sentence that says so.
+  function fbKeep(form, gone) {
+    const f = gone ? { ...form, id: null } : form, key = f.id || f.pdb;
+    const here = fb.form && (fb.form.id || fb.form.pdb) === key ? fb.form : null, had = here || fb.drafts.get(key);
+    const d = { category: f.category, text: f.text, similar: f.similar };
+    if (had && had.text.trim() && had.text.trim() !== d.text.trim()) Object.assign(d, { category: had.category || d.category, text: `${had.text.trimEnd()}\n\n${d.text}`, similar: had.similar || d.similar });
+    fb.drafts.set(key, d);
+    if (here) Object.assign(here, d); else if (!fb.form) { fb.form = { ...f, ...d, error: "", bad: "" }; fb.open.add(f.pdb); }
+    const shown = fb.form && (fb.form.id || fb.form.pdb) === key;
+    if (gone) return shown ? `What you typed is kept in a new note on ${f.pdb}: press Save to keep it.` : `What you typed is kept: press ‘Suggest a fix for the AI’ on ${f.pdb} to save it as a new note.`;
+    return shown ? "What you typed is kept in the form."
+      : `What you typed is kept: it is there again when you ${f.id ? `press Edit on that feedback on ${f.pdb}` : `press ‘Suggest a fix for the AI’ on ${f.pdb}`}.`;
+  }
   function fbAdd(item, form) {
     fbDo({
-      message: `Feedback for the AI on ${item.pdb}: ${FB_CAT[item.category]}`, what: `the feedback on ${item.pdb}`,
+      message: `Feedback for the AI on ${item.pdb}: ${FB_CAT[item.category]}`, what: `the feedback on ${item.pdb}`, pdbs: [item.pdb],
       apply: (doc) => { if (fbIndex(doc, item.id) < 0) doc.items.push(item); },
       done: () => toast(`Saved feedback for the AI on ${item.pdb}.`, { kind: "success", actions: [{ label: "Undo", run: () => fbRemove(item, true) }] }),
-      // What was typed is not lost: the form opens again with it.
-      failed: () => { if (form && !fb.form) fb.form = form; },
+      failed: () => (form ? fbKeep(form) : ""),
     });
   }
   function fbRemove(item, isUndo) {
     fbDo({
-      message: `Delete feedback for the AI on ${item.pdb}`, what: `deleting the feedback on ${item.pdb}`,
+      message: `Delete feedback for the AI on ${item.pdb}`, what: `deleting the feedback on ${item.pdb}`, pdbs: [item.pdb],
       apply: (doc) => { const i = fbIndex(doc, item.id); if (i >= 0) doc.items.splice(i, 1); },
       done: () => toast(isUndo ? `Removed the feedback on ${item.pdb} again.` : `Deleted the feedback on ${item.pdb}.`,
         isUndo ? {} : { actions: [{ label: "Undo", run: () => fbRestore(item) }] }),
@@ -5891,7 +5920,7 @@ links.addEventListener("click", (event) => {
   }
   function fbRestore(item) {
     fbDo({
-      message: `Restore feedback for the AI on ${item.pdb}`, what: `restoring the feedback on ${item.pdb}`,
+      message: `Restore feedback for the AI on ${item.pdb}`, what: `restoring the feedback on ${item.pdb}`, pdbs: [item.pdb],
       apply: (doc) => { if (fbIndex(doc, item.id) < 0) doc.items.push(item); },
       done: () => toast(`Restored the feedback on ${item.pdb}.`, { kind: "success" }),
     });
@@ -5899,7 +5928,7 @@ links.addEventListener("click", (event) => {
   function fbEdit(item, patch, form, isUndo) {
     const prev = { category: item.src.category, text: item.src.text, similar: item.src.similar, editedAt: item.src.editedAt, editedBy: item.src.editedBy };
     fbDo({
-      message: `${isUndo ? "Undo the edit of" : "Edit"} feedback for the AI on ${item.pdb}`, what: `the feedback on ${item.pdb}`,
+      message: `${isUndo ? "Undo the edit of" : "Edit"} feedback for the AI on ${item.pdb}`, what: `the feedback on ${item.pdb}`, pdbs: [item.pdb],
       apply: (doc) => {
         const i = fbIndex(doc, item.id);
         if (i < 0) throw fbGone();
@@ -5907,7 +5936,7 @@ links.addEventListener("click", (event) => {
       },
       done: () => toast(isUndo ? `Put back the earlier feedback on ${item.pdb}.` : `Saved the changes to the feedback on ${item.pdb}.`,
         isUndo ? {} : { kind: "success", actions: [{ label: "Undo", run: () => { const now = fb.items.find((x) => x.id === item.id); if (now) fbEdit(now, prev, null, true); } }] }),
-      failed: () => { if (form && !fb.form) fb.form = form; },
+      failed: (e) => (form ? fbKeep(form, e.code === "stale") : ""),
     });
   }
   // Done / Reopen. A curator marks an item done without a note; the AI adds a resolution (FEEDBACK.md).
@@ -5916,7 +5945,7 @@ links.addEventListener("click", (event) => {
     const who = stamp(), ids = items.map((i) => i.id), pdbs = [...new Set(items.map((i) => i.pdb))];
     const label = items.length === 1 ? `the feedback on ${items[0].pdb}` : `${items.length} feedback items`;
     fbDo({
-      message: `${done ? "Mark" : "Reopen"} feedback for the AI${done ? " done" : ""}: ${listIds(pdbs)}`, what: label,
+      message: `${done ? "Mark" : "Reopen"} feedback for the AI${done ? " done" : ""}: ${listIds(pdbs)}`, what: label, pdbs,
       apply: (doc) => {
         let n = 0;
         for (const id of ids) {
@@ -5963,16 +5992,17 @@ links.addEventListener("click", (event) => {
 
   // The form (one at a time, on a card or in the Feedback list). What is typed is
   // kept in fb.form, so a redraw of the page (a save finishing elsewhere) loses nothing.
+  const fbLeft = (n) => (n > FB_MAX ? `${n - FB_MAX} characters over the limit of ${FB_MAX}: shorten the note to change its wording` : `${FB_MAX - n} characters left`);
   function fbForm(f) {
-    const id = esc(f.pdb);
+    const id = esc(f.pdb), inv = (el) => (f.bad === el ? ' aria-invalid="true"' : "");
     return `<form class="mp-fb-form" id="fb-form" data-pdb="${id}"${f.id ? ` data-id="${esc(f.id)}"` : ""} novalidate aria-label="${f.id ? "Edit feedback" : "Suggest a fix"} for the AI on ${id}">
         <label for="fb-cat">What is wrong?</label>
-        <select name="category" id="fb-cat" required aria-describedby="fb-err"><option value="">Choose…</option>${FB_CATS.map(([k, label]) =>
+        <select name="category" id="fb-cat" required aria-describedby="fb-err"${inv("fb-cat")}><option value="">Choose…</option>${FB_CATS.map(([k, label]) =>
           `<option value="${k}"${f.category === k ? " selected" : ""}>${esc(label)}</option>`).join("")}</select>
         <label for="fb-text">Tell the AI what to fix next time (required)</label>
-        <textarea name="text" id="fb-text" rows="4" maxlength="${FB_MAX}" required aria-describedby="fb-err fb-left"
+        <textarea name="text" id="fb-text" rows="4"${f.text.length > FB_MAX ? "" : ` maxlength="${FB_MAX}"`} required aria-describedby="fb-err fb-left"${inv("fb-text")}
           placeholder="For example: this is the soluble domain only, so it should not be suggested.">${esc(f.text)}</textarea>
-        <p class="mp-fb-left" id="fb-left">${FB_MAX - f.text.length} characters left</p>
+        <p class="mp-fb-left" id="fb-left">${fbLeft(f.text.length)}</p>
         <label class="mp-check mp-fb-similar"><input type="checkbox" name="similar" id="fb-similar"${f.similar ? " checked" : ""}> This applies to similar structures too</label>
         <p class="mp-form-note" id="fb-err" aria-live="polite">${esc(f.error || "")}</p>
         <div class="mp-actions"><button class="mp-btn" type="submit" id="fb-save">Save</button>
@@ -5999,13 +6029,13 @@ links.addEventListener("click", (event) => {
     if (!PDB_RE.test(String(pdb || ""))) return "";
     const id = esc(pdb), items = fbFor(pdb), can = signedIn(), open = fb.open.has(pdb) && items.length > 0;
     const f = fb.form && fb.form.pdb === pdb ? fb.form : null;
-    const nOpen = items.filter((i) => !fbIsDone(i)).length;
+    const nOpen = items.filter((i) => !fbIsDone(i)).length, saving = fb.ops.some((op) => op.pdbs.includes(pdb));
     return `<div class="mp-fb" id="fb-${id}">
       <div class="mp-fb-bar">
-        <button type="button" class="mp-fb-btn" id="fb-new-${id}" data-fb="new" data-pdb="${id}" aria-expanded="${Boolean(f && !f.id)}"${can ? "" : " disabled"}>${FB_ICON}<span>Suggest a fix for the AI</span></button>
-        ${items.length ? `<button type="button" class="mp-fb-count${nOpen ? " has-open" : ""}" id="fb-toggle-${id}" data-fb="toggle" data-pdb="${id}" aria-expanded="${open}"
-          title="${nOpen} open, ${items.length - nOpen} done">AI feedback (${items.length})<span class="mp-caret" aria-hidden="true"></span></button>` : ""}
-        ${fb.ops.length ? '<span class="mp-saving">Saving…</span>' : ""}
+        <button type="button" class="mp-fb-btn" id="fb-new-${id}" data-fb="new" data-pdb="${id}" aria-label="Suggest a fix for the AI on ${id}" aria-expanded="${Boolean(f && !f.id)}"${can ? "" : " disabled"}>${FB_ICON}<span>Suggest a fix for the AI</span></button>
+        ${items.length ? `<button type="button" class="mp-fb-count${nOpen ? " has-open" : ""}" id="fb-toggle-${id}" data-fb="toggle" data-pdb="${id}" aria-expanded="${open}"${open ? ` aria-controls="fb-list-${id}"` : ""}
+          aria-label="AI feedback (${items.length}) on ${id}: ${nOpen} open, ${items.length - nOpen} done" title="${nOpen} open, ${items.length - nOpen} done">AI feedback (${items.length})<span class="mp-caret" aria-hidden="true"></span></button>` : ""}
+        ${saving ? '<span class="mp-saving" role="status">Saving…</span>' : ""}
         ${can || (cur.token && !cur.user) ? "" : '<span class="mp-fb-signin">Sign in on the <a href="#/curators">Curators tab</a> to leave feedback</span>'}
       </div>
       ${f && !f.id && can ? fbForm(f) : ""}
@@ -6056,7 +6086,9 @@ links.addEventListener("click", (event) => {
       const cx = fbContextLines(i.context);
       out.push("   What the AI suggested at the time:");
       out.push(cx.length ? cx.map(([k, v]) => `     ${k}: ${v}`).join("\n") : "     (not recorded)");
-      out.push("   The curator says:", indent(i.text.trim()), `   Feedback id: ${i.id}`);
+      out.push("   The curator says:", indent(i.text.trim()));
+      if (i.resolution.trim()) out.push(`   Earlier fix that did not hold (reopened): ${i.resolution.replace(/\s+/g, " ").trim()}`);
+      out.push(`   Feedback id: ${i.id}`);
     });
     return `${out.join("\n")}\n`;
   }
@@ -6156,8 +6188,10 @@ links.addEventListener("click", (event) => {
   }
   function fbOpenForm(pdb, item) {
     const key = item ? item.id : pdb, d = fb.drafts.get(key);
-    fb.form = { pdb, id: item ? item.id : null, error: "",
-                ...(d || (item ? { category: item.category, text: item.text.slice(0, FB_MAX), similar: item.similar } : { category: "", text: "", similar: false })) };
+    // A note longer than the limit (written into the file by hand) is shown whole: it is saved
+    // back only when its wording was changed, and then it has to fit.
+    fb.form = { pdb, id: item ? item.id : null, error: "", bad: "",
+                ...(d || (item ? { category: item.category, text: item.text, similar: item.similar } : { category: "", text: "", similar: false })) };
     if (item) fb.open.add(pdb);
     rerender();
     fbFocus(item || fb.form.category ? "fb-text" : "fb-cat");
@@ -6166,26 +6200,30 @@ links.addEventListener("click", (event) => {
     const f = fb.form;
     if (!f || !signedIn()) return;
     fbReadForm(form);
-    const text = f.text.replace(/\r\n?/g, "\n").trim();
+    const clean = (t) => t.replace(/\r\n?/g, "\n").trim();
+    const text = clean(f.text), item = f.id ? fb.items.find((x) => x.id === f.id) : null;
+    const sameText = Boolean(item) && clean(item.text) === text;
     const bad = !Object.hasOwn(FB_CAT, f.category) ? ["fb-cat", "Choose what is wrong."]
       : !text ? ["fb-text", "Write what the AI should fix next time."]
-      : text.length > FB_MAX ? ["fb-text", `Keep it under ${FB_MAX} characters (it is ${text.length}).`] : null;
+      : text.length > FB_MAX && !sameText ? ["fb-text", `Keep it under ${FB_MAX} characters (it is ${text.length}).`] : null;
     if (bad) {
-      f.error = bad[1];
+      [f.bad, f.error] = bad;
       const err = document.getElementById("fb-err");
       if (err) err.textContent = bad[1];
+      for (const el of ["fb-cat", "fb-text"]) { const x = document.getElementById(el); if (x) { if (el === f.bad) x.setAttribute("aria-invalid", "true"); else x.removeAttribute("aria-invalid"); } }
       fbFocus(bad[0]);
       return;
     }
-    const back = { ...f, error: "" };
+    // The draft goes now (the form reopened during the save starts empty) and comes back if the save fails.
+    const back = { ...f, text, error: "", bad: "" };
     fb.form = null;
     fb.drafts.delete(f.id || f.pdb);
     fb.open.add(f.pdb);
     if (f.id) {
-      const item = fb.items.find((x) => x.id === f.id);
-      if (!item) { rerender(); toast("This feedback was deleted a moment ago, so the changes were not saved.", { kind: "error" }); return; }
-      if (item.category === f.category && item.text === text && item.similar === f.similar) { rerender(); fbFocus(`fb-edit-${f.id}`); return; }
-      fbEdit(item, { category: f.category, text, similar: f.similar, editedAt: new Date().toISOString(), editedBy: cur.user.login }, back);
+      if (!item) { const kept = fbKeep(back, true); rerender(); toast(`This feedback was deleted a moment ago, so the changes were not saved. ${kept}`, { kind: "error" }); return; }
+      if (item.category === f.category && sameText && item.similar === f.similar) { rerender(); fbFocus(`fb-edit-${f.id}`); return; }
+      // The wording is sent only when it changed: an untouched note stays in the file exactly as it is.
+      fbEdit(item, { category: f.category, ...(sameText ? {} : { text }), similar: f.similar, editedAt: new Date().toISOString(), editedBy: cur.user.login }, back);
       fbFocus(`fb-edit-${f.id}`);
       return;
     }
@@ -6256,7 +6294,8 @@ links.addEventListener("click", (event) => {
     if (form) {
       fbReadForm(form);
       const left = document.getElementById("fb-left");
-      if (left && fb.form) left.textContent = `${FB_MAX - fb.form.text.length} characters left`;
+      if (left && fb.form) left.textContent = fbLeft(fb.form.text.length);
+      if (fb.form && fb.form.bad === ev.target.id) { fb.form.bad = ""; ev.target.removeAttribute("aria-invalid"); }
       return;
     }
     if (ev.target.id === "mp-fb-q") { fb.view.q = ev.target.value; state.limit = PAGE; rerender(); }
