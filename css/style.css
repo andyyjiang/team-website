@@ -77,6 +77,11 @@
   --mol-band-head: transparent;
   --mol-band-core: transparent;
   --mol-cx: 0.5;
+  /* 'Check it yourself' bars: a membrane segment inside the modelled residues
+     (UniProt's green Transmembrane bar), and the modelled residues themselves. */
+  --tm-in: #1a7f37;
+  --tm-in-bg: #e9f5ec;
+  --tm-mod: #9a9a9a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -114,6 +119,9 @@
     --mol-atom-o: #ff6b5e;
     --mol-atom-f: #7fd65a;
     --mol-membrane: rgba(255, 255, 255, 0.18);
+    --tm-in: #56c271;
+    --tm-in-bg: #12281a;
+    --tm-mod: #6f6f6f;
     --toast-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
   }
 }
@@ -857,6 +865,44 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-like b { color: var(--color-text); font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .mp-suggest { margin: 8px 0; }
 .mp-memwhy { font-size: 0.88rem; color: var(--color-muted); margin: -2px 0 8px; max-width: 75ch; }
+/* 'Check it yourself': the proteins in a suggested structure and their membrane segments. */
+.mp-tm { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-alt); font-size: 0.85rem; max-width: 760px; }
+.mp-tm-h { margin: 0; font-family: var(--font-ui); font-size: 0.85rem; font-weight: 600; }
+.mp-tm-how { margin: 2px 0 8px; color: var(--color-muted); }
+.mp-tm-key { display: block; margin-top: 2px; font-size: 0.78rem; }
+.mp-tm-k { display: inline-block; width: 12px; height: 9px; margin: 0 4px 0 8px; vertical-align: baseline; border-radius: 2px; }
+.mp-tm-k:first-child { margin-left: 0; }
+.mp-tm-k.mod { height: 5px; background: var(--tm-mod); vertical-align: 2px; }
+.mp-tm-k.in { background: var(--tm-in); }
+.mp-tm-k.out { border: 1.5px solid var(--color-muted); }
+.mp-tm-k.na { border: 1.5px dashed var(--color-muted); }
+.mp-tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mp-tm-row { min-width: 0; padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-solid); }
+.mp-tm-row.look { border-color: var(--tm-in); border-left-width: 4px; background: var(--tm-in-bg); }
+.mp-tm-row p { margin: 0; }
+.mp-tm-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.mp-tm-name { font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.mp-tm-aside { color: var(--color-muted); font-size: 0.78rem; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.mp-tm-up { font-family: var(--font-mono); font-size: 0.8rem; white-space: nowrap; }
+.mp-tm-tag { margin-left: auto; font-size: 0.76rem; color: var(--color-muted); border: 1px solid var(--color-border-strong); border-radius: 999px; padding: 0 8px; }
+.mp-tm-row.look .mp-tm-tag { color: var(--color-text); border-color: var(--tm-in); font-weight: 600; }
+.mp-tm-count { font-variant-numeric: tabular-nums; }
+.mp-tm-note { color: var(--color-muted); font-size: 0.8rem; overflow-wrap: anywhere; }
+.mp-tm-bar { display: block; width: 100%; height: 16px; margin: 4px 0 2px; }
+.mp-tm-len { fill: var(--color-border-strong); }
+.mp-tm-mod { fill: var(--tm-mod); }
+.mp-tm-seg.in { fill: var(--tm-in); }
+.mp-tm-seg.out { fill: var(--color-surface-solid); stroke: var(--color-muted); stroke-width: 1.5; }
+.mp-tm-seg.na { fill: var(--color-surface-solid); stroke: var(--color-muted); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.mp-tm-more { margin-top: 6px; }
+.mp-tm-more summary { cursor: pointer; color: var(--color-accent); padding: 4px 0; }
+.mp-tm-more[open] summary { margin-bottom: 6px; }
+.mp-pdb-sugg { margin: 12px 0; }
+.mp-pdb-sugg h3 { margin: 0 0 4px; font-size: 1rem; }
+@media (max-width: 480px) {
+  .mp-tm { padding: 8px; }
+  .mp-tm-tag { margin-left: 0; }
+}
 .mp-conf { display: inline-block; font-size: 0.8rem; color: var(--color-muted); margin-left: 6px; }
 .mp-conf.low { color: var(--color-warn-text); background: var(--color-warn-bg); padding: 0 6px; border-radius: 4px; }
 .mp-why { font-size: 0.88rem; margin: 6px 0; }

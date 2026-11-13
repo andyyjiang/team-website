@@ -636,6 +636,18 @@ links.addEventListener("click", (event) => {
         : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}`;
       return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e))}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
     }).join("");
+    // One of this week's suggestions: how likely it is a membrane protein, and which of its proteins to check.
+    if (!refs.length && !auto.cands && !auto.error) loadAutomation();
+    // Only for IDs not yet listed: the same condition that loads the candidates, so the
+    // page does not depend on which tab was opened first.
+    const cand = !refs.length && auto.cands ? candIndex().get(id) : null;
+    const suggested = cand && Number.isFinite(cand.membrane) ? `<section class="mp-pdb-sugg" aria-label="Suggested this week">
+        <h3>Suggested this week</h3>
+        <div class="mp-like"><span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${Number(cand.membrane)}"></meter><b>${pct(cand.membrane)} likely</b></div>
+        ${Array.isArray(cand.membraneWhy) && cand.membraneWhy.length ? `<p class="mp-memwhy">${esc(whySentence(cand.membraneWhy.map(plain)))}</p>` : ""}
+        ${tmEvidence(cand)}
+        <p><a href="#/automation/card/${esc(id)}">Open its card on the Automation tab</a></p>
+      </section>` : "";
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
@@ -646,6 +658,7 @@ links.addEventListener("click", (event) => {
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
       ${x ? `<p class="mp-frompdb">From PDB: ${esc(x.title || "")} · ${esc(x.method || "")}${x.res ? ` · ${fmtRes(x.res)}` : ""}${x.released ? ` · released ${esc(x.released)}` : ""}</p>` : ""}
+      ${suggested}
       ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in the database${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Listed as</th><th>Where</th><th>Record key</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="mp-empty">This PDB ID is not listed in mpstruc.</p>'}
@@ -863,7 +876,7 @@ links.addEventListener("click", (event) => {
         auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5;
       })
       .catch((err) => { auto.error = err.message; })
-      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc|find)/.test(lastRoute)) rerender(); });
+      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc|find|pdb\/)/.test(lastRoute)) rerender(); });
   }
 
   const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
@@ -1503,6 +1516,7 @@ links.addEventListener("click", (event) => {
         <span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${c.membrane}"></meter><b>${pct(c.membrane)} likely</b>
       </div>
       ${c.membraneWhy && c.membraneWhy.length ? `<p class="mp-memwhy">${esc(whySentence(c.membraneWhy))}</p>` : ""}
+      ${tmEvidence(c)}
       <p class="mp-suggest"><b>Suggestion:</b> ${suggestion(c)}
         ${c.placement !== "review" ? `<span class="mp-conf${lowConf ? " low" : ""}">right ${pct(c.confidence)} of the time in testing</span>` : ""}</p>
       <details class="mp-why"><summary>All chains in the structure</summary><p>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</p></details>
@@ -1933,10 +1947,91 @@ links.addEventListener("click", (event) => {
 
   // "UniProt lists ... membrane", "the sample contains detergent", "but ..." -> one plain sentence.
   function whySentence(reasons) {
-    const pro = reasons.filter((r) => !r.startsWith("but ")), con = reasons.find((r) => r.startsWith("but "));
+    const cap = (t) => (t ? `${t[0].toUpperCase()}${t.slice(1)}.` : "");
+    // A reason that lists proteins with their counts ("...: a3 (Q8W4S4) 6, c1 (P0DH92) 4 and
+    // 3 more") is a sentence of its own: joined to the others its commas run into theirs.
+    const listed = (r) => /\([A-Z0-9]{6,10}\) \d+(,| and \d+ more|$)/.test(r);
+    const own = reasons.filter((r) => !r.startsWith("but ") && listed(r));
+    const pro = reasons.filter((r) => !r.startsWith("but ") && !listed(r)), con = reasons.find((r) => r.startsWith("but "));
     const list = pro.length > 1 ? `${pro.slice(0, -1).join(", ")} and ${pro[pro.length - 1]}` : (pro[0] || "");
     const text = list ? `${list}${con ? `, ${con}` : ""}` : (con ? con.slice(4) : "");
-    return text ? `${text[0].toUpperCase()}${text.slice(1)}.` : "";
+    return [...own.map(cap), cap(text)].filter(Boolean).join(" ");
+  }
+
+  // 'Check it yourself': the proteins in a suggested structure (c.tmEvidence, from
+  // mpstruc/membrane.py tm_table), so a curator opens the right UniProt entry: the
+  // one whose membrane-crossing segments are inside the residues that were modelled.
+  // Everything in it is untrusted text or numbers from the weekly job.
+  const TM_SHOWN = 3;
+  function tmRanges(v, max = 200) {
+    return (Array.isArray(v) ? v : []).filter((r) => Array.isArray(r) && Number.isFinite(r[0]) && Number.isFinite(r[1]) && r[1] >= r[0] && r[0] >= 0).slice(0, max);
+  }
+  function tmBar(r, segs, modelled, len) {
+    if (!(len > 0) || !(segs.length || modelled.length)) return "";
+    const W = 1000, x = (n) => Math.max(0, Math.min(W, ((n - 1) / len) * W)), w = (b, e) => Math.max(4, ((e - b + 1) / len) * W);
+    const inside = segs.filter((g) => g[2] === true).length;
+    const unknown = segs.length > 0 && segs.every((g) => g[2] === null);
+    const label = `${plain(r.name) || plain(r.uniprot) || "Protein"}, ${len} residues, UniProt numbering. ${unknown ? "" : `Modelled in the structure: ${modelled.length
+      ? modelled.slice(0, 12).map(([b, e]) => `${b}-${e}`).join(", ") + (modelled.length > 12 ? " and more" : "") : "nothing"}. `}${segs.length
+      ? `${segs.length} membrane ${segs.length === 1 ? "segment" : "segments"}: ${segs.slice(0, 30).map(([b, e, ok]) => `${b}-${e} ${ok === true ? "in the structure" : ok === false ? "not in the structure" : "could not be checked"}`).join(", ")}.`
+      : "No membrane segments."}`;
+    return `<svg class="mp-tm-bar" viewBox="0 0 ${W} 16" preserveAspectRatio="none" role="img" aria-label="${esc(label)}" data-inside="${inside}">
+      <rect class="mp-tm-len" x="0" y="7" width="${W}" height="2"></rect>
+      ${modelled.map(([b, e]) => `<rect class="mp-tm-mod" x="${x(b).toFixed(1)}" y="5" width="${w(b, e).toFixed(1)}" height="6"></rect>`).join("")}
+      ${segs.map(([b, e, ok]) => `<rect class="mp-tm-seg ${ok === true ? "in" : ok === false ? "out" : "na"}" x="${x(b).toFixed(1)}" y="1" width="${w(b, e).toFixed(1)}" height="14" vector-effect="non-scaling-stroke"></rect>`).join("")}
+    </svg>`;
+  }
+  function tmRow(r) {
+    const acc = /^[A-Z0-9]{6,10}$/.test(String(r.uniprot || "")) ? String(r.uniprot) : "";
+    const status = ["resolved", "partial", "unresolved", "none", "unknown"].includes(r.status) ? r.status : "unknown";
+    const barrel = isObj(r.barrel) && tmRanges([r.barrel.range]).length ? r.barrel : null;
+    const segs = barrel ? [[barrel.range[0], barrel.range[1], barrel.resolved === true ? true : barrel.resolved === false ? false : null]]
+      : tmRanges(r.segmentRanges, 30).map((g) => [g[0], g[1], g[2] === true ? true : g[2] === false ? false : null]);
+    // A row that could not be checked shows no modelled residues: they are only drawn
+    // when they are known to be in UniProt's numbering, like the segments beside them.
+    const modelled = status === "unknown" ? [] : tmRanges(r.modelled);
+    const len = Math.max(Number.isFinite(r.length) ? r.length : 0, ...modelled.map((g) => g[1]), ...segs.map((g) => g[1]), 0);
+    const n = Number.isFinite(r.segments) ? r.segments : 0, k = Number.isFinite(r.resolved) ? r.resolved : 0;
+    const look = status === "resolved" || status === "partial";
+    const tag = look ? "Look at this one" : status === "unresolved" ? "Membrane segment not in the structure"
+      : status === "none" ? "No membrane segment (soluble part)" : "Could not be checked";
+    const name = plain(r.name) || acc || "Unnamed protein", pdbName = plain(r.pdbName);
+    const aside = [r.fusion === true ? "part of a fusion chain" : "", pdbName ? `in the PDB: ${pdbName}` : "",
+      Number.isFinite(r.chains) && r.chains > 1 ? `${r.chains} chains` : ""].filter(Boolean).join(" · ");
+    const count = barrel ? `Beta-barrel domain ${barrel.range[0]}-${barrel.range[1]} (${plain(barrel.barrel) || "beta-barrel"}) - ${status === "resolved" ? "in the structure" : status === "unknown" ? "not checked" : "not in the structure"}`
+      : !n ? (status === "unknown" ? "Membrane segments: not known" : "Membrane segments: none")
+      : `Membrane segments: ${n} - ${status === "unknown" ? "not checked" : k === n ? (n === 1 ? "in the structure" : "all in the structure") : k ? `${k} in the structure` : (n === 1 ? "not in the structure" : "none in the structure")}`;
+    const note = plain(r.note);
+    return `<li class="mp-tm-row ${esc(status)}${look ? " look" : ""}">
+      <p class="mp-tm-head"><span class="mp-tm-name" title="${esc(name)}">${esc(name)}</span>
+        ${!acc ? '<span class="mp-of">no UniProt entry</span>'
+          : r.gone === true ? `<span class="mp-tm-up mp-of">UniProt ${esc(acc)} (deleted)</span>`
+          : `<a class="mp-tm-up" href="https://www.uniprot.org/uniprotkb/${encodeURIComponent(acc)}/entry#subcellular_location" rel="noopener" title="Open its Subcellular Location section in UniProt (the Transmembrane rows are there)">UniProt ${esc(acc)} ↗</a>`}
+        <span class="mp-tm-tag">${esc(tag)}</span></p>
+      ${aside ? `<p class="mp-tm-aside">${esc(aside)}</p>` : ""}
+      <p class="mp-tm-count">${esc(count)}</p>
+      ${acc || modelled.length ? tmBar(r, segs, modelled, len) : ""}
+      ${note ? `<p class="mp-tm-note">${esc(note[0].toUpperCase() + note.slice(1))}.</p>` : ""}
+    </li>`;
+  }
+  function tmEvidence(c) {
+    const rows = (Array.isArray(c && c.tmEvidence) ? c.tmEvidence : []).filter(isObj).slice(0, 200);
+    if (!rows.length) return "";
+    const look = rows.filter((r) => r.status === "resolved" || r.status === "partial").length;
+    const dashed = rows.some((r) => r.status === "unknown" && (r.segments > 0 || isObj(r.barrel)));
+    const checked = auto.cands && /^\d{4}-\d\d-\d\d/.test(String(auto.cands.tmChecked || auto.cands.generated || ""))
+      ? String(auto.cands.tmChecked || auto.cands.generated).slice(0, 10) : "";
+    const top = rows.slice(0, TM_SHOWN), rest = rows.slice(TM_SHOWN), id = esc(c.pdb);
+    return `<section class="mp-tm" aria-label="Check it yourself: membrane segments of ${id} by protein">
+      <h4 class="mp-tm-h">Check it yourself</h4>
+      <p class="mp-tm-how">${look ? `Open ${look === 1 ? "the protein" : "a protein"} marked “Look at this one” in UniProt and compare its Transmembrane rows (under Subcellular Location) with the residues in the structure.`
+        : "No protein in this structure has a membrane segment inside the residues that were modelled."}
+        <span class="mp-tm-key"><span class="mp-tm-k mod"></span>modelled <span class="mp-tm-k in"></span>membrane segment in the structure <span class="mp-tm-k out"></span>not in the structure${dashed ? ' <span class="mp-tm-k na"></span>could not be checked' : ""}</span>
+        <span class="mp-tm-key">Residue numbers are UniProt’s${checked ? `. Checked against the PDB and UniProt on ${esc(checked)}` : ""}.</span></p>
+      <ul class="mp-tm-list">${top.map(tmRow).join("")}</ul>
+      ${rest.length ? `<details class="mp-tm-more"><summary>Show all ${rows.length} proteins</summary>
+        <ul class="mp-tm-list">${rest.map(tmRow).join("")}</ul></details>` : ""}
+    </section>`;
   }
 
   function accuracySummary() {

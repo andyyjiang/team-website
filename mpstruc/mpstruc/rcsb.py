@@ -311,3 +311,56 @@ def entry_coverage(pdb_ids: list[str], batch: int = 100, max_age_s: float = 30 *
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+def entry_chains(pdb_ids: list[str], batch: int = 40, max_age_s: float = 30 * 86400) -> dict[str, list | None]:
+    """entry_coverage with what is needed to check it: every chain, and the sequences.
+
+    Per entry, one item per polymer entity:
+    {"align": {accession: [[entity_start, uniprot_start, length], ...]} (the PDB's own
+              UniProt alignment; an accession the entity links but the PDB gives no
+              regions for has []),
+     "unobs": [[first, last], ...] unobserved residues of its first instance (chain),
+     "chains": [unobs of each instance] (copies of a chain are often modelled differently),
+     "seq": the entity's sequence in one-letter code}.
+    membrane.checked_coverage turns an item into the entry_coverage form, with the
+    alignment checked against the sequences and the best-modelled chain chosen.
+    """
+    path = CACHE_DIR / "entry_chains.json"
+    cache: dict[str, list | None] = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({p.upper() for p in pdb_ids} - cache.keys())
+    q = ("query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id polymer_entities { "
+         "entity_poly { pdbx_seq_one_letter_code_can } "
+         "rcsb_polymer_entity_container_identifiers { uniprot_ids } "
+         "rcsb_polymer_entity_align { reference_database_name reference_database_accession "
+         "aligned_regions { entity_beg_seq_id ref_beg_seq_id length } } "
+         "polymer_entity_instances { rcsb_polymer_instance_feature { type feature_positions { beg_seq_id end_seq_id } } } } } }")
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = _post_json(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e:
+                continue
+            ents = []
+            for pe in e.get("polymer_entities") or []:
+                align = {u: [] for u in (pe.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []}
+                for a in pe.get("rcsb_polymer_entity_align") or []:
+                    if a.get("reference_database_name") == "UniProt":
+                        align.setdefault(a["reference_database_accession"], []).extend(
+                            [r["entity_beg_seq_id"], r["ref_beg_seq_id"], r["length"]] for r in a.get("aligned_regions") or [])
+                chains = [[[p["beg_seq_id"], p["end_seq_id"]] for f in inst.get("rcsb_polymer_instance_feature") or []
+                           if f.get("type") == "UNOBSERVED_RESIDUE_XYZ" for p in f.get("feature_positions") or []
+                           if p.get("beg_seq_id") is not None]
+                          for inst in pe.get("polymer_entity_instances") or [{}]]
+                seq = "".join(((pe.get("entity_poly") or {}).get("pdbx_seq_one_letter_code_can") or "").split())
+                ents.append({"align": align, "unobs": chains[0] if chains else [], "chains": chains, "seq": seq})
+            found[e["rcsb_id"]] = ents
+        for pid in chunk:
+            cache[pid] = found.get(pid)
+        if (i // batch) % 10 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {p: cache.get(p.upper()) for p in pdb_ids}
