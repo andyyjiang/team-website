@@ -18244,6 +18244,47 @@
    "suggestedSubgroup": "G02-S006",
    "suggestedOwner": "4C00",
    "membrane": 0.942
+  },
+  "21FS": {
+   "status": "approved",
+   "placement": "parent",
+   "subgroup": "G01-S001",
+   "owner": "",
+   "edited": true,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T01:34:52.934Z",
+   "title": "Cryo-EM structure of human organic solute transporter OSTalpha/beta",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 2.68,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1038/s41467-026-78517-6",
+   "mp": {
+    "name": "Organic solute transporter subunit alpha / Organic solute transporter subunit beta",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.68",
+    "description": "cryo-EM structure<br /> with bound taurocholic acid, 3.21 &Aring;: 21HR",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Xu K, Li BR, Huang GY, Wang FF, Wang J, Wang B, Chu CY, Chen GT, Zhou CZ, Chen Y, &amp; Hou WT",
+     "year": "2026",
+     "title": "Structural basis of bile acid lateral diffusion facilitated by the OST alpha / beta transporter",
+     "journal": "Nat Commun",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1038/s41467-026-78517-6"
+    },
+    "pdbTitle": "Cryo-EM structure of human organic solute transporter OSTalpha/beta"
+   },
+   "suggested": "review",
+   "suggestedSubgroup": null,
+   "suggestedOwner": "",
+   "membrane": 0.868
   }
  },
  "log": [
@@ -22038,6 +22079,14 @@
    "action": "edit",
    "pdb": "9TGP",
    "detail": "Edited 9TGP as a daughter of 4C00 in Outer Membrane Autotransporters (G02-S006) (was a related entry of 9TGS in Outer Membrane Autotransporters (G02-S006)): changed Placement, Parent or owner PDB ID"
+  },
+  {
+   "at": "2026-11-13T01:34:52.934Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "21FS",
+   "detail": "Added 21FS as a new parent in Cyclooxygenases (G01-S001) (suggested: curator to decide); changed Placement, Subfamily"
   }
  ]
 }
