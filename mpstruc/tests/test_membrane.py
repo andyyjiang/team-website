@@ -248,3 +248,123 @@ def test_false_positive_split():
             ("1AAA", 0.9, 1, {"keywords": ["KW-0998", "KW-1134"]}), ("1BBB", 0.2, 0, {"keywords": []})]
     assert false_positive_split(rows) == {"total": 2, "outer_membrane_barrel": 1, "other": 1,
                                           "outer_membrane_barrel_ids": ["8RM3"]}
+
+
+# ---------------------------------------------------------------- the curators' rule
+
+def _complex(tm_len=21, n_tm=7, tm_unobs=(), partner_len=400, tm_kw=("KW-0812",)):
+    """A membrane receptor (P1, n_tm segments of tm_len residues) bound to a big secreted partner (P2)."""
+    from mpstruc.membrane import core_tm, tm_by_protein
+    segs = [[20 + 40 * i, 20 + 40 * i + tm_len - 1] for i in range(n_tm)]
+    cov = [{"align": {"P1": [[1, 1, 300]]}, "unobs": [list(u) for u in tm_unobs]},
+           {"align": {"P2": [[1, 1, partner_len]]}, "unobs": []}]
+    by, total = tm_by_protein(cov, {"P1": segs, "P2": []})
+    core = core_tm(by, total, {"P1"} if tm_kw else set())
+    modelled = len(by["P1"]["segments"])
+    return _facts(uniprots=["P1", "P2"], tm_uniprots=["P1"] if tm_kw else [], keywords=["KW-0812", "KW-0964"],
+                  detergents=[], has_tm_protein=True, tm_in_construct=n_tm, tm_modelled=modelled, barrel_modelled=0,
+                  core_tm=core, title="Protein Complex(local refinement)")
+
+
+# Family and 'secreted' evidence strong enough to pull the model alone well below 50%.
+RULE_MODEL = {"bias": -2.0, "weights": {"kw_tm": 1.0, "tm_modelled": 2.0, "family": 1.0,
+                                        "kw_KW-0964": -3.0}, "tm_floor": 0.7}
+
+
+def test_tm_by_protein_counts_resolved_segments_and_share():
+    from mpstruc.membrane import core_tm, tm_by_protein
+    cov = [{"align": {"P1": [[1, 1, 100]]}, "unobs": [[60, 100]]}, {"align": {"P2": [[1, 1, 300]]}, "unobs": [[1, 100]]}]
+    by, total = tm_by_protein(cov, {"P1": [[10, 30], [40, 52], [70, 90]]})
+    assert by["P1"] == {"segments": [[10, 30], [40, 52]], "residues": 59}  # the third is not modelled
+    assert by["P2"]["residues"] == 200 and total == 259
+    core = core_tm(by, total, {"P1"})
+    # P1 is 23% of the residues modelled: a minor partner, so it does not carry the rule
+    # (and only one of its two resolved segments is long enough).
+    assert core["protein"] is None and core["partner_segments"] == 1
+    assert core_tm(by, 200, {"P1"})["protein"] == "P1"  # as a main protein it would
+
+
+def test_floor_applies_to_resolved_segments_of_a_main_protein():
+    from mpstruc.membrane import predict_model
+    f = _complex()
+    assert f["core_tm"]["protein"] == "P1" and f["core_tm"]["segments"] == 7
+    x, why = features(f, _ctx(fam_stats={"IPR1": [0, 49]}, tcdb={}), prior=0.1)
+    assert x["rule:tm_resolved"] == 1 and "tm_core" not in x  # a floor only, not a learned weight
+    assert predict_model(x, RULE_MODEL) < 0.5  # the family and 'secreted' pull the model alone down
+    p = predict(x, RULE_MODEL)
+    assert p == 0.7
+    reasons = explain(x, why, f, p, RULE_MODEL)
+    # The resolved segments come first; the counter-evidence is still mentioned after "but".
+    assert reasons[0].startswith("7 membrane-crossing segments are resolved in the structure (in UniProt P1")
+    assert reasons[-1].startswith("but ")
+    # A model without a floor (older membrane_model.json) is unchanged.
+    assert predict(x, {k: v for k, v in RULE_MODEL.items() if k != "tm_floor"}) == predict_model(x, RULE_MODEL)
+
+
+def test_floor_does_not_apply_without_a_significant_resolved_part():
+    ctx = _ctx(fam_stats={"IPR1": [0, 49]}, tcdb={})
+    for f in (_complex(tm_len=12),                  # short segments: signal peptides, odd annotations
+              _complex(n_tm=2),                     # one or two segments: pili, fibrils, anchors
+              _complex(tm_unobs=[(1, 300)]),        # not resolved: only the outside part is in the structure
+              _complex(partner_len=2000),           # in a minor partner of a big soluble complex
+              _complex(tm_kw=())):                  # UniProt does not mark the protein transmembrane
+        x, _ = features(f, ctx, prior=0.1)
+        assert x["rule:tm_resolved"] == 0
+        assert predict(x, RULE_MODEL) < 0.5
+
+
+def test_resolved_barrel_counts_for_the_rule():
+    f = _barrel(has_barrel=True, barrel_modelled=1, tm_modelled=0, tm_unmapped=[],
+                core_tm={"protein": None, "segments": 0, "share": 0.0, "strands": 0, "partner_segments": 0})
+    x, why = features(f, _ctx(tcdb={}, protein_dates={}), prior=0.1)
+    assert x["rule:tm_resolved"] == 1 and why["rule"]["barrel"]
+    model = {"bias": -6.0, "weights": {"tm_modelled": 1.0}, "tm_floor": 0.7}
+    p = predict(x, model)
+    assert p == 0.7 and explain(x, why, f, p, model)[0].startswith("the beta-barrel that crosses the membrane is resolved")
+
+
+def test_fit_does_not_learn_the_rule_indicator():
+    from mpstruc.membrane import fit
+    X = [{"rule:tm_resolved": float(i % 2), "a": float(i % 2)} for i in range(40)]
+    m = fit(X, [i % 2 for i in range(40)], steps=50)
+    assert "rule:tm_resolved" not in m["weights"] and "a" in m["weights"]
+
+
+def test_segments_are_counted_per_chain_not_summed_over_a_polyprotein():
+    """A viral polyprotein (one UniProt entry) whose envelope proteins are separate chains,
+    each with two anchors, does not have three segments in one protein."""
+    from mpstruc.membrane import core_tm, tm_by_protein
+    segs = [[110, 130], [140, 160], [510, 530], [540, 560]]  # prM anchors, then E anchors
+    cov = [{"align": {"P1": [[1, 100, 70]]}, "unobs": []},    # prM: residues 100-169
+           {"align": {"P1": [[1, 400, 170]]}, "unobs": []}]   # E: residues 400-569
+    by, total = tm_by_protein(cov, {"P1": segs})
+    assert len(by["P1"]["segments"]) == 2
+    core = core_tm(by, total, {"P1"})
+    assert core["segments"] == 2
+    f = _facts(uniprots=["P1"], tm_uniprots=["P1"], keywords=["KW-0812"], detergents=[], has_tm_protein=True,
+               tm_in_construct=4, tm_modelled=4, barrel_modelled=0, core_tm=core, title="virus-like particle")
+    x, _ = features(f, _ctx(tcdb={}), prior=0.1)
+    assert x["rule:tm_resolved"] == 0
+    # The same four segments in one chain do count.
+    by, total = tm_by_protein([{"align": {"P1": [[1, 100, 470]]}, "unobs": []}], {"P1": segs})
+    assert core_tm(by, total, {"P1"})["segments"] == 4
+
+
+def test_rule_wording_counts_all_segments_of_the_core_protein():
+    from mpstruc.membrane import core_tm, tm_by_protein
+    segs = [[20, 40], [50, 70], [80, 100], [110, 121]]  # the last is shorter than CORE_MIN_LENGTH
+    cov = [{"align": {"P1": [[1, 1, 300]]}, "unobs": []}]
+    by, total = tm_by_protein(cov, {"P1": segs})
+    core = core_tm(by, total, {"P1"})
+    assert core["segments"] == 3 and core["resolved"] == 4
+    f = _facts(uniprots=["P1"], tm_uniprots=["P1"], keywords=["KW-0812"], detergents=[], has_tm_protein=True,
+               tm_in_construct=4, tm_modelled=4, barrel_modelled=0, core_tm=core, title="a transporter")
+    x, why = features(f, _ctx(tcdb={}), prior=0.1)
+    p = predict(x, RULE_MODEL)
+    # One UniProt protein: no "N of them in ..." and no "one of its main proteins".
+    assert explain(x, why, f, p, RULE_MODEL)[0] == "4 membrane-crossing segments are resolved in the structure"
+    # With a partner, all four are in P1, so no "3 of them".
+    f2 = dict(f, uniprots=["P1", "P2"])
+    x, why = features(f2, _ctx(tcdb={}), prior=0.1)
+    assert explain(x, why, f2, predict(x, RULE_MODEL), RULE_MODEL)[0] == \
+        "4 membrane-crossing segments are resolved in the structure (in UniProt P1, one of its main proteins)"

@@ -30,6 +30,13 @@ family is a membrane protein in the training data, the method, and words in
 the PDB title. UniProt annotations are read as they are today, as before.
 The probability is calibrated: of structures given about 80%, about 80% are
 membrane proteins in the test period (see reports/membrane.md).
+
+The curators' rule: a structure is a membrane protein when a significant
+membrane-crossing part is resolved in it. When CORE_MIN_SEGMENTS or more UniProt
+transmembrane segments (at least CORE_MIN_LENGTH residues) of a main protein are
+resolved, or a membrane beta-barrel is, the score is at least TM_FLOOR, so family
+statistics or 'secreted' keywords of a partner cannot pull it below 50%, and the
+resolved part is the first reason given (core_tm, TM_FLOOR).
 """
 from __future__ import annotations
 
@@ -82,6 +89,25 @@ BARREL_DOMAIN = re.compile(r"^(?:(?:TBDR|TonB-dependent receptor(?:-like)?) beta
 # training period has such plug-only proteins too ("TonB-dependent receptor plug").
 TBDR_PLUG = re.compile(r"^(?:TBDR|TonB-dependent receptor) plug(?: domain)?$", re.I)
 BARREL_AFTER_PLUG = 300
+# The curators' rule: a structure is a membrane protein when a significant membrane-crossing
+# part is resolved in it. Chosen on the training period only (see reports/membrane.md,
+# "Resolved membrane-crossing segments"): structures where one protein UniProt marks
+# transmembrane has at least CORE_MIN_SEGMENTS resolved segments of CORE_MIN_LENGTH or more
+# residues, and that protein is at least CORE_MIN_SHARE of the residues modelled (a core
+# protein, not a minor partner), were membrane proteins in 95.7% of the 1,823 training
+# structures with three or more, and in 76% (31 of 41) of those the model scored below 50%
+# (held-out predictions, counting barrels too). One or two segments were not enough (22% and
+# 38% of those scored below 50%): pili, amyloid fibrils, phage coats, viral envelopes and
+# helices UniProt marks in soluble enzymes. Segments are counted in one chain: a viral
+# polyprotein's envelope proteins are separate chains with one or two anchors each. A
+# resolved membrane beta-barrel (a barrel domain, or CORE_MIN_STRANDS resolved transmembrane
+# strands of a beta-strand protein) counts too. Such structures are shown at least TM_FLOOR
+# (from the 76% above; training period only), so family statistics or "secreted"/"cytoplasm"
+# keywords cannot pull them below 50%. The rule is only a floor, not also a weight the model
+# learns: as a weight it took strength from tm_modelled and lowered membrane complexes whose
+# segments are spread over small subunits (signal peptidase, SecYEG with SecA, BAM).
+CORE_MIN_SEGMENTS, CORE_MIN_LENGTH, CORE_MIN_SHARE, CORE_MIN_STRANDS = 3, 15, 0.25, 8
+TM_FLOOR = 0.7
 KW_MEMBRANE = {"KW-0472", "KW-1003", "KW-0999", "KW-1000", "KW-0256", "KW-0333", "KW-0998", "KW-0793"}
 TITLE_STOP = {"of", "the", "in", "with", "and", "a", "an", "from", "to", "by", "for", "on", "at", "bound",
               "structure", "structures", "complex", "state", "form", "cryo-em", "cryoem", "crystal", "x-ray"}
@@ -183,6 +209,70 @@ def tm_coverage(cov: list | None, tmseg: dict[str, list]) -> tuple[int, int]:
     return total, modelled
 
 
+def _to_entity(u: int, regions: list) -> int | None:
+    """UniProt residue u in the chain's numbering (None if it is not in the construct)."""
+    for eb, rb, n in regions:
+        if rb <= u < rb + n:
+            return eb + u - rb
+    return None
+
+
+def tm_by_protein(cov: list | None, tmseg: dict[str, list]) -> tuple[dict[str, dict], int]:
+    """({accession: {"segments": [[first, last], ...] resolved, "residues": modelled}}, total).
+
+    A segment is resolved as in tm_coverage (in the construct, at least half of it
+    modelled). Both are taken from one chain (entity) of the protein, never added up
+    over chains: "segments" are those of its chain with the most resolved segments
+    (of CORE_MIN_LENGTH or more, then of any length), "residues" the modelled residues
+    of its largest chain. A viral polyprotein whose products are separate chains (prM
+    and E, E1 and E2, each with one or two anchors) is one UniProt entry, but no chain
+    of it crosses the membrane three times. total sums "residues" over the structure's
+    UniProt-linked proteins, so the share of a protein tells a core protein from a
+    minor partner."""
+    out: dict[str, dict] = {}
+    long_ = lambda segs: (sum(1 for b, e in segs if e - b + 1 >= CORE_MIN_LENGTH), len(segs))
+    for ent in cov or []:
+        unobs = ent.get("unobs") or []
+        hidden = lambda q: any(lo <= q <= hi for lo, hi in unobs)
+        for acc, regions in (ent.get("align") or {}).items():
+            seen = sum(1 for eb, _, n in regions for q in range(eb, eb + n) if not hidden(q))
+            d = out.setdefault(acc, {"segments": [], "residues": 0})
+            d["residues"] = max(d["residues"], seen)
+            segs = []
+            for b, e in tmseg.get(acc) or []:
+                pos = [q for q in (_to_entity(u, regions) for u in range(b, e + 1)) if q is not None]
+                if len(pos) >= (e - b + 1) / 2 and sum(1 for q in pos if not hidden(q)) >= (e - b + 1) / 2 \
+                        and [b, e] not in segs:
+                    segs.append([b, e])
+            if long_(segs) > long_(d["segments"]):
+                d["segments"] = segs
+    return out, sum(d["residues"] for d in out.values())
+
+
+def core_tm(by_protein: dict[str, dict], total: int, tm_accessions, strand_accessions=()) -> dict:
+    """The protein that carries the curators' rule, if any.
+
+    {"protein": accession or None, "segments": its resolved segments of CORE_MIN_LENGTH or
+    more, "share": its share of the modelled residues, "strands": resolved transmembrane
+    strands of a beta-strand protein (any length; UniProt strands are 7-12 residues),
+    "resolved": its resolved segments of any length (in the same chain),
+    "partner_segments": the most such segments in a minor partner (under CORE_MIN_SHARE)}."""
+    best = {"protein": None, "segments": 0, "resolved": 0, "share": 0.0, "strands": 0, "partner_segments": 0}
+    for acc, d in by_protein.items():
+        share = d["residues"] / total if total else 0.0
+        if acc in strand_accessions:
+            best["strands"] = max(best["strands"], len(d["segments"]) if share >= CORE_MIN_SHARE else 0)
+        if acc not in tm_accessions:
+            continue
+        n = sum(1 for b, e in d["segments"] if e - b + 1 >= CORE_MIN_LENGTH)
+        if share < CORE_MIN_SHARE:  # a minor partner (reported, but not the rule)
+            best["partner_segments"] = max(best["partner_segments"], n)
+            continue
+        if (n, share) > (best["segments"], best["share"]):
+            best.update(protein=acc, segments=n, resolved=len(d["segments"]), share=round(share, 3))
+    return best
+
+
 def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
               cov: list | None = None, feats: dict | None = None) -> dict | None:
     """Release-day facts about a structure (no labels, no PDB annotations).
@@ -220,7 +310,12 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
     tm_total, tm_modelled = tm_coverage(cov, tmseg or {}) if cov is not None else (None, None)
     # Membrane-spanning beta-barrel domains, mapped onto the structure the same way.
     bar_total, bar_modelled = tm_coverage(cov, barrel or {}) if cov is not None else (None, None)
+    core = None
+    if cov is not None and tmseg is not None:
+        strand_ups = {u for u in ups if KW_STRAND in kw.get(u, ())}
+        core = core_tm(*tm_by_protein(cov, tmseg), tm_ups, strand_ups)
     return {
+        "core_tm": core,
         "has_tm_protein": has_tm_protein, "has_barrel": has_barrel, "tm_unmapped": tm_unmapped,
         "tm_in_construct": tm_total, "tm_modelled": tm_modelled,
         "barrel_in_construct": bar_total, "barrel_modelled": bar_modelled,
@@ -270,6 +365,14 @@ def features(f: dict, ctx: Context, prior: float, own_label: int | None = None) 
         x["barrel_modelled"] = float(bar > 0)
         x["tm_missing"] = float((bool(f.get("has_tm_protein")) or bool(f.get("has_barrel")))
                                 and f["tm_modelled"] == 0 and bar == 0)
+    # The curators' rule (see TM_FLOOR): not a weight the model learns but a floor on the
+    # probability, so keys starting "rule:" are left out of fitting.
+    if f.get("core_tm") is not None:
+        core, bar = f["core_tm"], (f.get("barrel_modelled") or 0) > 0
+        strands = core.get("strands", 0) >= CORE_MIN_STRANDS
+        x["rule:tm_resolved"] = float(core["segments"] >= CORE_MIN_SEGMENTS or strands or bar)
+        why["rule"] = {"protein": core["protein"], "segments": core["segments"],
+                       "resolved": core.get("resolved", core["segments"]), "barrel": bar or strands}
     # UniProt calls it transmembrane but maps nothing to check: unknown, not "missing".
     if f.get("tm_unmapped") is not None:
         x["tm_unmapped"] = float(bool(f["tm_unmapped"]) and not f.get("has_tm_protein") and not f.get("has_barrel"))
@@ -311,7 +414,7 @@ def fit(X: list[dict], y: list[int], l2: float = 10.0, steps: int = 3000, min_co
     """Plain (unweighted) logistic regression, so the output is a probability."""
     import numpy as np
     counts = Counter(k for x in X for k, v in x.items() if v)
-    keys = sorted(k for k in counts if not k.startswith("t:") or counts[k] >= min_count)
+    keys = sorted(k for k in counts if not k.startswith("rule:") and (not k.startswith("t:") or counts[k] >= min_count))
     A = np.array([[x.get(k, 0.0) for k in keys] for x in X], dtype=float)
     t = np.array(y, dtype=float)
     w, b = np.zeros(len(keys)), math.log(t.mean() / (1 - t.mean()))
@@ -324,6 +427,14 @@ def fit(X: list[dict], y: list[int], l2: float = 10.0, steps: int = 3000, min_co
 
 
 def predict(x: dict[str, float], model: dict) -> float:
+    """Calibrated probability, raised to model["tm_floor"] when the curators' rule holds."""
+    p = predict_model(x, model)
+    floor = model.get("tm_floor")
+    return max(p, floor) if floor and x.get("rule:tm_resolved") else p
+
+
+def predict_model(x: dict[str, float], model: dict) -> float:
+    """The calibrated model alone, without the curators' rule."""
     z = model["bias"] + sum(model["weights"].get(k, 0.0) * v for k, v in x.items())
     p = 1 / (1 + math.exp(-z))
     if model.get("isotonic"):  # observed frequencies on held-out training structures
@@ -339,13 +450,15 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
     """Plain-English reasons, strongest first.
 
     High score: the evidence for it, then "but" and the strongest evidence
-    against. Low score: the evidence against it, with the strongest evidence
+    against. When the curators' rule holds (a significant membrane-crossing part
+    of a main protein is resolved), that is always the first reason. Low score: the evidence against it, with the strongest evidence
     for it folded into the last reason as "although ..." (or, if nothing
     counts against it, "the evidence for it is limited: ..."). So "but" only
     ever introduces evidence against a membrane protein.
     """
     w = model["weights"]
     reasons = []  # (signed contribution, text)
+    rule_reason = None  # under the curators' rule the resolved part is the first reason
     def add(key, val, text):
         if text:
             reasons.append((w.get(key, 0.0) * val, text))
@@ -377,9 +490,16 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
             parts.append(f"{k} membrane-crossing {'segment is' if k == 1 else 'segments are'} resolved in the structure")
         if x.get("barrel_modelled"):
             parts.append("the beta-barrel that crosses the membrane is resolved in the structure")
+        rule = why.get("rule") or {}
+        if x.get("rule:tm_resolved") and rule.get("segments", 0) >= CORE_MIN_SEGMENTS and parts and f.get("tm_modelled") \
+                and len(f["uniprots"]) > 1:  # with one UniProt protein there is nothing to point to
+            parts[0] += (f" ({rule['resolved']} of them in UniProt {rule['protein']}, one of its main proteins)"
+                         if f["tm_modelled"] > rule["resolved"] else f" (in UniProt {rule['protein']}, one of its main proteins)")
         add("tm_modelled", 1, " and ".join(parts))
         if x.get("barrel_modelled"):
             reasons[-1] = (reasons[-1][0] + w.get("barrel_modelled", 0.0), reasons[-1][1])
+        if x.get("rule:tm_resolved"):
+            rule_reason = reasons[-1][1]
     if x.get("tm_missing"):
         add("tm_missing", 1, "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure")
     if x.get("tm_unmapped"):
@@ -403,6 +523,8 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
         reasons.append((w.get("no_uniprot", 0.0), "none of its proteins is linked to UniProt yet"))
     supporting = sorted([r for r in reasons if r[0] > 0.05], key=lambda r: -r[0])
     against = sorted([r for r in reasons if r[0] < -0.05], key=lambda r: r[0])
+    if rule_reason and p >= 0.5:
+        supporting.sort(key=lambda r: r[1] != rule_reason)
     if p >= 0.5:
         out = [t for _, t in supporting[:n]]
         if against:
@@ -534,7 +656,9 @@ MONOTOPIC = "MONOTOPIC MEMBRANE PROTEINS"
 BARREL_GROUP = "TRANSMEMBRANE PROTEINS: BETA-BARREL"
 OUTER = "outer membrane (UniProt)"
 # Recent structures curators asked about; their scores are reported from the same run.
-SPOTLIGHT = ("38FI", "38AQ")
+SPOTLIGHT = ("38FI", "38AQ", "9PTT", "35YU")
+# Structures with no resolved membrane-crossing part, which should stay low under the rule.
+SPOTLIGHT_LOW = ("9OS3", "30AZ", "37UU", "9ZDF", "9X9Y", "31OL", "33WM")
 
 
 def false_positive_split(rows: list[tuple[str, float, int, dict]]) -> dict:
@@ -559,6 +683,40 @@ def group_recall(preds: list[tuple[str, float, int | None, dict]], groups: dict[
             kinds[OUTER].append(p)
     return {k: {"n": len(v), "recall_pct": round(100 * sum(q >= 0.5 for q in v) / len(v), 1)}
             for k, v in sorted(kinds.items())}
+
+
+def segment_bucket(f: dict) -> str | None:
+    """Which row of the resolved-segment table a structure falls in (None: nothing resolved)."""
+    core = f.get("core_tm")
+    if not core or not (f.get("tm_modelled") or f.get("barrel_modelled")):
+        return None
+    n = lambda k: "3+" if k >= 3 else str(k)
+    if core["segments"]:
+        return f"main protein, {n(core['segments'])} segment{'s' if core['segments'] > 1 else ''}"
+    if core["partner_segments"]:
+        return f"minor partner only, {n(core['partner_segments'])} segment{'s' if core['partner_segments'] > 1 else ''}"
+    if f.get("barrel_modelled") or core.get("strands", 0) >= CORE_MIN_STRANDS:
+        return "beta-barrel (domain or strands)"
+    return f"only segments shorter than {CORE_MIN_LENGTH} residues"
+
+
+def rule_effect(rows: list[tuple[str, float, float, int, dict]]) -> dict:
+    """How the curators' rule changes scores. rows: (pdb, model alone, with the rule, label, facts).
+
+    "segments": share of structures labelled membrane proteins, by what is resolved;
+    "lifted": structures the rule takes from below 50% to TM_FLOOR."""
+    seg: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for _, _, _, y, f in rows:
+        b = segment_bucket(f)
+        if b:
+            seg[b][0] += y
+            seg[b][1] += 1
+    applies = [(pdb, q, p, y) for pdb, q, p, y, f in rows if p > q]
+    lifted = sorted((pdb, y) for pdb, q, p, y in applies if q < 0.5)
+    return {"segments": {k: {"n": v[1], "membrane_pct": round(100 * v[0] / v[1], 1)} for k, v in sorted(seg.items())},
+            "raised": len(applies), "lifted": len(lifted),
+            "lifted_membrane_pct": round(100 * sum(y for _, y in lifted) / len(lifted), 1) if lifted else None,
+            "lifted_ids": [pdb for pdb, _ in lifted], "lifted_not_labelled": [pdb for pdb, y in lifted if not y]}
 
 
 def _family_stats(rows) -> dict[str, list[int]]:
@@ -600,12 +758,15 @@ def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = T
         ctx.fam_stats = _family_stats([r for r, b in zip(facts, block) if b != k])
         rows += [(f["pdb"], *features(f, ctx, prior), y, f, k) for (f, y), b in zip(facts, block) if b == k]
     # rows: (pdb, x, why, y, facts, block)
-    oof = []
+    oof, oof_rows = [], []
     for k in range(folds):
         m = fit([r[1] for r in rows if r[5] != k], [r[3] for r in rows if r[5] != k])
-        oof += [(predict(r[1], m), r[3]) for r in rows if r[5] == k]
+        held = [r for r in rows if r[5] == k]
+        oof += [(predict_model(r[1], m), r[3]) for r in held]
+        oof_rows += held
     model = fit([r[1] for r in rows], [r[3] for r in rows])
     model["isotonic"] = _isotonic(oof)
+    model["tm_floor"] = TM_FLOOR
     model["prior"] = prior
     model["fam_stats"] = {k: v for k, v in _family_stats(facts).items() if sum(v) >= 2}
     ctx.fam_stats = model["fam_stats"]
@@ -624,13 +785,18 @@ def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = T
             kinds.append((pdb, predict(x, model), y, f))
             if pdb in used:
                 rows_te.append((pdb, x, y, f, why))
-    oof_eval = [(_apply_isotonic(model["isotonic"], p), y) for p, y in oof]
+    oof_cal = [_apply_isotonic(model["isotonic"], p) for p, _ in oof]
+    oof_eval = [(max(q, TM_FLOOR) if r[1].get("rule:tm_resolved") else q, r[3]) for q, r in zip(oof_cal, oof_rows)]
+    rule_tr = [(r[0], q, p, r[3], r[4]) for q, (p, _), r in zip(oof_cal, oof_eval, oof_rows)]
+    rule_te = [(pdb, predict_model(x, model), predict(x, model), y, f) for pdb, x, y, f, _ in rows_te]
     misses = sorted(({"pdb": pdb, "p": round(p, 3), "title": f["title"][:90]} for pdb, p, _, f in kinds
                      if groups.get(pdb) == BARREL_GROUP and p < 0.5), key=lambda m: -m["p"])
     result = {"monotopic_label": monotopic, "train": {"window": TRAIN, **evaluate_preds(oof_eval)},
               "test": {"window": TEST, **evaluate(rows_te, model), "by_kind": group_recall(kinds, groups),
                        "false_positives": false_positive_split([(pdb, p, y, f) for pdb, p, y, f in kinds if y is not None]),
-                       "beta_barrel_misses": misses}}
+                       "beta_barrel_misses": misses,
+                       "model_alone_at_50": evaluate_preds([(q, y) for _, q, _, y, _ in rule_te])["at_50"]},
+              "tm_rule": {"floor": TM_FLOOR, "train": rule_effect(rule_tr), "test": rule_effect(rule_te)}}
     if not write:
         return result
     if tradeoff is not None:
@@ -639,7 +805,7 @@ def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = T
     later = sorted(set(released_between("2025-07-01", "2025-12-31")) & ctx.mpstruc_ids)
     sc = score_structures(later, db, model)
     ps = [v["p"] for v in sc.values()]
-    result["spotlight"] = {pdb: score_structures([pdb], db, model).get(pdb) for pdb in SPOTLIGHT}
+    result["spotlight"] = score_structures(list(SPOTLIGHT + SPOTLIGHT_LOW), db, model)
     result["mpstruc_later"] = {"window": ["2025-07-01", "2025-12-31"], "n": len(ps),
                                "at_least_50_pct": round(100 * sum(p >= 0.5 for p in ps) / len(ps), 1) if ps else None,
                                "at_least_10_pct": round(100 * sum(p >= 0.1 for p in ps) / len(ps), 1) if ps else None}
@@ -722,13 +888,44 @@ def report_md(r: dict, model: dict) -> str:
               "both kinds as wrong."
               + (f" Outer-membrane barrels counted as wrong: {', '.join(fp['outer_membrane_barrel_ids'])}."
                  if fp["outer_membrane_barrel_ids"] else ""), ""]
+    rule = r.get("tm_rule")
+    if rule:
+        tr, te = rule["train"], rule["test"]
+        L += ["### Resolved membrane-crossing segments (the curators' rule)", "",
+              "Curators count a structure as a membrane protein only when a significant membrane-crossing part is "
+              "resolved in it. How often structures were labelled membrane proteins, by what is resolved: the most "
+              f"resolved UniProt transmembrane segments of at least {CORE_MIN_LENGTH} residues in one protein UniProt marks "
+              f"transmembrane, in a main protein (at least {round(100 * CORE_MIN_SHARE)}% of the residues modelled) or only "
+              "in a minor partner.", "",
+              "| Resolved | Training structures | Membrane proteins | Test structures | Membrane proteins |", "|---|---|---|---|---|"]
+        for k in sorted(set(tr["segments"]) | set(te["segments"])):
+            a, b = tr["segments"].get(k), te["segments"].get(k)
+            cell = lambda v: f"{v['n']:,} | {v['membrane_pct']}%" if v else "0 | –"
+            L.append(f"| {k} | {cell(a)} | {cell(b)} |")
+        L += ["", f"The rule, chosen on the training period only: {CORE_MIN_SEGMENTS} or more such segments in a main "
+              f"protein (counted in one chain), or a resolved membrane beta-barrel, make a structure at least "
+              f"{round(100 * rule['floor'])}% likely, whatever its protein family or UniProt's 'secreted' or 'cytoplasm' "
+              "keywords say. The rule is a floor only, not a weight the model learns, so the model's other weights are "
+              "unchanged by it. The floor comes from the training period's held-out predictions (the share of structures "
+              "the rule lifts that are labelled membrane proteins); the test period below confirms it but was not used to "
+              "choose it. One or two segments are not enough: pili, amyloid fibrils, phage coats, "
+              "viral envelope anchors and helices UniProt marks in soluble enzymes have them. "
+              f"In the training period (held-out predictions) the rule took {tr['lifted']} structures from below 50% to "
+              f"{round(100 * rule['floor'])}%, of which {tr['lifted_membrane_pct']}% are labelled membrane proteins; in the "
+              f"test period {te['lifted']}, of which {te['lifted_membrane_pct']}% are. It also raised {tr['raised'] - tr['lifted']} "
+              f"training and {te['raised'] - te['lifted']} test structures that were already between 50% and "
+              f"{round(100 * rule['floor'])}% (not counted as lifted). Called at 50% without the rule: "
+              f"{t['model_alone_at_50']['called_membrane']:,} ({t['model_alone_at_50']['precision_pct']}% precision, "
+              f"{t['model_alone_at_50']['recall_pct']}% recall); with it, see above. Lifted in the test period but "
+              "labelled 'not a membrane protein': " + (", ".join(te["lifted_not_labelled"]) or "none") + ".", ""]
     misses, spot = t.get("beta_barrel_misses"), r.get("spotlight")
-    if misses is not None or spot:
+    if spot:
+        L += ["### Structures curators asked about", "",
+              "| PDB | Shown | Why |", "|---|---|---|"]
+        L += [f"| {pdb} | {round(100 * v['p'])}% | {'; '.join(v['why'])} |" for pdb, v in spot.items()]
+        L.append("")
+    if misses is not None:
         L += ["### Beta-barrels", ""]
-        if spot:
-            L.append("Scores from this model for structures curators asked about: " + "; ".join(
-                f"{pdb} {round(100 * v['p'])}%" if v else f"{pdb} could not be scored" for pdb, v in spot.items()) + ".")
-            L.append("")
         if misses:
             L += [f"mpstruc beta-barrel structures in the test period that still score below 50% ({len(misses)}). "
                   "Barrels whose UniProt entry names no barrel domain (only a plug, or nothing) are still often missed:", "",

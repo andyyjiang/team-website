@@ -9,9 +9,9 @@ It was trained on PDB releases 2023-07-01 to 2024-08-31 (calibrated on structure
 ## Test period
 
 - Structures: 9,583, of which membrane proteins: 1,187
-- Ranking quality (AUC): 0.9853; Brier score: 0.0248
-- Called membrane protein (≥50%): 1,324; of those, 83.7% are; they include 93.3% of all membrane proteins
-- Of the 451 structures mpstruc added from Jul–Dec 2025 releases, 90.5% score at least 50% and 98.0% at least 10%
+- Ranking quality (AUC): 0.9855; Brier score: 0.0235
+- Called membrane protein (≥50%): 1,364; of those, 84.0% are; they include 96.5% of all membrane proteins
+- Of the 451 structures mpstruc added from Jul–Dec 2025 releases, 93.8% score at least 50% and 98.0% at least 10%
 
 ### Which kinds are found?
 
@@ -20,17 +20,48 @@ Share of each kind in the test period that scores at least 50%: every structure 
 | Kind | Structures | Scored 50% or more |
 |---|---|---|
 | Monotopic membrane proteins | 7 | 0.0% |
-| Transmembrane proteins: alpha-helical | 474 | 93.0% |
+| Transmembrane proteins: alpha-helical | 474 | 96.4% |
 | Transmembrane proteins: beta-barrel | 19 | 89.5% |
 | outer membrane (UniProt) | 32 | 84.4% |
 
 ### Wrong calls: model errors or missing labels?
 
-216 test structures labelled 'not a membrane protein' score 50% or more. 4 of them are proteins UniProt calls outer-membrane beta-barrels (cell outer membrane and transmembrane beta strand), which the label sources (mpstruc, PDBTM, MemProtMD, OPM) probably missed; the same protein is sometimes labelled a membrane protein in another structure. The other 212 are real mistakes. The labels were not changed, so the precision above counts both kinds as wrong. Outer-membrane barrels counted as wrong: 8RM3, 8RMI, 8S34, 9FVQ.
+218 test structures labelled 'not a membrane protein' score 50% or more. 4 of them are proteins UniProt calls outer-membrane beta-barrels (cell outer membrane and transmembrane beta strand), which the label sources (mpstruc, PDBTM, MemProtMD, OPM) probably missed; the same protein is sometimes labelled a membrane protein in another structure. The other 214 are real mistakes. The labels were not changed, so the precision above counts both kinds as wrong. Outer-membrane barrels counted as wrong: 8RM3, 8RMI, 8S34, 9FVQ.
+
+### Resolved membrane-crossing segments (the curators' rule)
+
+Curators count a structure as a membrane protein only when a significant membrane-crossing part is resolved in it. How often structures were labelled membrane proteins, by what is resolved: the most resolved UniProt transmembrane segments of at least 15 residues in one protein UniProt marks transmembrane, in a main protein (at least 25% of the residues modelled) or only in a minor partner.
+
+| Resolved | Training structures | Membrane proteins | Test structures | Membrane proteins |
+|---|---|---|---|---|
+| beta-barrel (domain or strands) | 21 | 61.9% | 22 | 100.0% |
+| main protein, 1 segment | 152 | 52.0% | 75 | 32.0% |
+| main protein, 2 segments | 59 | 78.0% | 69 | 63.8% |
+| main protein, 3+ segments | 1,823 | 95.7% | 1,108 | 85.7% |
+| minor partner only, 1 segment | 11 | 45.5% | 17 | 58.8% |
+| minor partner only, 2 segments | 1 | 100.0% | 1 | 0.0% |
+| minor partner only, 3+ segments | 167 | 74.3% | 114 | 80.7% |
+| only segments shorter than 15 residues | 3 | 0.0% | 0 | – |
+
+The rule, chosen on the training period only: 3 or more such segments in a main protein (counted in one chain), or a resolved membrane beta-barrel, make a structure at least 70% likely, whatever its protein family or UniProt's 'secreted' or 'cytoplasm' keywords say. The rule is a floor only, not a weight the model learns, so the model's other weights are unchanged by it. The floor comes from the training period's held-out predictions (the share of structures the rule lifts that are labelled membrane proteins); the test period below confirms it but was not used to choose it. One or two segments are not enough: pili, amyloid fibrils, phage coats, viral envelope anchors and helices UniProt marks in soluble enzymes have them. In the training period (held-out predictions) the rule took 41 structures from below 50% to 70%, of which 75.6% are labelled membrane proteins; in the test period 40, of which 95.0% are. It also raised 20 training and 21 test structures that were already between 50% and 70% (not counted as lifted). Called at 50% without the rule: 1,324 (83.7% precision, 93.3% recall); with it, see above. Lifted in the test period but labelled 'not a membrane protein': 9A6W, 9GI3.
+
+### Structures curators asked about
+
+| PDB | Shown | Why |
+|---|---|---|
+| 38FI | 90% | the beta-barrel that crosses the membrane is resolved in the structure; UniProt lists a protein in it as crossing the membrane; its protein family (IPR000531) is a membrane protein in 2 of 4 training structures |
+| 38AQ | 87% | the beta-barrel that crosses the membrane is resolved in the structure; UniProt lists a protein in it as crossing the membrane; TCDB lists a protein in it (TC 8.A.46.1.1) |
+| 9PTT | 70% | 11 membrane-crossing segments are resolved in the structure (7 of them in UniProt Q9ULV1, one of its main proteins); UniProt lists a protein in it as crossing the membrane; TCDB lists a protein in it (TC 8.A.40.1.20); but its protein family (IPR002172) is a membrane protein in 0 of 49 training structures |
+| 35YU | 95% | 11 membrane-crossing segments are resolved in the structure (7 of them in UniProt Q9ULV1, one of its main proteins); its protein family (IPR017981) is a membrane protein in 39 of 48 training structures; UniProt lists all its proteins as crossing the membrane |
+| 9OS3 | 0% | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; its protein family (IPR013785) is a membrane protein in 1 of 142 training structures, although UniProt lists a protein in it as crossing the membrane |
+| 30AZ | 3% | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure, although UniProt lists a protein in it as crossing the membrane |
+| 37UU | 0% | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; its protein family (IPR029058) is a membrane protein in 3 of 206 training structures; UniProt says a protein in it is in the cytoplasm, although UniProt lists a protein in it as crossing the membrane |
+| 9ZDF | 2% | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; its protein family (IPR036116) is a membrane protein in 4 of 102 training structures; UniProt says a protein in it is secreted, although UniProt lists a protein in it as crossing the membrane |
+| 9X9Y | 0% | its protein family (IPR036034) is a membrane protein in 0 of 67 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane |
+| 31OL | 0% | its protein family (IPR029071) is a membrane protein in 0 of 396 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane |
+| 33WM | 0% | its protein family (IPR001084) is a membrane protein in 0 of 90 training structures; UniProt does not list any of its proteins as crossing the membrane; UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane |
 
 ### Beta-barrels
-
-Scores from this model for structures curators asked about: 38FI 90%; 38AQ 87%.
 
 mpstruc beta-barrel structures in the test period that still score below 50% (2). Barrels whose UniProt entry names no barrel domain (only a plug, or nothing) are still often missed:
 
@@ -44,13 +75,13 @@ mpstruc beta-barrel structures in the test period that still score below 50% (2)
 | Shown as | Structures | Average shown | Actually membrane proteins |
 |---|---|---|---|
 | 0-10% | 8,066 | 0.4% | 0.3% |
-| 10-20% | 71 | 14.3% | 15.5% |
-| 20-30% | 38 | 25.1% | 28.9% |
-| 30-40% | 45 | 33.5% | 28.9% |
-| 40-50% | 39 | 44.2% | 56.4% |
-| 50-60% | 28 | 55.4% | 35.7% |
-| 60-70% | 28 | 64.9% | 60.7% |
-| 70-80% | 108 | 76.2% | 85.2% |
+| 10-20% | 67 | 14.1% | 11.9% |
+| 20-30% | 31 | 25.2% | 12.9% |
+| 30-40% | 37 | 33.1% | 13.5% |
+| 40-50% | 18 | 44.7% | 11.1% |
+| 50-60% | 14 | 55.2% | 7.1% |
+| 60-70% | 21 | 64.9% | 47.6% |
+| 70-80% | 169 | 74.0% | 86.4% |
 | 80-90% | 191 | 85.5% | 73.8% |
 | 90-100% | 969 | 94.3% | 87.5% |
 
@@ -93,10 +124,10 @@ Title words that lower it: variant (-0.43), fab (-0.33), composite (-0.30), doma
 | 8JC9 | 96% | yes | 2 membrane-crossing segments are resolved in the structure; its protein family (IPR000066) is a membrane protein in 10 of 11 training structures; the sample contains detergent (D12) |
 | 8YMN | 95% | yes | 11 membrane-crossing segments are resolved in the structure; its protein family (IPR003864) is a membrane protein in 21 of 21 training structures; UniProt lists a protein in it as crossing the membrane |
 | 9EX4 | 95% | no | 4 membrane-crossing segments are resolved in the structure; its protein family (IPR036719) is a membrane protein in 94 of 103 training structures; UniProt lists a protein in it as crossing the membrane |
-| 9ITY | 94% | no | 8 membrane-crossing segments are resolved in the structure; its protein family (IPR005953) is a membrane protein in 6 of 6 training structures; UniProt lists all its proteins as crossing the membrane |
-| 8P15 | 90% | no | 7 membrane-crossing segments are resolved in the structure; its protein family (IPR017452) is a membrane protein in 363 of 388 training structures; UniProt lists a protein in it as crossing the membrane; but UniProt says a protein in it is in the cytoplasm |
+| 9ITY | 94% | no | 8 membrane-crossing segments are resolved in the structure (5 of them in UniProt A9WGT0, one of its main proteins); its protein family (IPR005953) is a membrane protein in 6 of 6 training structures; UniProt lists all its proteins as crossing the membrane |
+| 8P15 | 90% | no | 7 membrane-crossing segments are resolved in the structure (in UniProt P02699, one of its main proteins); its protein family (IPR017452) is a membrane protein in 363 of 388 training structures; UniProt lists a protein in it as crossing the membrane; but UniProt says a protein in it is in the cytoplasm |
 | 8XNL | 78% | yes | 14 membrane-crossing segments are resolved in the structure; UniProt lists a protein in it as crossing the membrane; its protein family (IPR009346) is a membrane protein in 28 of 46 training structures |
-| 8YJB | 23% | no | its protein family (IPR016024) is a membrane protein in 6 of 320 training structures; UniProt says a protein in it is in the cytoplasm, although 5 membrane-crossing segments are resolved in the structure |
+| 8VUQ | 25% | no | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; the title mentions 'fab', although its protein family (IPR049872) is a membrane protein in 13 of 14 training structures |
 | 9C5B | 4% | no | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; UniProt says a protein in it is in the cytoplasm, although UniProt lists a protein in it as crossing the membrane |
 | 9BGM | 1% | no | UniProt does not list any of its proteins as crossing the membrane |
 | 8J47 | 1% | no | the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure; its protein family (IPR011993) is a membrane protein in 6 of 247 training structures; UniProt says a protein in it is in the cytoplasm, although UniProt lists a protein in it as crossing the membrane |

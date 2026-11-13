@@ -7,12 +7,12 @@
   ],
   "n": 17605,
   "membrane": 2092,
-  "auc": 0.9926,
-  "brier": 0.0136,
+  "auc": 0.9927,
+  "brier": 0.0132,
   "at_50": {
-   "called_membrane": 2144,
-   "precision_pct": 92.1,
-   "recall_pct": 94.4
+   "called_membrane": 2185,
+   "precision_pct": 91.8,
+   "recall_pct": 95.8
   },
   "calibration": [
    {
@@ -23,45 +23,45 @@
    },
    {
     "range": "10-20%",
-    "n": 108,
-    "predicted": 14.9,
-    "actual": 8.3
+    "n": 105,
+    "predicted": 14.8,
+    "actual": 5.7
    },
    {
     "range": "20-30%",
-    "n": 51,
-    "predicted": 25.3,
-    "actual": 35.3
+    "n": 44,
+    "predicted": 25.1,
+    "actual": 27.3
    },
    {
     "range": "30-40%",
-    "n": 44,
+    "n": 35,
     "predicted": 35.4,
-    "actual": 47.7
+    "actual": 42.9
    },
    {
     "range": "40-50%",
-    "n": 66,
-    "predicted": 44.5,
-    "actual": 34.8
+    "n": 44,
+    "predicted": 44.3,
+    "actual": 15.9
    },
    {
     "range": "50-60%",
-    "n": 29,
-    "predicted": 55.7,
-    "actual": 51.7
+    "n": 20,
+    "predicted": 56.5,
+    "actual": 35.0
    },
    {
     "range": "60-70%",
-    "n": 46,
+    "n": 35,
     "predicted": 64.4,
-    "actual": 54.3
+    "actual": 51.4
    },
    {
     "range": "70-80%",
-    "n": 100,
-    "predicted": 75.6,
-    "actual": 83.0
+    "n": 161,
+    "predicted": 73.5,
+    "actual": 80.1
    },
    {
     "range": "80-90%",
@@ -85,12 +85,12 @@
   ],
   "n": 9583,
   "membrane": 1187,
-  "auc": 0.9853,
-  "brier": 0.0248,
+  "auc": 0.9855,
+  "brier": 0.0235,
   "at_50": {
-   "called_membrane": 1324,
-   "precision_pct": 83.7,
-   "recall_pct": 93.3
+   "called_membrane": 1364,
+   "precision_pct": 84.0,
+   "recall_pct": 96.5
   },
   "calibration": [
    {
@@ -101,45 +101,45 @@
    },
    {
     "range": "10-20%",
-    "n": 71,
-    "predicted": 14.3,
-    "actual": 15.5
+    "n": 67,
+    "predicted": 14.1,
+    "actual": 11.9
    },
    {
     "range": "20-30%",
-    "n": 38,
-    "predicted": 25.1,
-    "actual": 28.9
+    "n": 31,
+    "predicted": 25.2,
+    "actual": 12.9
    },
    {
     "range": "30-40%",
-    "n": 45,
-    "predicted": 33.5,
-    "actual": 28.9
+    "n": 37,
+    "predicted": 33.1,
+    "actual": 13.5
    },
    {
     "range": "40-50%",
-    "n": 39,
-    "predicted": 44.2,
-    "actual": 56.4
+    "n": 18,
+    "predicted": 44.7,
+    "actual": 11.1
    },
    {
     "range": "50-60%",
-    "n": 28,
-    "predicted": 55.4,
-    "actual": 35.7
+    "n": 14,
+    "predicted": 55.2,
+    "actual": 7.1
    },
    {
     "range": "60-70%",
-    "n": 28,
+    "n": 21,
     "predicted": 64.9,
-    "actual": 60.7
+    "actual": 47.6
    },
    {
     "range": "70-80%",
-    "n": 108,
-    "predicted": 76.2,
-    "actual": 85.2
+    "n": 169,
+    "predicted": 74.0,
+    "actual": 86.4
    },
    {
     "range": "80-90%",
@@ -162,7 +162,7 @@
    },
    "TRANSMEMBRANE PROTEINS: ALPHA-HELICAL": {
     "n": 474,
-    "recall_pct": 93.0
+    "recall_pct": 96.4
    },
    "TRANSMEMBRANE PROTEINS: BETA-BARREL": {
     "n": 19,
@@ -174,9 +174,9 @@
    }
   },
   "false_positives": {
-   "total": 216,
+   "total": 218,
    "outer_membrane_barrel": 4,
-   "other": 212,
+   "other": 214,
    "outer_membrane_barrel_ids": [
     "8RM3",
     "8RMI",
@@ -195,7 +195,190 @@
     "p": 0.013,
     "title": "Cryo-EM structure of E. coli cellulose synthase subunit C with cellotetraose"
    }
-  ]
+  ],
+  "model_alone_at_50": {
+   "called_membrane": 1324,
+   "precision_pct": 83.7,
+   "recall_pct": 93.3
+  }
+ },
+ "tm_rule": {
+  "floor": 0.7,
+  "train": {
+   "segments": {
+    "beta-barrel (domain or strands)": {
+     "n": 21,
+     "membrane_pct": 61.9
+    },
+    "main protein, 1 segment": {
+     "n": 152,
+     "membrane_pct": 52.0
+    },
+    "main protein, 2 segments": {
+     "n": 59,
+     "membrane_pct": 78.0
+    },
+    "main protein, 3+ segments": {
+     "n": 1823,
+     "membrane_pct": 95.7
+    },
+    "minor partner only, 1 segment": {
+     "n": 11,
+     "membrane_pct": 45.5
+    },
+    "minor partner only, 2 segments": {
+     "n": 1,
+     "membrane_pct": 100.0
+    },
+    "minor partner only, 3+ segments": {
+     "n": 167,
+     "membrane_pct": 74.3
+    },
+    "only segments shorter than 15 residues": {
+     "n": 3,
+     "membrane_pct": 0.0
+    }
+   },
+   "raised": 61,
+   "lifted": 41,
+   "lifted_membrane_pct": 75.6,
+   "lifted_ids": [
+    "8B22",
+    "8B23",
+    "8B24",
+    "8BM3",
+    "8C7P",
+    "8CE8",
+    "8CR1",
+    "8CR2",
+    "8FRM",
+    "8FRO",
+    "8FRP",
+    "8IJQ",
+    "8IJR",
+    "8IMZ",
+    "8JVB",
+    "8JWX",
+    "8K9R",
+    "8K9T",
+    "8ODN",
+    "8ODU",
+    "8ODV",
+    "8P1U",
+    "8PD0",
+    "8PDA",
+    "8PN9",
+    "8PYV",
+    "8QJ3",
+    "8QJ4",
+    "8RF0",
+    "8RF9",
+    "8RFE",
+    "8RFG",
+    "8UFH",
+    "8W9W",
+    "8W9Y",
+    "8WCN",
+    "8YAX",
+    "8YB5",
+    "8YB7",
+    "9EOF",
+    "9EP4"
+   ],
+   "lifted_not_labelled": [
+    "8JVB",
+    "8JWX",
+    "8ODN",
+    "8PD0",
+    "8PDA",
+    "8YAX",
+    "8YB5",
+    "8YB7",
+    "9EOF",
+    "9EP4"
+   ]
+  },
+  "test": {
+   "segments": {
+    "beta-barrel (domain or strands)": {
+     "n": 22,
+     "membrane_pct": 100.0
+    },
+    "main protein, 1 segment": {
+     "n": 75,
+     "membrane_pct": 32.0
+    },
+    "main protein, 2 segments": {
+     "n": 69,
+     "membrane_pct": 63.8
+    },
+    "main protein, 3+ segments": {
+     "n": 1108,
+     "membrane_pct": 85.7
+    },
+    "minor partner only, 1 segment": {
+     "n": 17,
+     "membrane_pct": 58.8
+    },
+    "minor partner only, 2 segments": {
+     "n": 1,
+     "membrane_pct": 0.0
+    },
+    "minor partner only, 3+ segments": {
+     "n": 114,
+     "membrane_pct": 80.7
+    }
+   },
+   "raised": 61,
+   "lifted": 40,
+   "lifted_membrane_pct": 95.0,
+   "lifted_ids": [
+    "8KES",
+    "8KET",
+    "8KEV",
+    "8QZ6",
+    "8QZ7",
+    "8U54",
+    "8U58",
+    "8U5N",
+    "8U5Q",
+    "8U5X",
+    "8V0H",
+    "8VHT",
+    "8VHZ",
+    "8VI0",
+    "8WR3",
+    "8WVU",
+    "8XFP",
+    "8XFS",
+    "8XFT",
+    "8Y56",
+    "8Y69",
+    "8Z8Z",
+    "9A6W",
+    "9BUR",
+    "9BUX",
+    "9BVK",
+    "9BVL",
+    "9BVM",
+    "9BVR",
+    "9DP6",
+    "9DX7",
+    "9DXA",
+    "9EOT",
+    "9GI3",
+    "9GOE",
+    "9J82",
+    "9J83",
+    "9LSH",
+    "9LSI",
+    "9LSJ"
+   ],
+   "lifted_not_labelled": [
+    "9A6W",
+    "9GI3"
+   ]
+  }
  },
  "spotlight": {
   "38FI": {
@@ -213,6 +396,76 @@
     "UniProt lists a protein in it as crossing the membrane",
     "TCDB lists a protein in it (TC 8.A.46.1.1)"
    ]
+  },
+  "9PTT": {
+   "p": 0.7,
+   "why": [
+    "11 membrane-crossing segments are resolved in the structure (7 of them in UniProt Q9ULV1, one of its main proteins)",
+    "UniProt lists a protein in it as crossing the membrane",
+    "TCDB lists a protein in it (TC 8.A.40.1.20)",
+    "but its protein family (IPR002172) is a membrane protein in 0 of 49 training structures"
+   ]
+  },
+  "35YU": {
+   "p": 0.95,
+   "why": [
+    "11 membrane-crossing segments are resolved in the structure (7 of them in UniProt Q9ULV1, one of its main proteins)",
+    "its protein family (IPR017981) is a membrane protein in 39 of 48 training structures",
+    "UniProt lists all its proteins as crossing the membrane"
+   ]
+  },
+  "9OS3": {
+   "p": 0.004,
+   "why": [
+    "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure",
+    "its protein family (IPR013785) is a membrane protein in 1 of 142 training structures, although UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  "30AZ": {
+   "p": 0.029,
+   "why": [
+    "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure, although UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  "37UU": {
+   "p": 0.005,
+   "why": [
+    "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure",
+    "its protein family (IPR029058) is a membrane protein in 3 of 206 training structures",
+    "UniProt says a protein in it is in the cytoplasm, although UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  "9ZDF": {
+   "p": 0.022,
+   "why": [
+    "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure",
+    "its protein family (IPR036116) is a membrane protein in 4 of 102 training structures",
+    "UniProt says a protein in it is secreted, although UniProt lists a protein in it as crossing the membrane"
+   ]
+  },
+  "9X9Y": {
+   "p": 0.003,
+   "why": [
+    "its protein family (IPR036034) is a membrane protein in 0 of 67 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane"
+   ]
+  },
+  "31OL": {
+   "p": 0.004,
+   "why": [
+    "its protein family (IPR029071) is a membrane protein in 0 of 396 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane"
+   ]
+  },
+  "33WM": {
+   "p": 0.001,
+   "why": [
+    "its protein family (IPR001084) is a membrane protein in 0 of 90 training structures",
+    "UniProt does not list any of its proteins as crossing the membrane",
+    "UniProt says a protein in it is in the cytoplasm, although UniProt places a protein in it in a membrane"
+   ]
   }
  },
  "mpstruc_later": {
@@ -221,7 +474,7 @@
    "2025-12-31"
   ],
   "n": 451,
-  "at_least_50_pct": 90.5,
+  "at_least_50_pct": 93.8,
   "at_least_10_pct": 98.0
  },
  "examples": [
@@ -260,7 +513,7 @@
    "membrane": 0,
    "p": 0.938,
    "why": [
-    "8 membrane-crossing segments are resolved in the structure",
+    "8 membrane-crossing segments are resolved in the structure (5 of them in UniProt A9WGT0, one of its main proteins)",
     "its protein family (IPR005953) is a membrane protein in 6 of 6 training structures",
     "UniProt lists all its proteins as crossing the membrane"
    ]
@@ -270,7 +523,7 @@
    "membrane": 0,
    "p": 0.905,
    "why": [
-    "7 membrane-crossing segments are resolved in the structure",
+    "7 membrane-crossing segments are resolved in the structure (in UniProt P02699, one of its main proteins)",
     "its protein family (IPR017452) is a membrane protein in 363 of 388 training structures",
     "UniProt lists a protein in it as crossing the membrane",
     "but UniProt says a protein in it is in the cytoplasm"
@@ -287,12 +540,12 @@
    ]
   },
   {
-   "pdb": "8YJB",
+   "pdb": "8VUQ",
    "membrane": 0,
-   "p": 0.23,
+   "p": 0.247,
    "why": [
-    "its protein family (IPR016024) is a membrane protein in 6 of 320 training structures",
-    "UniProt says a protein in it is in the cytoplasm, although 5 membrane-crossing segments are resolved in the structure"
+    "the part that crosses the membrane is not resolved, so only an outside part of the protein is in the structure",
+    "the title mentions 'fab', although its protein family (IPR049872) is a membrane protein in 13 of 14 training structures"
    ]
   },
   {
