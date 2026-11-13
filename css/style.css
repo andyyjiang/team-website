@@ -1113,6 +1113,89 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-steps { margin: 0 0 12px; padding-left: 22px; line-height: 1.6; }
 .mp-steps li { margin: 2px 0; }
 
+/* ---- Studies (Automation tab): a lead with its related entries nested ----
+   Related entries are lines in their lead's mpstruc entry, so they hang off
+   the lead's card on tree lines, in the order mpstruc lists them. */
+.mp-study { margin-bottom: 22px; }
+.mp-study.has-rel > .mp-cand { margin-bottom: 0; }
+.mp-study-crumbs ol { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; margin: 0 0 6px; padding: 0; list-style: none; font-size: 0.82rem; color: var(--color-muted); }
+.mp-study-crumbs li { overflow-wrap: anywhere; min-width: 0; }
+.mp-study-crumbs li + li::before { content: "›"; margin: 0 7px; color: var(--color-muted); }
+.mp-study-crumbs a { color: var(--color-muted); }
+.mp-study-crumbs a:hover { color: var(--color-accent); }
+.mp-study-crumbs b { color: var(--color-text); font-family: var(--font-mono); font-weight: 600; }
+.mp-crumb-name { color: var(--color-text); }
+.mp-study-acts { display: inline-flex; flex-wrap: wrap; gap: 8px; padding-left: 10px; border-left: 1px solid var(--color-border-strong); }
+.mp-study-block { flex-basis: 100%; margin: 0; font-size: 0.85rem; color: var(--color-warn-text); overflow-wrap: anywhere; }
+.mp-greject-what { flex-basis: 100%; margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.mp-study > .mp-greject { margin: 8px 0 0; }
+.mp-study-head {
+  padding: 14px 16px; background: var(--color-bg-alt); border: 1px dashed var(--color-border-strong); border-radius: 12px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-study-head .mp-actions { margin-top: 10px; }
+.mp-study-head .mp-study-acts:first-child { padding-left: 0; border-left: 0; }
+.mp-study-title { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-study-forced { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; font-size: 0.85rem; color: var(--color-muted); }
+.mp-study-forced .mp-btn { padding: 5px 11px; font-size: 0.8rem; }
+.mp-study-title .mp-badge { margin-left: 4px; vertical-align: 1px; }
+.mp-study-note { margin: 4px 0 0; font-size: 0.86rem; color: var(--color-muted); overflow-wrap: anywhere; }
+/* The tree: one line down from the lead, a branch to each related entry. */
+.mp-rel-tree { margin-left: 22px; }
+.mp-rel-tree-h {
+  margin: 0; padding: 10px 0 8px 18px; border-left: 1px solid var(--color-border-strong);
+  font-size: 0.8rem; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere;
+}
+.mp-rel-tree-h .mp-of { font-weight: 400; }
+.mp-rel-list { list-style: none; margin: 0; padding: 0 0 0 18px; }
+.mp-rel-list .mp-rel-list { margin: 8px 0 0 16px; }
+.mp-relnode { position: relative; padding-bottom: 8px; }
+.mp-relnode:last-child { padding-bottom: 0; }
+.mp-relnode::before { content: ""; position: absolute; left: -18px; top: 0; bottom: 0; border-left: 1px solid var(--color-border-strong); }
+.mp-relnode:last-child::before { bottom: auto; height: 22px; }
+.mp-relnode::after { content: ""; position: absolute; left: -18px; top: 22px; width: 14px; border-top: 1px solid var(--color-border-strong); }
+.mp-relitem {
+  position: relative; padding: 10px 12px; font-size: 0.88rem;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-relitem:hover { border-color: var(--color-border-strong); }
+.mp-relitem.decided.approved { box-shadow: inset 2px 0 0 var(--color-daughter); }
+.mp-relitem.decided.rejected { box-shadow: inset 2px 0 0 var(--color-related); }
+/* Dimmed by the dashed border and background only: the text keeps full contrast. */
+.mp-relitem.dim { background: var(--color-bg-alt); border-style: dashed; }
+.mp-relitem-id { margin: 0; font-size: inherit; font-weight: inherit; line-height: inherit; }
+.mp-relitem-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.mp-relitem-head .mp-pdb { font-size: 0.86rem; }
+.mp-relitem-line { margin: 4px 0 2px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.mp-relitem-title { margin: 2px 0; font-size: 0.82rem; color: var(--color-muted); overflow-wrap: anywhere; }
+.mp-relitem-facts { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 2px 0 0; font-size: 0.8rem; color: var(--color-muted); }
+.mp-relitem-mem { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-text); }
+.mp-relitem-mem.low { color: var(--color-warn-text); }
+.mp-relitem-why { padding: 0 6px; border-radius: 4px; color: var(--color-warn-text); background: var(--color-warn-bg); }
+.mp-relitem-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mp-relitem-acts .mp-btn { padding: 5px 11px; font-size: 0.8rem; }
+.mp-relitem-more { margin-left: auto; }
+.mp-relitem-card { margin-top: 8px; }
+.mp-relitem-card > .mp-cand { margin-bottom: 0; }
+.mp-study-intro { max-width: 80ch; }
+/* Decisions › Approved: related entries under their approved owner. */
+.mp-appr-group.has-rel > .mp-appr-row { margin-bottom: 0; }
+.mp-appr-kids { margin: 0 0 10px 22px; padding: 0 0 0 18px; border-left: 1px solid var(--color-border-strong); }
+.mp-appr-kids > .mp-rel-tree-h { border-left: 0; padding-left: 0; }
+.mp-appr-kids .mp-appr-row { margin-bottom: 8px; }
+.mp-appr-kids .mp-appr-kids { margin-left: 8px; }
+@media (max-width: 480px) {
+  .mp-rel-tree { margin-left: 10px; }
+  .mp-rel-tree-h { padding-left: 14px; }
+  .mp-rel-list { padding-left: 14px; }
+  .mp-rel-list .mp-rel-list { margin-left: 6px; }
+  .mp-relnode::before, .mp-relnode::after { left: -14px; }
+  .mp-relnode::after { width: 10px; }
+  .mp-appr-kids { margin-left: 10px; padding-left: 12px; }
+  .mp-study-acts { padding-left: 0; border-left: 0; }
+}
+
 /* Confirmation dialog (native <dialog>) */
 .mp-dialog {
   width: min(460px, calc(100vw - 32px)); padding: 22px 22px 18px; border-radius: 12px;
