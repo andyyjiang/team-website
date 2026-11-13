@@ -682,7 +682,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 /* Structure pictures from the RCSB PDB: plates. Multiply in light mode so the
    white backdrop disappears; a white specimen plate in dark mode. */
 .mp-entry.has-thumb > .mp-thumb {
-  float: right; width: 116px; height: 116px; object-fit: contain; margin: 0 0 8px 16px; padding: 4px;
+  float: right; width: 174px; height: 174px; object-fit: contain; margin: 0 0 8px 16px; padding: 4px;
   border-radius: 8px; background: var(--thumb-bg); mix-blend-mode: var(--thumb-blend);
   border: 1px solid var(--color-border);
 }
@@ -727,8 +727,8 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-preview-toggle:hover { color: var(--color-text); }
 .mp-preview-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 1px; border-radius: 4px; }
 .mp-preview-note { margin: 4px 0 0; text-align: right; font-family: var(--font-mono); font-size: 0.68rem; color: var(--color-muted); }
-.mp-entry.has-thumb > .mp-preview-sm { float: right; width: 132px; margin: 0 0 8px 16px; }
-.mp-preview-inline { float: right; width: 260px; max-width: 45%; margin: 0 0 12px 16px; }
+.mp-entry.has-thumb > .mp-preview-sm { float: right; width: 198px; margin: 0 0 8px 16px; }
+.mp-preview-inline { float: right; width: 390px; max-width: 50%; margin: 0 0 12px 16px; }
 @media (prefers-color-scheme: dark) {
   .mp-preview-pic .mp-thumb, .mp-preview-pic .mp-figure { filter: brightness(0.92); }
 }
@@ -836,7 +836,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-table tr.current td { font-weight: 700; }
 
 /* ---- Entry detail ----------------------------------------------------- */
-.mp-entry-top { display: grid; grid-template-columns: minmax(0, 1fr) 248px; gap: 16px; align-items: start; }
+.mp-entry-top { display: grid; grid-template-columns: minmax(0, 1fr) 372px; gap: 16px; align-items: start; }
 .mp-entry-top .mp-entry { margin-bottom: 0; }
 .mp-links { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.86rem; margin: 14px 0 10px; }
 .mp-links a {
@@ -1425,8 +1425,8 @@ a.mp-badge.vc-flag-missed:hover { text-decoration: underline; }
   .mp-entry { padding: 16px 14px 14px 16px; }
   .mp-entry.daughter { padding: 12px 12px 10px 14px; }
   .mp-daughters { --lin-pad: 10px; }
-  .mp-entry.has-thumb > .mp-thumb { width: 76px; height: 76px; margin-left: 10px; }
-  .mp-entry.has-thumb > .mp-preview-sm { width: 92px; margin-left: 10px; }
+  .mp-entry.has-thumb > .mp-thumb { width: 114px; height: 114px; margin-left: 10px; }
+  .mp-entry.has-thumb > .mp-preview-sm { width: 138px; margin-left: 10px; }
   .mp-meta { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .mp-meta dt { margin-top: 6px; }
   .mp-tabs :is(a, .mp-tab-menu) { padding: 12px 7px 13px; letter-spacing: 0.04em; }
