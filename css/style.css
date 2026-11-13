@@ -615,6 +615,8 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 }
 .mp-badge.daughter { color: var(--color-daughter); background: color-mix(in srgb, var(--color-daughter) 9%, transparent); border-color: color-mix(in srgb, var(--color-daughter) 34%, transparent); }
 .mp-badge.related { color: var(--color-related); background: color-mix(in srgb, var(--color-related) 9%, transparent); border-color: color-mix(in srgb, var(--color-related) 34%, transparent); }
+/* A rejected or deleted lead (study header): the error tokens keep AA contrast on the grey study head. */
+.mp-badge.dropped { color: var(--color-error-text); background: var(--color-error-bg); border-color: color-mix(in srgb, var(--color-error-text) 30%, transparent); }
 .mp-of { color: var(--color-muted); font-size: 0.8rem; }
 .mp-meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; margin: 12px 0 10px; font-size: 0.9rem; }
 .mp-meta dt {
@@ -1113,6 +1115,89 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-steps { margin: 0 0 12px; padding-left: 22px; line-height: 1.6; }
 .mp-steps li { margin: 2px 0; }
 
+/* ---- Studies (Automation tab): a lead with its related entries nested ----
+   Related entries are lines in their lead's mpstruc entry, so they hang off
+   the lead's card on tree lines, in the order mpstruc lists them. */
+.mp-study { margin-bottom: 22px; }
+.mp-study.has-rel > .mp-cand { margin-bottom: 0; }
+.mp-study-crumbs ol { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 0; margin: 0 0 6px; padding: 0; list-style: none; font-size: 0.82rem; color: var(--color-muted); }
+.mp-study-crumbs li { overflow-wrap: anywhere; min-width: 0; }
+.mp-study-crumbs li + li::before { content: "›"; margin: 0 7px; color: var(--color-muted); }
+.mp-study-crumbs a { color: var(--color-muted); }
+.mp-study-crumbs a:hover { color: var(--color-accent); }
+.mp-study-crumbs b { color: var(--color-text); font-family: var(--font-mono); font-weight: 600; }
+.mp-crumb-name { color: var(--color-text); }
+.mp-study-acts { display: inline-flex; flex-wrap: wrap; gap: 8px; padding-left: 10px; border-left: 1px solid var(--color-border-strong); }
+.mp-study-block { flex-basis: 100%; margin: 0; font-size: 0.85rem; color: var(--color-warn-text); overflow-wrap: anywhere; }
+.mp-greject-what { flex-basis: 100%; margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.mp-study > .mp-greject { margin: 8px 0 0; }
+.mp-study-head {
+  padding: 14px 16px; background: var(--color-bg-alt); border: 1px dashed var(--color-border-strong); border-radius: 12px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-study-head .mp-actions { margin-top: 10px; }
+.mp-study-head .mp-study-acts:first-child { padding-left: 0; border-left: 0; }
+.mp-study-title { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-study-forced { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; font-size: 0.85rem; color: var(--color-muted); }
+.mp-study-forced .mp-btn { padding: 5px 11px; font-size: 0.8rem; }
+.mp-study-title .mp-badge { margin-left: 4px; vertical-align: 1px; }
+.mp-study-note { margin: 4px 0 0; font-size: 0.86rem; color: var(--color-muted); overflow-wrap: anywhere; }
+/* The tree: one line down from the lead, a branch to each related entry. */
+.mp-rel-tree { margin-left: 22px; }
+.mp-rel-tree-h {
+  margin: 0; padding: 10px 0 8px 18px; border-left: 1px solid var(--color-border-strong);
+  font-size: 0.8rem; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere;
+}
+.mp-rel-tree-h .mp-of { font-weight: 400; }
+.mp-rel-list { list-style: none; margin: 0; padding: 0 0 0 18px; }
+.mp-rel-list .mp-rel-list { margin: 8px 0 0 16px; }
+.mp-relnode { position: relative; padding-bottom: 8px; }
+.mp-relnode:last-child { padding-bottom: 0; }
+.mp-relnode::before { content: ""; position: absolute; left: -18px; top: 0; bottom: 0; border-left: 1px solid var(--color-border-strong); }
+.mp-relnode:last-child::before { bottom: auto; height: 22px; }
+.mp-relnode::after { content: ""; position: absolute; left: -18px; top: 22px; width: 14px; border-top: 1px solid var(--color-border-strong); }
+.mp-relitem {
+  position: relative; padding: 10px 12px; font-size: 0.88rem;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 10px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-relitem:hover { border-color: var(--color-border-strong); }
+.mp-relitem.decided.approved { box-shadow: inset 2px 0 0 var(--color-daughter); }
+.mp-relitem.decided.rejected { box-shadow: inset 2px 0 0 var(--color-related); }
+/* Dimmed by the dashed border and background only: the text keeps full contrast. */
+.mp-relitem.dim { background: var(--color-bg-alt); border-style: dashed; }
+.mp-relitem-id { margin: 0; font-size: inherit; font-weight: inherit; line-height: inherit; }
+.mp-relitem-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.mp-relitem-head .mp-pdb { font-size: 0.86rem; }
+.mp-relitem-line { margin: 4px 0 2px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+.mp-relitem-title { margin: 2px 0; font-size: 0.82rem; color: var(--color-muted); overflow-wrap: anywhere; }
+.mp-relitem-facts { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 2px 0 0; font-size: 0.8rem; color: var(--color-muted); }
+.mp-relitem-mem { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--color-text); }
+.mp-relitem-mem.low { color: var(--color-warn-text); }
+.mp-relitem-why { padding: 0 6px; border-radius: 4px; color: var(--color-warn-text); background: var(--color-warn-bg); }
+.mp-relitem-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mp-relitem-acts .mp-btn { padding: 5px 11px; font-size: 0.8rem; }
+.mp-relitem-more { margin-left: auto; }
+.mp-relitem-card { margin-top: 8px; }
+.mp-relitem-card > .mp-cand { margin-bottom: 0; }
+.mp-study-intro { max-width: 80ch; }
+/* Decisions › Approved: related entries under their approved owner. */
+.mp-appr-group.has-rel > .mp-appr-row { margin-bottom: 0; }
+.mp-appr-kids { margin: 0 0 10px 22px; padding: 0 0 0 18px; border-left: 1px solid var(--color-border-strong); }
+.mp-appr-kids > .mp-rel-tree-h { border-left: 0; padding-left: 0; }
+.mp-appr-kids .mp-appr-row { margin-bottom: 8px; }
+.mp-appr-kids .mp-appr-kids { margin-left: 8px; }
+@media (max-width: 480px) {
+  .mp-rel-tree { margin-left: 10px; }
+  .mp-rel-tree-h { padding-left: 14px; }
+  .mp-rel-list { padding-left: 14px; }
+  .mp-rel-list .mp-rel-list { margin-left: 6px; }
+  .mp-relnode::before, .mp-relnode::after { left: -14px; }
+  .mp-relnode::after { width: 10px; }
+  .mp-appr-kids { margin-left: 10px; padding-left: 12px; }
+  .mp-study-acts { padding-left: 0; border-left: 0; }
+}
+
 /* Confirmation dialog (native <dialog>) */
 .mp-dialog {
   width: min(460px, calc(100vw - 32px)); padding: 22px 22px 18px; border-radius: 12px;
@@ -1167,6 +1252,56 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
     animation: mp-scan 1.2s linear infinite; }
 }
 @keyframes mp-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+/* ---- Automation › Compared with the Vercel demo ------------------------- */
+.mp-vc-intro { max-width: 78ch; }
+.mp-vc-rule {
+  max-width: 78ch; margin: 0 0 16px; padding: 12px 16px; font-size: 0.9rem; line-height: 1.55;
+  background: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--radius);
+}
+.mp-vc-rule p { margin: 0 0 8px; }
+.mp-vc-rule p:last-child { margin-bottom: 0; }
+.mp-vc-pick { grid-template-columns: minmax(0, 260px); }
+.mp-vc-stats { margin-bottom: 16px; }
+.mp-vc-stats .mp-stat b { font-size: clamp(1.4rem, 2.2vw, 1.8rem); }
+.mp-vc-filters .mp-vc-q { grid-column: span 2; }
+.mp-vc-row {
+  padding: 14px 16px; margin-bottom: 10px; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-vc-row:hover { border-color: var(--color-border-strong); }
+.mp-vc-row:focus { outline: none; }
+.mp-vc-row:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.mp-vc-ev { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-vc-ev li { margin: 2px 0; }
+.mp-vc-src {
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-muted); margin-right: 4px;
+}
+.mp-badge.vc-verdict { text-transform: none; letter-spacing: 0.02em; }
+.mp-badge.vc-v-membrane { color: var(--color-daughter); background: color-mix(in srgb, var(--color-daughter) 9%, transparent); border-color: color-mix(in srgb, var(--color-daughter) 40%, transparent); }
+.mp-badge.vc-v-not_membrane { color: var(--color-error-text); background: var(--color-error-bg); border-color: color-mix(in srgb, var(--color-error-text) 30%, transparent); }
+.mp-badge.vc-v-uncertain { color: var(--color-warn-text); background: var(--color-warn-bg); border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+.mp-badge.vc-flag { text-transform: none; letter-spacing: 0.02em; color: var(--color-related); border-style: dashed;
+  background: transparent; border-color: color-mix(in srgb, var(--color-related) 45%, transparent); text-decoration: none; }
+.mp-badge.vc-flag-missed { color: var(--color-warn-text); background: var(--color-warn-bg); border-style: solid;
+  border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+a.mp-badge.vc-flag-missed:hover { text-decoration: underline; }
+.mp-vc-codes-box { margin: 0 0 10px; }
+.mp-vc-codes { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-mono); font-size: 0.8rem; margin: 6px 0 10px; }
+.mp-vc .mp-rej-facts { grid-template-columns: repeat(4, minmax(0, auto)); }
+@media (max-width: 640px) {
+  .mp-vc .mp-rej-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mp-vc-row { padding: 12px; }
+  .mp-vc-pick { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .mp-vc-filters .mp-vc-q { grid-column: 1 / -1; }
+}
+@media (forced-colors: active) {
+  .mp-badge.vc-verdict, .mp-badge.vc-flag { border: 1px solid CanvasText; }
+}
+
 @keyframes mp-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes mp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -1282,4 +1417,113 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   .logo::before { background: CanvasText; }
   .mp-body :focus-visible, .mp-search:has(:focus-visible), .mp-hero-mol canvas:focus-visible { outline: 2px solid Highlight; }
   .mp-search input:focus { box-shadow: none; }
+}
+
+/* ---- In mpstruc or not, and the upload steps ----------------------------
+   Every database entry and related line carries a small marker: listed in the
+   official mpstruc ("in"), added by curators and not there yet ("out"), or
+   sent to the mpstruc maintainers and waiting ("sent"). */
+.mp-mark {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-family: var(--font-ui); font-size: 0.72rem; font-weight: 500; line-height: 1.5;
+  padding: 0 7px; border-radius: 999px; border: 1px solid var(--color-border-strong); color: var(--color-muted);
+}
+.mp-mark::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.mp-mark.out {
+  color: var(--color-daughter); border-style: dashed;
+  border-color: color-mix(in srgb, var(--color-daughter) 50%, transparent);
+  background: color-mix(in srgb, var(--color-daughter) 7%, transparent);
+}
+.mp-mark.out::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.mp-mark.sent { color: var(--color-warn-text); background: var(--color-warn-bg); border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+.mp-chipgroup { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.mp-chipgroup + .mp-chipgroup { margin-left: 6px; padding-left: 10px; border-left: 1px solid var(--color-border); }
+.mp-legend .mp-mark { vertical-align: 1px; }
+.mp-upload-link { font-weight: 600; }
+.mp-filters .mp-upload-link { align-self: center; font-size: 0.86rem; }
+.mp-home-filter { grid-template-columns: minmax(0, 260px); }
+
+/* On suggestion cards: 'Not in mpstruc', or 'In mpstruc' as a link to where the official file lists it. */
+a.mp-mark { text-decoration: none; }
+a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
+.mp-relitem-head .mp-mark, .mp-entry-head .mp-mark { align-self: center; }
+
+/* Automation › Show: Already in mpstruc (new releases mpstruc already has). */
+.mp-inmp-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--color-border); }
+.mp-inmp-row {
+  display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: 2px 14px; align-items: baseline;
+  padding: 9px 2px; border-bottom: 1px solid var(--color-border); font-size: 0.9rem; line-height: 1.5;
+}
+.mp-inmp-id { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.mp-inmp-id .mp-pdb { font-size: 0.9rem; }
+.mp-inmp-where { overflow-wrap: anywhere; }
+.mp-inmp-title { grid-column: 2; color: var(--color-muted); font-size: 0.84rem; overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .mp-inmp-row { grid-template-columns: minmax(0, 1fr); }
+  .mp-inmp-title { grid-column: 1; }
+}
+
+/* #/find/<ID>: an exact PDB ID found nowhere. */
+.mp-find-vc { font-size: 0.9rem; max-width: 75ch; overflow-wrap: anywhere; }
+
+/* The listing a search or PDB link opened: where it is placed, and what it was opened for. */
+.mp-placed {
+  margin: 0 0 14px; padding: 8px 12px; border: 1px solid var(--color-border); border-left: 3px solid var(--color-daughter);
+  border-radius: 8px; background: var(--color-surface); font-size: 0.88rem; line-height: 1.6; overflow-wrap: anywhere;
+}
+.mp-placed .mp-pdb { font-size: 0.92rem; text-decoration: none; }
+.mp-placed .mp-mark { vertical-align: 1px; }
+.mp-entry.mp-hit { border-color: var(--color-daughter); box-shadow: 0 0 0 1px var(--color-daughter); }
+.mp-table tr.mp-hit td { background: color-mix(in srgb, var(--color-daughter) 11%, transparent); }
+.mp-table tr.mp-hit td:first-child { box-shadow: inset 3px 0 0 var(--color-daughter); }
+.mp-table tr { scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px); }
+.mp-chip.mp-hit-chip { border-color: var(--color-daughter); color: var(--color-daughter); font-weight: 600; }
+
+/* The curation steps strip: Automation > Edit > Approve > Push > Upload > In mpstruc. */
+.mp-pipe { margin: 4px 0 16px; }
+.mp-pipe ol {
+  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); overflow: hidden;
+}
+.mp-pipe li { position: relative; min-width: 0; }
+.mp-pipe li + li { border-left: 1px solid var(--color-border); }
+.mp-pipe a {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 7px; padding: 8px 10px 9px; height: 100%;
+  text-decoration: none; color: var(--color-text); font-family: var(--font-ui); line-height: 1.3;
+}
+.mp-pipe a:hover { background: var(--color-bg-alt); }
+.mp-pipe a:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -2px; }
+.mp-pipe-n {
+  grid-row: span 2; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; border: 1px solid var(--color-border-strong); color: var(--color-muted);
+}
+.mp-pipe-t { font-size: 0.8rem; font-weight: 600; overflow-wrap: anywhere; }
+.mp-pipe-c { font-size: 0.74rem; color: var(--color-muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.mp-pipe li.current a { background: color-mix(in srgb, var(--color-daughter) 9%, transparent); box-shadow: inset 0 -2px 0 var(--color-daughter); }
+.mp-pipe li.current .mp-pipe-n { background: var(--color-daughter); border-color: var(--color-daughter); color: var(--color-surface-solid); }
+
+/* Which step one structure is at (Decisions lists, Ready to upload). */
+.mp-stage { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 0; font-size: 0.86rem; }
+.mp-stage-dots { display: inline-flex; gap: 3px; flex: none; }
+.mp-stage-dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--color-border-strong); }
+.mp-stage-dots i.done { background: var(--color-muted); border-color: var(--color-muted); }
+.mp-stage-dots i.now { background: var(--color-daughter); border-color: var(--color-daughter); }
+.mp-stage-step { color: var(--color-muted); }
+.mp-differs { background: var(--color-warn-bg); color: var(--color-warn-text); }
+.mp-list-head { margin: 22px 0 10px; font-family: var(--font-ui); font-size: 0.98rem; font-weight: 600; }
+.mp-list-head:first-child { margin-top: 4px; }
+.mp-term-line.act-in-mpstruc .act, .mp-term-line.act-submit .act { color: var(--term-accent); }
+
+@media (max-width: 720px) {
+  .mp-pipe ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mp-pipe li:nth-child(4) { border-left: 0; }
+  .mp-pipe li:nth-child(n + 4) { border-top: 1px solid var(--color-border); }
+  .mp-pipe a { padding: 7px 8px 8px; column-gap: 5px; }
+  .mp-pipe-n { width: 18px; height: 18px; }
+  .mp-chipgroup + .mp-chipgroup { margin-left: 0; padding-left: 0; border-left: 0; }
+  .mp-stage { flex-direction: column; gap: 3px; }
+}
+@media (forced-colors: active) {
+  .mp-mark, .mp-pipe ol, .mp-placed { border-color: CanvasText; }
+  .mp-pipe li.current .mp-pipe-n, .mp-stage-dots i.now, .mp-stage-dots i.done { background: Highlight; border-color: Highlight; }
 }

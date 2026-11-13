@@ -163,3 +163,19 @@ def test_listing_in_mpstruc_style():
     b = m["bibliography"]
     assert b["authors"] == "Wang L, &amp; Zhou M" and b["title"] == "A &lt;b&gt;title&lt;/b&gt; &amp; more"
     assert b["pubMedId"] is None and b["year"] == "2026"
+
+
+def test_codes_named_only_in_mpstruc_descriptions_count_as_in_mpstruc():
+    from types import SimpleNamespace
+    from mpstruc.automation import in_mpstruc, mentioned_in_descriptions
+    e = SimpleNamespace(pdbCode="9T7P", key="G03-S001-P0001",
+                        description="cryo-EM structure<br /> alternative conformation, 2.90 &Aring;: 32FD "
+                                    "in 2015, E123A mutant, 1.5 mM, 9T7P")
+    db = SimpleNamespace(entries=lambda: [e])
+    m = mentioned_in_descriptions(db)
+    assert m == {"32FD": "G03-S001-P0001"}  # not the year, the mutation or the entry itself
+    kb = _kb()
+    rows = {r["pdb"]: r for r in in_mpstruc(kb, m, ["32FD", "3AAA", "1AAA", "9ZZZ"])}
+    assert rows["32FD"]["as"] == "description"
+    assert rows["3AAA"]["as"] == "related" and rows["3AAA"]["ownerPdb"] == "2AAA"
+    assert rows["1AAA"]["as"] == "parent" and "9ZZZ" not in rows

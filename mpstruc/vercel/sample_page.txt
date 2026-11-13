@@ -1,0 +1,1806 @@
+mpstruc Support Agent
+mpstruc Browser 🧬 (BetaTest)
+This week potential membrane matches
+31
+MembraneProtein filter:
+(All)
+(Pending)
+Yes
+No
+Maybe
+Sort: Newest First
+🔍 Search
+Unlock Editing
+
+PubMed Group: 42507553
+
+Journal:
+(2026) Cell Rep 45: 117733
+
+Mechanistic insights into TAM-mediated OMP assembly in Gram-negative bacteria.
+https://doi.org/10.1016/j.celrep.2026.117733
+
+Title: Cryo-EM structure of TamA
+
+PDB IDs:
+9TGS
+9TGR
+9TGQ
+9TGP
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: N/A
+
+Resolution: 7.75 Å
+
+UniProt ID(s): P0ADE4, P39321
+
+Classification(s): Outer-Membrane
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Type II Secretion Systems — 43.90%
+Image model on 2D: Type II Secretion Systems — 0.00%
+Text model on abstract: Omp85-TpsB Outer Membrane Transporter Superfamily — 41.13%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42677560
+
+Journal:
+(2026) J Am Chem Soc 148: 35386 - 35398
+
+Cofactor-Free Tau Filaments Are Dynamic and Undergo Structural Evolution Driven by Thermodynamic Control.
+https://doi.org/10.1021/jacs.6c04928
+
+Title: Structure of a tau(297-407)-4D filament grown in potassium citrate buffer for 42 days (polymorph 3)
+
+PDB IDs:
+11LW
+11LV
+11LU
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: 0
+
+Resolution: 3.4 Å
+
+UniProt ID(s): P10636
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 91.03%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 97.02%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42752937
+
+Journal:
+(2026) Protein Sci 35: e70801
+
+Adenylyl cyclase 9 as a molecular scaffold to dissect the mechanisms of membrane adenylyl cyclases.
+https://doi.org/10.1002/pro.70801
+
+Title: Structure of the occluded-state soluble domain of human Adenylyl cyclase 9 in complex with stimulatory G protein
+
+PDB IDs:
+30BB
+30BA
+30AZ
+30AY
+
+Release Date(s): 2026-11-11, 2026-11-04
+
+Number of TM segment: 0 (some N/A)
+
+Resolution: 3.55 Å
+
+UniProt ID(s): O60503, P04896
+
+Classification(s): Multi-Pass, non-membrane
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 83.10%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 86.58%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42911674
+
+Journal:
+(2026) Acta Crystallogr F Struct Biol Commun 82: 391 - 401
+
+Recombinant versus native botulinum neurotoxin type A: structural and pharmacodynamic comparison.
+https://doi.org/10.1107/S2053230X26009830
+
+Title: Cryo-EM structure of recombinant Botulinum neurotoxin A
+
+PDB IDs:
+24VA
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: N/A
+
+Resolution: 3.24 Å
+
+UniProt ID(s): P0DPI1
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 65.07%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 83.09%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42928384
+
+Journal:
+(2026) Nat Commun 17:
+
+Structural dynamics of substrate processing by the p97-Ufd1-Npl4-FAF1 machinery.
+https://doi.org/10.1038/s41467-026-78639-x
+
+Title: CryoEM structure of substrate engaged p97 in complex with Ufd1/Npl4 and C-terminal FAF1-State I
+
+PDB IDs:
+31ON
+31OR
+31OQ
+31OP
+31OL
+
+Release Date(s): 2026-11-11, 2026-11-04
+
+Number of TM segment: 0
+
+Resolution: 3.2 Å
+
+UniProt ID(s): P0CG47
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Type II Secretion Systems — 37.25%
+Image model on 2D: Type II Secretion Systems — 0.00%
+Text model on abstract: P-Type ATPase — 2.36%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42948300
+
+Journal:
+(2026) PNAS Nexus 5: pgag351
+
+The prenylation code regulating estrogenic activity of synthetic and natural product derivatives of resveratrol.
+https://doi.org/10.1093/pnasnexus/pgag351
+
+Title: Crystal Structure of Human Estrogen Receptor-alpha (Y537S) in Complex with NCOA2 Peptide and 7-(4-hydroxyphenethyl)-2,2-dimethylchroman-5-ol
+
+PDB IDs:
+9OXY
+9OXT
+9OXR
+9OW0
+9OUD
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: 0
+
+Resolution: 1.93 Å
+
+UniProt ID(s): P03372
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 78.94%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 94.49%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42957638
+
+Journal:
+(2026) Cell Discov 12:
+
+Structural mechanism of TRPC3 channel activation by the moonwalker mutation.
+https://doi.org/10.1038/s41421-026-00936-y
+
+Title: Structure of hTRPC3 T561A mutant with C2 symmetry
+
+PDB IDs:
+25CI
+25CH
+25CG
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: N/A
+
+Resolution: 3.16 Å
+
+UniProt ID(s): Q13507
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Type II Secretion Systems — 31.79%
+Image model on 2D: Type II Secretion Systems — 0.00%
+Text model on abstract: Type II Secretion Systems — 0.00%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42962053
+
+Journal:
+(2026) Sci Immunol 11: eaee7011
+
+Antibodies to distinct epitopes on MPXV enveloped virion provide additive and complete protection.
+https://doi.org/10.1126/sciimmunol.aee7011
+
+Title: Crystal structure of MPXV-B6-Stalk in complex with antibody B6-Ab6
+
+PDB IDs:
+9Z5H
+9Z5G
+9Z5F
+9Z5E
+9Z5D
+9Z5C
+9Z5B
+9Z5A
+9Z59
+9Z58
+9Z57
+9Z56
+9Z4P
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: 1 (some N/A)
+
+Resolution: 3.1 Å
+
+UniProt ID(s): P0DTN2, P68616, A0A7H0DND2
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 92.90%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 96.40%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42973246
+
+Journal:
+(2026) Adv Sci (Weinh) :
+
+Cryo-EM and NMR Reveal a Membrane-Gated Doc2B-Munc13-1 Complex and a Helical Doc2B-SNARE-Binding Interface.
+https://doi.org/10.1002/advs.78011
+
+Title: Doc2b-Munc13 complex with designed binder
+
+PDB IDs:
+37IC
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: N/A
+
+Resolution: 2.94 Å
+
+UniProt ID(s): P70610
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 53.92%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 64.50%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42974023
+
+Journal:
+(2026) Front Pharmacol 17: 1906963
+
+Revisit of the admitted control RND efflux pumps' inhibitor PA beta N: use limitations, and structural revelation in complex with MexB.
+https://doi.org/10.3389/fphar.2026.1906963
+
+Title: Structure of the RND transporter MexB in complex with the reference inhibitor phenylalanine-arginine beta-naphthylamide.
+
+PDB IDs:
+32VC
+
+Release Date(s): 2026-11-11
+
+Number of TM segment: N/A
+
+Resolution: 2.38 Å
+
+UniProt ID(s): P52002
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Type II Secretion Systems — 24.81%
+Image model on 2D: Type II Secretion Systems — 0.00%
+Text model on abstract: Multi-Drug Efflux Transporters — 25.65%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42435557
+
+Journal:
+(2026) Eur J Med Chem 317: 119123
+
+Targeting HsDHODH: Shape and machine-learning guided discovery and structural validation of SARS-CoV-2 antivirals.
+https://doi.org/10.1016/j.ejmech.2026.119123
+
+Title: Human DHODH in complex with ligand H3D3186
+
+PDB IDs:
+9OCA
+9OC9
+9OS3
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: 0
+
+Resolution: 1.75 Å
+
+UniProt ID(s): Q02127
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 94.02%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 99.10%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42736309
+
+Journal:
+(2026) Nat Commun 17:
+
+Mechanistic basis of LolDF-mediated lipoprotein transport in Acinetobacter.
+https://doi.org/10.1038/s41467-026-76802-y
+
+Title: Cryo-EM structure of Acinetobacter baylyi LolDF bound AMP-PNP (closed NBDs)
+
+PDB IDs:
+9R29
+29EB
+28MF
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 3.54 Å
+
+UniProt ID(s): Q9EYM2
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Phospholipid Transferases — 6.99%
+Image model on 2D: Phospholipid Transferases — 0.00%
+Text model on abstract: ATP Binding Cassette (ABC) Transporters — 8.10%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42778107
+
+Journal:
+(2026) J Biol Chem 302: 113599
+
+SCRIB inhibits PP1 phosphatase activity without blocking or structurally altering its active site.
+https://doi.org/10.1016/j.jbc.2026.113599
+
+Title: Cryo-EM Structure of the SCRIB-PP1 Complex
+
+PDB IDs:
+9X9Y
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 3.8 Å
+
+UniProt ID(s): Q14160
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Phospholipid Phosphatases — 18.28%
+Image model on 2D: Phospholipid Phosphatases — 0.00%
+Text model on abstract: Not Membrane Protein — 81.05%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42845595
+
+Journal:
+(2026) bioRxiv :
+
+A shark variable new antigen receptor recognizes an occluded epitope of fibroblast activation protein.
+https://doi.org/10.64898/2026.08.11.744296
+
+Title: Cryo-EM structure of human Fibroblast Activation Protein alpha in complex with F7 VHH
+
+PDB IDs:
+37UU
+37UT
+37US
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 2.5 Å
+
+UniProt ID(s): Q12884
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 59.73%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 93.32%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42877637
+
+Journal:
+(2026) Front Oncol 16: 1915652
+
+Multi-parameter optimization of a novel anti-TROP2 MMAE antibody-drug-conjugate for solid tumor therapy.
+https://doi.org/10.3389/fonc.2026.1915652
+
+Title: Multi-parameter optimization of a novel anti-TROP2 MMAE Antibody-Drug-Conjugate for solid tumor therapy
+
+PDB IDs:
+37RI
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 2.3 Å
+
+UniProt ID(s): P09758
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 84.18%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 94.41%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42907587
+
+Journal:
+(2026) Nat Struct Mol Biol :
+
+Architecture of the Norrin signaling complex and structure-guided surrogate design.
+https://doi.org/10.1038/s41594-026-01909-1
+
+Title: Protein Complex(local refinement)
+
+PDB IDs:
+35YU
+9PTT
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 3.11 Å
+
+UniProt ID(s): O95859, Q9ULV1, O75197
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 85.00%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 90.90%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42913430
+
+Journal:
+(2026) Blood Adv :
+
+Structure of the extrinsic factor Xase substrate complex with the bi-Kunitz inhibitor ixolaris.
+https://doi.org/10.1182/bloodadvances.2026020317
+
+Title: factor VIIa-tissue factor-factor X-ixolaris complex
+
+PDB IDs:
+9ZCX
+9ZDF
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: 1
+
+Resolution: 5.3 Å
+
+UniProt ID(s): P13726
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 87.93%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 80.57%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42914029
+
+Journal:
+(2026) J Biol Chem : 113672
+
+Structural analyses of a heterodimeric SusCD complex captures intermediate states of maltooligosaccharide transport.
+https://doi.org/10.1016/j.jbc.2026.113672
+
+Title: Bacteroides SusCD Unliganded - Open w/ Plug
+
+PDB IDs:
+38FI
+38FH
+38FE
+38AQ
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: N/A
+
+Resolution: 3.2 Å
+
+UniProt ID(s): Q8A1G1, Q8A1G2
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Dehydrogenases — 2.40%
+Image model on 2D: Dehydrogenases — 0.00%
+Text model on abstract: Not Membrane Protein — 52.14%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42926240
+
+Journal:
+(2026) Nat Commun 17:
+
+Molecular insights into GPR55 modulation reveal an atypical activation mechanism and glycosylation-dependent efficacy regulation.
+https://doi.org/10.1038/s41467-026-78538-1
+
+Title: Inactive-state structure of GPR55 in complex with BI-6229
+
+PDB IDs:
+9TC7
+9TC8
+9TC9
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: 0, 7
+
+Resolution: 2.57 Å
+
+UniProt ID(s): Q9Y2T6, Q14344
+
+Classification(s): Multi-Pass, non-membrane
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: G Protein-Coupled Receptors: Class A — 3.31%
+Image model on 2D: G Protein-Coupled Receptors: Class A — 0.00%
+Text model on abstract: G Protein-Coupled Receptors: Class A — 11.79%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42926395
+
+Journal:
+(2026) bioRxiv :
+
+Templated paired helical filament formation and tau fold-dependent inclusion morphologies in primary neurons.
+https://doi.org/10.64898/2026.09.30.755038
+
+Title: Paired helical filament from Alzheimer's disease brain (AD seed)
+
+PDB IDs:
+34RF
+33WP
+33WM
+
+Release Date(s): 2026-11-04
+
+Number of TM segment: 0
+
+Resolution: 2.8 Å
+
+UniProt ID(s): P10636
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 93.10%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 98.47%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 41538393
+
+Journal:
+(2026) PLoS One 21: e0338127
+
+Inhibition of HER2 signaling and breast cancer cell growth with a novel antibody targeting HER2 ECD III/IV.
+https://doi.org/10.1371/journal.pone.0338127
+
+Title: The structure of HER2-m66-trastuzumab
+
+PDB IDs:
+22GC
+22GE
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 1
+
+Resolution: 3.2 Å
+
+UniProt ID(s): P04626
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 92.05%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 96.19%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 41573874
+
+Journal:
+(2025) bioRxiv :
+
+Overcoming EGFR resistance by monovalent and bident inhibitors targeting Cys775.
+https://doi.org/10.64898/2025.11.28.691243
+
+Title: EGFR kinase bound to ZNL-1
+
+PDB IDs:
+9PWI
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 1
+
+Resolution: 2.6 Å
+
+UniProt ID(s): P00533
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 97.82%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 97.80%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42636365
+
+Journal:
+(2026) Proc Natl Acad Sci U S A 123: e2614339123
+
+Structural basis of GSDME pore formation and its regulation by S-palmitoylation.
+https://doi.org/10.1073/pnas.2614339123
+
+Title: GSDME-NT Pore without imposing symmetry
+
+PDB IDs:
+43DP
+43DQ
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 0
+
+Resolution: 3.46 Å
+
+UniProt ID(s): O60443
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Gasdermin (GSDM) Family — 92.80%
+Image model on 2D: Gasdermin (GSDM) Family — 0.00%
+Text model on abstract: Gasdermin (GSDM) Family — 4.38%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42668048
+
+Journal:
+(2026) J Struct Biol 218: 108367
+
+Cryo-EM structural analysis of liposome-reconstituted AcrB in the presence of substrates.
+https://doi.org/10.1016/j.jsb.2026.108367
+
+Title: Cryo-EM structure of AcrB in liposomes incubated with doxorubicin (class2-out)
+
+PDB IDs:
+24UO
+24MO
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 12
+
+Resolution: 3.75 Å
+
+UniProt ID(s): P31224
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Multi-Drug Efflux Transporters — 11.03%
+Image model on 2D: Multi-Drug Efflux Transporters — 0.00%
+Text model on abstract: Multi-Drug Efflux Transporters — 29.57%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42809401
+
+Journal:
+(2026) Proc Natl Acad Sci U S A 123: e2607382123
+
+Mechanisms of substrate recognition and catalysis in a mammalian phosphatidylserine synthase 2.
+https://doi.org/10.1073/pnas.2607382123
+
+Title: Structure of human PTDSS1 in complex with calcium
+
+PDB IDs:
+10BZ
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 10
+
+Resolution: 3.1 Å
+
+UniProt ID(s): P48651
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Adenylyl Cyclases — 7.08%
+Image model on 2D: Adenylyl Cyclases — 0.00%
+Text model on abstract: P-Type ATPase — 2.69%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42864336
+
+Journal:
+(2026) Nat Commun 17:
+
+Discovery of an antagonist nanobody targeting the oxytocin receptor with tocolytic effect in mice.
+https://doi.org/10.1038/s41467-026-77680-0
+
+Title: Cryo-EM structure of the oxytocin receptor bound to nanobody Nb2B1
+
+PDB IDs:
+9UTO
+9UTP
+9UVQ
+9UOT
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 3 Å
+
+UniProt ID(s): P30559
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 53.87%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 79.52%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42866422
+
+Journal:
+(2026) ACS Med Chem Lett 17: 2245 - 2250
+
+Structure-Based Drug Design of Quinoline CYP8B1 Inhibitors for the Potential Treatment of Metabolic Disease.
+https://doi.org/10.1021/acsmedchemlett.6c00387
+
+Title: CYP8B1 inhibitor compound 1
+
+PDB IDs:
+11IH
+11IR
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 1.7 Å
+
+UniProt ID(s): Q9UNU6
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 90.24%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 94.74%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42866950
+
+Journal:
+(2026) Nucleic Acids Res 54:
+
+PXL: a nucleic acid-binding module of the promyelocytic leukemia protein.
+https://doi.org/10.1093/nar/gkag966
+
+Title: Crystal structure of the PXL domain of the human promyelocytic leukemia (PML) protein isoform 1
+
+PDB IDs:
+10TH
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 0
+
+Resolution: 3.01 Å
+
+UniProt ID(s): P29590
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 93.34%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 96.56%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42869022
+
+Journal:
+(2026) Cell :
+
+PTPRS mediates invasion of tetanus neurotoxin into the central nervous system.
+https://doi.org/10.1016/j.cell.2026.09.026
+
+Title: Crystal structure of the complex between human PTPRD and TeNT
+
+PDB IDs:
+10CR
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 2.98 Å
+
+UniProt ID(s): P23468
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 84.70%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 86.65%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42869147
+
+Journal:
+(2026) J Biol Chem : 113642
+
+RING E3 ligase TRIM8 is structurally selective for UBE2N-mediated ubiquitination.
+https://doi.org/10.1016/j.jbc.2026.113642
+
+Title: Structure of TRIM8 RING domain in complex with UBE2N~Ub conjugate
+
+PDB IDs:
+32WJ
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: 0
+
+Resolution: 2.39 Å
+
+UniProt ID(s): P0CG48
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 96.58%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 91.15%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42870022
+
+Journal:
+(2026) Nat Struct Mol Biol 33: 1548 - 1560
+
+Structural basis of an endoplasmic reticulum EMC:Spf1 insertase-dislocase complex.
+https://doi.org/10.1038/s41594-026-01883-8
+
+Title: Cryo-EM structure of yeast EMC:Spf1 insertase:dislocase complex in digitonin
+
+PDB IDs:
+34BQ
+34BR
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 4.2 Å
+
+UniProt ID(s): P39986, P39543, P36039, P25574, P53073, Q12431, P40540, P47133, Q12025
+
+Classification(s): Multi-Pass, Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Adenylyl Cyclases — 5.75%
+Image model on 2D: Adenylyl Cyclases — 0.00%
+Text model on abstract: Sec, Translocase, And Insertase Proteins — 17.46%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42887385
+
+Journal:
+(2026) Biochem Biophys Res Commun 839: 154736
+
+Cryo-EM reveals a C15 annular stacking assembly of the VEEV nsP3 Alphavirus Unique Domain.
+https://doi.org/10.1016/j.bbrc.2026.154736
+
+Title: Cryo-EM structure of a virus helcal scaffolds
+
+PDB IDs:
+43OF
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 3.54 Å
+
+UniProt ID(s): P27282
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 82.82%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 85.52%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42892655
+
+Journal:
+(2026) Nat Commun 17:
+
+Multimodal substrate recruitment enables CTLH MKLN1 E3 ligase to target acetylated N-, C-, and internal degrons.
+https://doi.org/10.1038/s41467-026-78311-4
+
+Title: Structure of MKLN1-RANBP9-TWA1 CTLH subcomplex bound to ZMYND19 substrate
+
+PDB IDs:
+29UG
+31TM
+
+Release Date(s): 2026-10-28
+
+Number of TM segment: N/A
+
+Resolution: 3.5 Å
+
+UniProt ID(s): Q96S59, Q96E35
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 84.92%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 75.45%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42802557
+
+Journal:
+(2026) Biophys J :
+
+Enthalpy-Entropy Compensation in Inhibitor Binding to Carbonic Anhydrase Isozymes.
+https://doi.org/10.1016/j.bpj.2026.09.032
+
+Title: Crystal structure of carbonic anhydrase XII with methyl 4-benzylsulfanyl-3-sulfamoyl-benzoate
+
+PDB IDs:
+30FA
+30FB
+
+Release Date(s): 2026-10-21
+
+Number of TM segment: 1
+
+Resolution: 1.13 Å
+
+UniProt ID(s): O43570
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 92.00%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 83.91%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42810574
+
+Journal:
+(2026) J Mol Biol : 170044
+
+Suramin and its analogues are multi-functional inhibitors of cGAS.
+https://doi.org/10.1016/j.jmb.2026.170044
+
+Title: Crystal structure of human cGAS in complex with NF023
+
+PDB IDs:
+22UK
+
+Release Date(s): 2026-10-21
+
+Number of TM segment: 0
+
+Resolution: 2.55 Å
+
+UniProt ID(s): Q8N884
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 90.57%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 85.99%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42848133
+
+Journal:
+(2026) Photosynth Res 164:
+
+Effects of high light and elevated temperature on the structure of photosystem II isolated from Arabidopsis thaliana.
+https://doi.org/10.1007/s11120-026-01238-w
+
+Title: Photosystem II from Arabidopsis thaliana following high light and high temperature treatment
+
+PDB IDs:
+31FD
+
+Release Date(s): 2026-10-21
+
+Number of TM segment: 0, 1, 5, 6
+
+Resolution: 2.74 Å
+
+UniProt ID(s): P23321, P62109, P56780, P60129, P56778, P83755, P56779, P56761, P62100, P61839, P56782, P56777, P62095
+
+Classification(s): Multi-Pass, Single-Pass, Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Photosystems — 37.19%
+Image model on 2D: Photosystems — 0.00%
+Text model on abstract: Photosystems — 8.40%
+
+Membrane Protein Verdict: (Pending)
+
+Expand group & load viewer
+
+PubMed Group: 42208369
+
+Journal:
+(2026) Eur J Med Chem 316: 119002
+
+Structure-guided design of broad-spectrum inhibitors of coronaviral proteases embodying a 1,3,2-oxazaphospholidin-3-one scaffold as a versatile design element.
+https://doi.org/10.1016/j.ejmech.2026.119002
+
+Title: Crystal structure of SARS-CoV-2 3CL protease in complex with inhibitor NN-IV-105
+
+PDB IDs:
+9ZJ0
+9ZZH
+9ZJC
+9ZJB
+9ZJ8
+9ZJ6
+9ZJ5
+9ZJ4
+9ZJ3
+9ZJ2
+9ZJ1
+
+Release Date(s): 2026-10-14, 2026-06-10
+
+Number of TM segment: 18 (some N/A)
+
+Resolution: 1.65 Å
+
+UniProt ID(s): P0DTD1, K9N638
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 98.50%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 99.36%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42655993
+
+Journal:
+(2026) Angew Chem Int Ed Engl : e6395554
+
+De Novo Design of a Protein Binder to Probe Gas Channel and Enhance the Oxygen Tolerance of [NiFe]-Hydrogenase.
+https://doi.org/10.1002/anie.6395554
+
+Title: Cryo-EM structure of hydrogenase-2 in complex with L1 (left)
+
+PDB IDs:
+28FS
+28FU
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: N/A
+
+Resolution: 2.49 Å
+
+UniProt ID(s): P0ACE0, P69741
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: AAA-ATPAse Membrane Translocators — 5.70%
+Image model on 2D: AAA-ATPAse Membrane Translocators — 0.00%
+Text model on abstract: Major Facilitator Superfamily (MFS) Transporters — 1.98%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42800517
+
+Journal:
+(2026) J Struct Biol 218: 108378
+
+Cryo-EM structure of human TMEM45A with a bound 2-Hydroxypalmitate.
+https://doi.org/10.1016/j.jsb.2026.108378
+
+Title: Cryo-EM structure of human TMEM45A with a bound 2-Hydroxypalmitate
+
+PDB IDs:
+28HY
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: N/A
+
+Resolution: 3.27 Å
+
+UniProt ID(s): Q9NWC5
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Novel Membrane Proteins — 11.44%
+Image model on 2D: Novel Membrane Proteins — 0.00%
+Text model on abstract: Cysteine Proteases — 5.11%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42801939
+
+Journal:
+(2026) Int J Biol Macromol 383: 154626
+
+Unveiling the structural details of the nucleotide-binding protein of an antimicrobial peptide transporter from non-typeable Haemophilus influenzae.
+https://doi.org/10.1016/j.ijbiomac.2026.154626
+
+Title: Crystal structure of SapF (an ATP-binding protein) from non-typeable Haemophilus influenzae
+
+PDB IDs:
+28CW
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: N/A
+
+Resolution: 2.3 Å
+
+UniProt ID(s): P45289
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 76.77%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 62.09%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42818254
+
+Journal:
+(2026) bioRxiv :
+
+Distinct mechanisms of neutralization by antibodies targeting a conserved pneumovirus F epitope.
+https://doi.org/10.64898/2026.09.21.749132
+
+Title: Immune complex comprising the HRSV preF trimer (SC-DM) and the monoclonal antibody Lor69 - Obtained by cryo-EM
+
+PDB IDs:
+33SD
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: N/A
+
+Resolution: 3.3 Å
+
+UniProt ID(s): P03420
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 90.50%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 95.35%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42822427
+
+Journal:
+(2026) Cell 189: 6307 - 6324.e7
+
+Acanthamoeba ATP synthase structure reveals the TCA cycle is tethered to OXPHOS.
+https://doi.org/10.1016/j.cell.2026.08.057
+
+Title: CryoEM structure of respiratory complex III intermediate from Acanthamoeba castellanii
+
+PDB IDs:
+9ZFS
+9ZFT
+9ZFW
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: N/A
+
+Resolution: 3.65 Å
+
+UniProt ID(s): Q37378, Q37377, Q37385
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: F-Type ATPase — 17.00%
+Image model on 2D: F-Type ATPase — 0.00%
+Text model on abstract: F-Type ATPase — 17.49%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42826653
+
+Journal:
+(2026) Biochem Biophys Res Commun 838: 154679
+
+Structural heterogeneity of CTE Type I tau filaments with an interface-shifted polymorph.
+https://doi.org/10.1016/j.bbrc.2026.154679
+
+Title: CTE Type I structure
+
+PDB IDs:
+37VX
+37VY
+
+Release Date(s): 2026-10-14
+
+Number of TM segment: 0
+
+Resolution: 2.78 Å
+
+UniProt ID(s): P10636
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 88.63%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 83.83%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42436108
+
+Journal:
+(2026) Nat Commun 17:
+
+Structural basis of cotranslational protein N-terminal acetylation by NatB in human cells.
+https://doi.org/10.1038/s41467-026-75207-1
+
+Title: Ternary complex of translating ribosome, NAC and NatB
+
+PDB IDs:
+30HI
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: 0
+
+Resolution: 3.2 Å
+
+UniProt ID(s): P63244, P23396
+
+Classification(s): Peripheral
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 92.39%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 93.64%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42463709
+
+Journal:
+(2026) Nat Commun 17:
+
+Cooperative mechanism of neurotransmitter recognition and transport by the human vesicular polyamine transporter.
+https://doi.org/10.1038/s41467-026-75564-x
+
+Title: Histamine-bound structure
+
+PDB IDs:
+9YWU
+9YWV
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: 12
+
+Resolution: 3.5 Å
+
+UniProt ID(s): Q6NT16
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Major Facilitator Superfamily (MFS) Transporters — 14.71%
+Image model on 2D: Major Facilitator Superfamily (MFS) Transporters — 0.00%
+Text model on abstract: Solute Carrier (SLC) Transporter Superfamily — 6.20%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42527593
+
+Journal:
+(2026) Nature 657: 1094 - 1103
+
+In situ structures of plant photosystem supercomplexes.
+https://doi.org/10.1038/s41586-026-10847-3
+
+Title: In situ C2S2M2L4-type PSII-LHCII supercomplex, core, protomer 2
+
+PDB IDs:
+9XK4
+9XK6
+9XK7
+9XK8
+9XK9
+21WH
+21WV
+27UT
+9XK3
+21WG
+21WD
+21WI
+27UR
+9XJ9
+9XJ1
+
+Release Date(s): 2026-10-07, 2026-09-30, 2026-08-12
+
+Number of TM segment: N/A
+
+Resolution: 2.78 Å
+
+UniProt ID(s): P0C416, P0C408, P0C414, P0C405, P0C420, P0C401, P0C434, P12331, P0C399, P0C368, P0C435, P0C365, P0C362, P0C432, P0C429, Q5ZBY9, P0C427, P0C411, Q10HD0, P12330, P60137, P0C355, P0C373, P0C371, Q0DG05, P0C359, P0C356, P0C353
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Photosystem+Light-Harvesting Complex Supercomplex — 15.02%
+Image model on 2D: Photosystem+Light-Harvesting Complex Supercomplex — 0.00%
+Text model on abstract: Photosystem+Light-Harvesting Complex Supercomplex — 38.00%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42731718
+
+Journal:
+(2026) J Struct Biol 218: 108368
+
+Antibody CDR-H3 loop flexibility: Insights from X-ray crystallography, structural bioinformatics, and the limits of current deep learning methods.
+https://doi.org/10.1016/j.jsb.2026.108368
+
+Title: FgFR4-D2 domain in complex with Fab 4012
+
+PDB IDs:
+9TVR
+9TVZ
+9TW7
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: N/A
+
+Resolution: 3.25 Å
+
+UniProt ID(s): P22455
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 94.15%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 93.59%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42744822
+
+Journal:
+(2026) Nat Commun 17:
+
+Molecular basis for cold and menthol sensing by mammalian TRPM8.
+https://doi.org/10.1038/s41467-026-76926-1
+
+Title: The cold-intermediate state (C2M, 4C), menthol-bound mouse TRPM8-I846V in complex with AITC and PIP2
+
+PDB IDs:
+9Y69
+9Y6A
+9ZYR
+9PWE
+9PWF
+9PWG
+9PWH
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: N/A
+
+Resolution: 3.3 Å
+
+UniProt ID(s): Q8R4D5
+
+Classification(s): Multi-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: HMG CoA Reductase — 8.19%
+Image model on 2D: HMG CoA Reductase — 0.00%
+Text model on abstract: Channels: Transient Receptor Potential (TRP) — 27.94%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+
+PubMed Group: 42770830
+
+Journal:
+(2026) Biochem J :
+
+Structural organization of TAM receptor ectodomains.
+https://doi.org/10.1042/BCJ20260584
+
+Title: Crystal structure of the extracellular region of the human receptor tyrosine kinase MERTK
+
+PDB IDs:
+37NT
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: 1
+
+Resolution: 3.41 Å
+
+UniProt ID(s): Q12866
+
+Classification(s): Single-Pass
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Not Membrane Protein — 88.38%
+Image model on 2D: Not Membrane Protein — 0.00%
+Text model on abstract: Not Membrane Protein — 90.67%
+
+Membrane Protein Verdict: No
+
+Expand group & load viewer
+
+PubMed Group: 42785650
+
+Journal:
+(2026) J Struct Biol 218: 108376
+
+Cryo-EM structure of human TMEM45B with a bound GM3 (18:1;O2/24:1).
+https://doi.org/10.1016/j.jsb.2026.108376
+
+Title: Cryo-EM structure of human TMEM45B with a bound GM3 (18:1;O2/24:1)
+
+PDB IDs:
+9TYV
+
+Release Date(s): 2026-10-07
+
+Number of TM segment: N/A
+
+Resolution: 2.82 Å
+
+UniProt ID(s): Q96B21
+
+Classification(s): N/A
+
+🔗 PDB Link | 📄 PubMed Link | 🔗 UniProt Link
+
+Predictions
+Text model on title: Novel Membrane Proteins — 9.82%
+Image model on 2D: Novel Membrane Proteins — 0.00%
+Text model on abstract: Cysteine Proteases — 5.31%
+
+Membrane Protein Verdict: Yes
+
+Expand group & load viewer
+Load 50 more groups… (50/7098)

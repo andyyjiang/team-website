@@ -404,3 +404,34 @@ def test_publish_without_conflict_and_without_changes(repos):
     assert autoreject.publish(job, "main", FILES, lambda: "Weekly", lambda: calls.append(1)) == "pushed"
     assert calls == []
     assert _git(job, "log", "--format=%s", "-2").split("\n")[:2] == ["Weekly", "docs"]
+
+
+def test_publish_commits_new_vercel_files_through_a_conflict_retry(repos):
+    origin, seed, job = repos
+    assert {"data/vercel_snapshot.json", "data/vercel_compare.json"} <= set(autoreject.DATA_FILES)
+    cands, rec = [_cand("22XQ", awaiting=TBP)], _rec(["22XQ"])
+    # The job writes the Vercel files for the first time (untracked) and its own rejection.
+    (job / "data" / "vercel_snapshot.json").write_text('{"entries": {}}')
+    (job / "data" / "vercel_compare.json").write_text('{"weeks": []}')
+    _job_apply(job, cands, rec)
+    # A curator's save meanwhile makes the rebase conflict on data/curation.json.
+    path = seed / "data" / "curation.json"
+    cur = json.loads(path.read_text())
+    cur["entries"]["35YU"] = {"status": "approved", "by": "andyyjiang"}
+    cur["log"].append({"at": "2", "by": "andyyjiang", "action": "approve", "pdb": "35YU"})
+    path.write_text(autoreject.dumps(cur))
+    _git(seed, "commit", "-q", "-am", "Curator: approve 35YU")
+    _git(seed, "push", "-q", "origin", "HEAD:main")
+    calls = []
+
+    def reapply():
+        calls.append(1)
+        _job_apply(job, cands, rec)
+
+    assert autoreject.publish(job, "main", autoreject.DATA_FILES, lambda: "Weekly", reapply) == "pushed"
+    assert calls == [1]
+    check = origin.parent / "check"
+    _git(origin.parent, "clone", "-q", str(origin), str(check))
+    assert (check / "data" / "vercel_snapshot.json").read_text() == '{"entries": {}}'
+    assert (check / "data" / "vercel_compare.json").read_text() == '{"weeks": []}'
+    assert set(json.loads((check / "data" / "curation.json").read_text())["entries"]) == {"23JK", "35YU", "22XQ"}

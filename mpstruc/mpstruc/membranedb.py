@@ -62,6 +62,51 @@ def opm(max_age_s: float = 30 * 86400) -> dict[str, str]:
     return out
 
 
+def opm_detail(max_age_s: float = 30 * 86400) -> dict[str, dict]:
+    """{PDB ID: {"type", "segments", "classtype", "thickness", "primary"}} for every structure in OPM.
+
+    segments is OPM's count of membrane-crossing segments in the primary structure
+    (secondary representations inherit their primary's). OPM files many soluble
+    constructs under transmembrane protein types (class "bitopic" with 0 segments
+    and a ~3 A "membrane", such as the DHODH, CYP3A4 or MMP-3 catalytic domains), so
+    'transmembrane' on its own does not mean a membrane-crossing part is present.
+    """
+    path = CACHE_DIR / "opm_detail.json"
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        return json.loads(path.read_text())
+    prim = _paged("primary_structures")
+    by_id = {}
+    for p in prim:
+        segs = p.get("subunit_segments")
+        by_id[p["id"]] = {"type": OPM_TYPES.get(p.get("type_id"), "other"),
+                          "segments": segs if isinstance(segs, int) else None,
+                          "classtype": p.get("classtype_id"), "thickness": p.get("thickness"),
+                          "primary": (p.get("pdbid") or "").upper() or None}
+    out = {p["pdbid"].upper(): by_id[p["id"]] for p in prim if p.get("pdbid")}
+    for s in _paged("secondary_representations"):
+        if s.get("pdbid") and s.get("primary_structure_id") in by_id:
+            out.setdefault(s["pdbid"].upper(), by_id[s["primary_structure_id"]])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(out))
+    return out
+
+
+OPM_NO_SEGMENT = "transmembrane-family, no segment in structure"
+
+
+def opm_spanning(detail: dict[str, dict]) -> dict[str, str]:
+    """opm()-style labels from opm_detail(), with 'transmembrane' kept only for structures
+    in which OPM finds at least one membrane-crossing segment; transmembrane-type entries
+    with 0 segments become OPM_NO_SEGMENT."""
+    out = {}
+    for pdb, d in detail.items():
+        t = d.get("type")
+        if t == "transmembrane" and not (d.get("segments") or 0) > 0:
+            t = OPM_NO_SEGMENT
+        out[pdb] = t
+    return out
+
+
 def tcdb(max_age_s: float = 30 * 86400) -> dict[str, list[str]]:
     """{UniProt accession: [TC numbers]} for every protein TCDB classifies."""
     path = CACHE_DIR / "tcdb.json"

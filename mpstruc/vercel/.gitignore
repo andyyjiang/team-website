@@ -1,0 +1,4 @@
+node_modules/
+# The other group's database exports: kept local, never published (this repository is public).
+exports/*.csv
+exports/*.xlsx

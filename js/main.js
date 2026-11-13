@@ -35,8 +35,8 @@ links.addEventListener("click", (event) => {
   const heroMode = (kind) => { document.body.dataset.mpView = kind || "home"; };
   heroMode(location.hash.replace(/^#\/?/, "").split("/")[0]);
   const state = { data: null, byKey: new Map(), byPdb: new Map(), all: [], sgOf: new Map(),
-                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "" },
-                  newRel: new Map(), nNew: 0, unplaced: [], merged: [] };
+                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "", mpstruc: "" },
+                  newRel: new Map(), nNew: 0, unplaced: [], merged: [], focusPdb: "", scrollHit: false };
 
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -48,17 +48,21 @@ links.addEventListener("click", (event) => {
   const rcsb = (id) => `https://www.rcsb.org/structure/${encodeURIComponent(id)}`;
   // The PDB's own picture of a structure (as on rcsb.org). Falls back to the
   // model image, then disappears, if the PDB has no assembly picture.
+  // Only a well-formed PDB ID becomes part of the URL ("" otherwise), and the URL
+  // is escaped where it goes into markup: IDs come from the address and data files.
+  const isPdbId = (id) => /^[0-9][A-Z0-9]{3}$/.test(String(id ?? "").toUpperCase());
   const thumbSrc = (id, kind = "assembly-1") => {
+    if (!isPdbId(id)) return "";
     const l = String(id).toLowerCase();
     return `https://cdn.rcsb.org/images/structures/${l.slice(1, 3)}/${l}/${l}_${kind}.jpeg`;
   };
   window.mpThumbFallback = (img) => {
-    if (img.dataset.tried) { img.remove(); return; }
+    if (img.dataset.tried || !isPdbId(img.dataset.pdb)) { img.remove(); return; }
     img.dataset.tried = "1";
     img.src = thumbSrc(img.dataset.pdb, "model-1");
   };
-  const thumb = (id, cls = "mp-thumb") =>
-    `<img class="${cls}" loading="lazy" decoding="async" src="${thumbSrc(id)}" data-pdb="${esc(id)}"
+  const thumb = (id, cls = "mp-thumb") => !isPdbId(id) ? "" :
+    `<img class="${cls}" loading="lazy" decoding="async" src="${esc(thumbSrc(id))}" data-pdb="${esc(id)}"
       alt="3D structure of PDB ${esc(id)} (image: RCSB PDB)" onerror="mpThumbFallback(this)">`;
   const fmtRes = (v) => (v == null ? "" : `${Number(v).toFixed(2).replace(/0$/, "")} Å`);
   // Interactive 3D preview of a structure (C-alpha trace from the RCSB
@@ -203,7 +207,51 @@ links.addEventListener("click", (event) => {
     if (f.yearTo && !(e.year <= Number(f.yearTo))) return false;
     if (f.issues === "any" && !e.issues) return false;
     if (f.issues === "error" && e.issues !== "error") return false;
+    if (f.mpstruc === "in" && notInMp(e)) return false;
+    if (f.mpstruc === "out" && !notInMp(e)) return false;
     return true;
+  }
+
+  // ---- in the official mpstruc or not -----------------------------------
+  // "In mpstruc" means listed in the official mpstruc file this database was
+  // built from (data/mpstruc.json, refreshed each week from mpstruc's own XML).
+  // Structures curators pushed from the Automation tab are in this database but
+  // not in mpstruc until a later snapshot lists them; then the official entry is
+  // shown instead of the pushed copy (applyCuration) and they count as in mpstruc.
+  // A related line is in mpstruc when its entry is and the official file lists it there.
+  const relInMp = (e, id) => !e.isNew && (e.rel0 || []).some((r) => r.toUpperCase() === String(id).toUpperCase());
+  // An entry with something on it that is not in mpstruc yet: itself, or a related line.
+  const notInMp = (e) => e.isNew || (e.rel || []).some((id) => !relInMp(e, id));
+  // Submitted to mpstruc by a curator (Ready to upload), but not in the official file yet.
+  const isSubmitted = (pdb) => { const d = curation.entries[String(pdb).toUpperCase()]; return isPushed(d) && isObj(d.submitted); };
+  const MP_MARK = { in: ["in", "In mpstruc", "Listed in the official mpstruc database"],
+                    out: ["out", "Not in mpstruc yet", "In this site's database, added by curators; not yet in the official mpstruc"],
+                    sent: ["sent", "Submitted, waiting for mpstruc", "Sent to the mpstruc maintainers; marked In mpstruc once the official file lists it"],
+                    // A weekly suggestion: a new PDB release the official mpstruc does not list.
+                    sug: ["out", "Not in mpstruc", "A new PDB release that the official mpstruc does not list (as an entry, a related entry or in a description)"] };
+  function mpMark(kind) {
+    const [cls, label, tip] = MP_MARK[kind];
+    return `<span class="mp-mark ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+  }
+  const markOf = (e) => (!e.isNew ? "in" : isSubmitted(e.pdb) ? "sent" : "out");
+  // In the official mpstruc file in any way: an entry, a related code, or only
+  // named in an entry's description (as the weekly run counts it). The file can
+  // be newer than this week's suggestions, so a suggestion may already be there.
+  const inMpNow = (id) => { const k = String(id || "").toUpperCase(); return inOfficial(k) || base.mentioned.has(k); };
+  // The address of where the official file has it, or null.
+  function officialHash(id) {
+    const k = String(id || "").toUpperCase();
+    if (inOfficial(k)) {
+      const to = listingHash(k);
+      return to && !/^#\/entry\/NEW-/.test(to) ? to : `#/pdb/${k}/about`;
+    }
+    return base.mentioned.has(k) ? `#/pdb/${k}/about` : null;
+  }
+  // The label on a suggestion: 'Not in mpstruc', or 'In mpstruc' (a link to its listing) once the official file lists it.
+  function candMark(pdb) {
+    const to = officialHash(pdb);
+    return to ? `<a class="mp-mark in" href="${esc(to)}" title="The official mpstruc now lists ${esc(pdb)} (its file is newer than this week's suggestions): see where">In mpstruc</a>`
+      : mpMark("sug");
   }
   const filtersActive = () => Object.values(state.filters).some(Boolean);
 
@@ -228,8 +276,25 @@ links.addEventListener("click", (event) => {
         <option value="">Any</option>
         <option value="any"${f.issues === "any" ? " selected" : ""}>Has issues</option>
         <option value="error"${f.issues === "error" ? " selected" : ""}>Has errors</option></select></label>
+      ${mpstrucSelect(pool)}
       ${filtersActive() ? '<button type="button" class="mp-btn secondary" id="mp-clear">Clear filters</button>' : ""}
+      ${f.mpstruc === "out" ? uploadLink() : ""}
     </form>`;
+  }
+
+  // The "In mpstruc" filter (lists, search and the overview). pool: the
+  // entries to count, or null on the overview (no counts there). The two
+  // options split every structure in two, so their counts add up to All: "not
+  // in mpstruc yet" also takes an official entry with a curator-added related line.
+  function mpstrucSelect(pool) {
+    const f = state.filters, n = (k) => (pool ? ` (${pool.filter((e) => notInMp(e) === (k === "out")).length})` : "");
+    return `<label>In mpstruc<select name="mpstruc">
+        <option value="">All</option>
+        <option value="in"${f.mpstruc === "in" ? " selected" : ""}>In mpstruc${n("in")}</option>
+        <option value="out"${f.mpstruc === "out" ? " selected" : ""}>Not in mpstruc yet, or a related line${n("out")}</option></select></label>`;
+  }
+  function uploadLink() {
+    return `<a class="mp-upload-link" href="#/notinmpstruc">Ready to upload to mpstruc (${readyRows().length})</a>`;
   }
 
   function wireFilters() {
@@ -275,10 +340,39 @@ links.addEventListener("click", (event) => {
       ev.preventDefault();
       const q = form.elements.q.value.trim();
       const id = q.toUpperCase();
-      if (/^[0-9][A-Z0-9]{3}$/.test(id) && (state.byPdb.has(id) || state.data.relPdb[id])) location.hash = `#/pdb/${id}`;
-      else if (q) location.hash = `#/search/${encodeURIComponent(q)}`;
+      // An exact PDB ID goes straight to its listing in the database; one that is
+      // only mentioned (or known from the PDB) to its PDB page; anything else to the results.
+      // An exact PDB ID found nowhere in the database goes to #/find/<ID>, which
+      // opens its suggestion or curator decision, or says it is not known.
+      const to = !PDB_RE.test(id) ? null : listingHash(id)
+        || (state.byPdb.has(id) || state.data.relPdb[id] ? `#/pdb/${id}/about` : `#/find/${id}`);
+      const target = to || (q ? `#/search/${encodeURIComponent(q)}` : "");
+      if (!target) return;
+      if (location.hash === target) route(); else location.hash = target;
     });
   }
+
+  // The address of a PDB ID's listing in the database: a parent's own page; a
+  // daughter on its parent's page (scrolled to and highlighted); a related entry
+  // on the page of the entry it is listed under (its line highlighted). The ID
+  // after the key marks what to highlight. null when it is not listed.
+  function listingHash(id) {
+    const refs = (state.byPdb.get(id) || []).filter((r) => r.type !== "mentioned");
+    const r = refs.find((x) => x.type === "parent") || refs.find((x) => x.type === "daughter") || refs[0];
+    if (!r) return null;
+    return `#/entry/${r.type === "daughter" ? r.entry.parent.k : r.entry.k}/${id}`;
+  }
+
+  // Where the official mpstruc file lists a PDB ID (curators' additions left out):
+  // [{ placement, subgroup, owner }].
+  function officialPlaces(id) {
+    return (state.byPdb.get(id) || [])
+      .filter((r) => r.type !== "mentioned" && !r.entry.isNew && (r.type !== "related" || relInMp(r.entry, id)))
+      .map((r) => ({ placement: r.type, subgroup: r.entry.sg.k,
+                     owner: r.type === "parent" ? "" : r.type === "daughter" ? r.entry.parent.pdb.toUpperCase() : r.entry.pdb.toUpperCase() }));
+  }
+  const placeText = (p) => (p.placement === "parent" ? `a parent in ${sgName(p.subgroup)}`
+    : `${p.placement === "daughter" ? "a daughter" : "a related entry"} of ${p.owner} in ${sgName(p.subgroup)}`);
 
   function citation(b, full) {
     if (!b) return "";
@@ -302,14 +396,28 @@ links.addEventListener("click", (event) => {
 
   function relatedChips(e) {
     if (!e.rel || !e.rel.length) return "";
-    const chips = e.rel.map((id) => {
+    const chip = (id) => {
       const x = state.data.relPdb[id.toUpperCase()];
       const tip = x ? `From PDB: ${x.method || ""}${x.res ? `, ${fmtRes(x.res)}` : ""}. ${x.title || ""}` : "Not found in the PDB";
       const fresh = state.newRel.get(id.toUpperCase());
-      return `<a class="mp-chip${fresh ? " new" : ""}" href="#/pdb/${esc(id.toUpperCase())}" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
-    }).join("");
-    return `<div class="mp-chips"><span class="mp-badge related">Related</span>${chips}</div>`;
+      const hit = state.focusPdb === id.toUpperCase() ? " mp-hit-chip" : "";
+      return `<a class="mp-chip${fresh ? " new" : ""}${hit}" href="#/pdb/${esc(id.toUpperCase())}/about" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
+    };
+    // Grouped by whether the line is in the official mpstruc, each group with its marker.
+    const groups = { in: [], out: [], sent: [] };
+    e.rel.forEach((id) => groups[relMark(e, id)].push(id));
+    const html = ["in", "out", "sent"].filter((k) => groups[k].length)
+      .map((k) => `<span class="mp-chipgroup">${mpMark(k)}${groups[k].map(chip).join("")}</span>`).join("");
+    return `<div class="mp-chips"><span class="mp-badge related">Related</span>${html}</div>`;
   }
+  // A related line: in mpstruc, or (added by curators) not yet / submitted. A
+  // related ID with its own pushed record has its own submitted mark; one only
+  // written in a curator-added entry's related list goes to mpstruc with that entry.
+  const relMark = (e, id) => {
+    if (relInMp(e, id)) return "in";
+    const own = isPushed(curation.entries[String(id).toUpperCase()]);
+    return isSubmitted(e.isNew && !own ? e.pdb : id) ? "sent" : "out";
+  };
 
   function resolutionCell(e) {
     const curated = e.res ? esc(e.res.match(/^[\d.]+$/) ? `${e.res} Å` : e.res) : "—";
@@ -324,6 +432,7 @@ links.addEventListener("click", (event) => {
       <div class="mp-entry-head">
         <span class="mp-badge${isD ? " daughter" : ""}">${isD ? "Daughter" : "Parent"}</span>
         ${newBadge(e)}
+        ${mpMark(markOf(e))}
         <a class="mp-pdb" href="#/entry/${e.k}">${esc(e.pdb)}</a>
         <a href="${rcsb(e.pdb)}" rel="noopener" class="mp-of">RCSB ↗</a>
         ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a></span>` : ""}
@@ -353,7 +462,9 @@ links.addEventListener("click", (event) => {
       }
     }
     const pic = opts.noThumb ? "" : thumb(e.pdb);
-    return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
+    // The daughter a search or PDB link asked for, on its parent's page.
+    const hit = isD && !opts.noThumb && state.focusPdb && state.focusPdb === e.pdb.toUpperCase() ? " mp-hit" : "";
+    return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}${hit}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
   }
 
   // Entries curators approved on the Automation tab (built by applyCuration).
@@ -424,19 +535,31 @@ links.addEventListener("click", (event) => {
 
   function viewHome() {
     const m = state.data.meta, c = m.counts;
+    // The In mpstruc filter counts structures (parents and daughters) the way the
+    // subfamily page's filter does: all in mpstruc, or with something not in it yet.
+    const mf = state.filters.mpstruc;
+    const nOf = (sg) => (!mf ? sg.n
+      : sg.parents.reduce((s, p) => s + [p, ...(p.d || [])].filter((e) => notInMp(e) === (mf === "out")).length, 0));
     const groups = state.data.groups.map((g) => {
-      const n = g.subgroups.reduce((s, sg) => s + sg.n, 0);
-      const sorted = [...g.subgroups].sort((a, b) => b.n - a.n), maxN = (sorted[0] && sorted[0].n) || 1;
+      const n = g.subgroups.reduce((s, sg) => s + nOf(sg), 0);
+      const sorted = g.subgroups.filter((sg) => nOf(sg) > 0).sort((a, b) => nOf(b) - nOf(a)), maxN = (sorted[0] && nOf(sorted[0])) || 1;
       const top = sorted.slice(0, 5)
-        .map((sg) => `<li style="--w:${((sg.n / maxN) * 100).toFixed(1)}%"><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${sg.n}</span></li>`).join("");
-      return `<article class="card mp-family"><h3>${esc(g.topology)}</h3><p class="mp-summary">${g.subgroups.length} subfamilies, ${n.toLocaleString()} listings</p>
-        <p class="mp-summary">Largest subfamilies:</p><ul class="mp-ranked">${top}</ul></article>`;
+        .map((sg) => `<li style="--w:${((nOf(sg) / maxN) * 100).toFixed(1)}%"><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${nOf(sg)}</span></li>`).join("");
+      return `<article class="card mp-family"><h3>${esc(g.topology)}</h3><p class="mp-summary">${mf ? `${sorted.length} of ${g.subgroups.length}` : g.subgroups.length} subfamilies,
+        ${n.toLocaleString()} ${mf === "out" ? `${n === 1 ? "structure" : "structures"} not in mpstruc yet, or with a related line that is not`
+          : mf === "in" ? `${n === 1 ? "structure" : "structures"} in mpstruc` : "listings"}</p>
+        ${top ? `<p class="mp-summary">${mf === "out" ? "Subfamilies with something not in mpstruc yet:" : "Largest subfamilies:"}</p><ul class="mp-ranked">${top}</ul>`
+          : '<p class="mp-summary">None.</p>'}</article>`;
     }).join("");
     const fc = m.flagCounts;
+    const nReady = readyRows().length;
     return `<div class="mp-view">
       <h2>Overview</h2>
       <p class="mp-summary">Snapshot of ${esc(m.timestamp)} · last new protein ${esc((m.lastNewProtein || "").slice(0, 10))}${state.nNew
         ? ` · <a href="#/search/${encodeURIComponent("*new")}">${state.nNew} ${state.nNew === 1 ? "structure" : "structures"} added by curators since</a>` : ""}</p>
+      <p class="mp-summary mp-legend">Every entry is marked ${mpMark("in")} (listed in the official mpstruc), ${mpMark("out")} (added by curators here)
+        or ${mpMark("sent")} (sent to the mpstruc maintainers, waiting for the weekly check).
+        ${nReady ? `<a class="mp-upload-link" href="#/notinmpstruc">Ready to upload to mpstruc (${nReady})</a>` : "Everything curators added is in mpstruc."}</p>
       <div class="mp-stats">
         <div class="mp-stat"><b>${c.parents.toLocaleString()}</b><span>parent proteins</span></div>
         <div class="mp-stat"><b>${c.daughters.toLocaleString()}</b><span>daughter structures
@@ -447,6 +570,7 @@ links.addEventListener("click", (event) => {
       <h3>Structures by publication year</h3>
       ${yearChart()}
       <h3>Families</h3>
+      <form class="mp-filters mp-home-filter" id="mp-filters" aria-label="Filter the families">${mpstrucSelect(null)}</form>
       <div class="mp-groups">${groups}</div>
       <h3>Data quality</h3>
       <p>Automatic checks against the PDB and PubMed found <b>${fc.error}</b> errors and <b>${fc.warning}</b> warnings.
@@ -510,23 +634,72 @@ links.addEventListener("click", (event) => {
       const where = `${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>`;
       const role = r.type === "related" ? `Related entry of <a href="#/entry/${e.k}">${esc(e.pdb)}</a> (${e.kind === "p" ? "parent" : "daughter"})`
         : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}`;
-      return `<tr><td>${role}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
+      return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e))}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
     }).join("");
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${listingHash(id) ? `<p><a class="mp-btn" href="${esc(listingHash(id))}">Go to its listing in the database</a></p>` : ""}
       ${rejectedNote(id)}
       ${stagedNote(id)}
       ${preview(id, "lg", "mp-preview-inline")}
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
       ${x ? `<p class="mp-frompdb">From PDB: ${esc(x.title || "")} · ${esc(x.method || "")}${x.res ? ` · ${fmtRes(x.res)}` : ""}${x.released ? ` · released ${esc(x.released)}` : ""}</p>` : ""}
-      ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in mpstruc${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
+      ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in the database${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Listed as</th><th>Where</th><th>Record key</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="mp-empty">This PDB ID is not listed in mpstruc.</p>'}
       ${mentions.length ? `<p>Cited in the description of ${mentions.map((r) =>
           `<a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>`).join(", ")}${refs.length ? "" : ", but not listed as an entry or related entry there (possibly a typo in the description)"}.</p>` : ""}
       ${!refs.length && !mentions.length && !x ? `<p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>` : ""}
+    </div>`;
+  }
+
+  // #/find/<ID> (an exact PDB ID searched for that the database does not
+  // list): where to send it instead. Its card on the Automation tab when it is
+  // one of this week's suggestions; for curators, the Decisions list its
+  // decision is in. "" while the suggestions load; null for the 'not found' page.
+  function findTarget(id) {
+    if (!PDB_RE.test(id)) return `#/search/${encodeURIComponent(id)}`;
+    const listed = listingHash(id);
+    if (listed) return listed;
+    if (state.byPdb.has(id) || state.data.relPdb[id]) return `#/pdb/${id}/about`;
+    const d = Object.hasOwn(curation.entries, id) && isObj(curation.entries[id]) ? curation.entries[id] : null;
+    if (!auto.cands && !auto.error) { loadAutomation(); return ""; }
+    if (auto.cands && candIndex().has(id) && !(d && d.status === "deleted")) return `#/automation/card/${id}`;
+    if (d && signedIn()) {
+      if (d.status === "rejected" || d.status === "deleted") { rej.q = id; return `#/rejected/${d.status === "deleted" ? "deleted" : reasonCode(d)}`; }
+      if (d.status === "approved") { appr.q = id; return `#/approved${inOfficial(id) ? "/inmpstruc" : isPushed(d) ? "/pushed" : ""}`; }
+    }
+    return null;
+  }
+  // What the Vercel demo's snapshot says about a PDB ID (null when it is not there, undefined while loading or unavailable).
+  function vercelEntry(id) {
+    if (!(vc.snap instanceof Set)) return undefined;
+    return vc.snapEntries && isObj(vc.snapEntries[id]) ? vc.snapEntries[id] : null;
+  }
+  function viewFind(id) {
+    const loading = !auto.cands && !auto.error;
+    const d = Object.hasOwn(curation.entries, id) && isObj(curation.entries[id]) ? curation.entries[id] : null;
+    loadVercel();
+    loadVercelSnapshot();
+    const v = vercelEntry(id);
+    const vcLine = v ? `<p class="mp-find-vc"><b>The Vercel demo lists it</b>${v.status != null ? `: ${esc(vcStatusText(v.status))}` : ""}${v.family ? ` · ${esc(plain(v.family))}` : ""}${v.name ? ` · “${esc(plain(v.name))}”` : ""}${v.released ? ` · released ${esc(plain(v.released))}` : ""}${v.tm && v.tm !== "N/A" ? ` · ${esc(plain(v.tm))} TM ${String(v.tm) === "1" ? "helix" : "helices"}` : ""}.
+        <a href="#/automation/vercel">Compared with the Vercel demo</a></p>`
+      : v === null ? '<p class="mp-find-vc">The Vercel demo does not list it either.</p>'
+      : vc.loading || vc.snapLoading ? '<p class="mp-find-vc mp-of">Checking the Vercel demo…</p>' : "";
+    const decided = d && !signedIn() ? `<p class="mp-newnote">A curator ${d.status === "approved" ? "approved it" : d.status === "deleted" ? "deleted it from the suggestions" : `rejected it (${esc(reasonLabel(d))})`}${d.at ? ` on ${esc(fmtDate(plain(d.at)))}` : ""}.
+        <a href="#/curators">Sign in</a> to see it in Decisions.</p>` : "";
+    return `<div class="mp-view mp-find">
+      <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
+      <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${loading ? `<p class="mp-loading">Checking this week's suggestions for ${esc(id)}…</p>`
+        : `<p class="mp-empty">${esc(id)} is not in the database or in this week's suggestions${auto.error ? " (they could not be loaded)" : ""}.</p>`}
+      ${decided}
+      ${vcLine}
+      <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
+        <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
+      <p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>
     </div>`;
   }
 
@@ -559,14 +732,32 @@ links.addEventListener("click", (event) => {
       <a href="#/approved">Review in Decisions › Approved</a></p>`;
   }
 
-  function viewEntry(e) {
+  // Where a PDB ID asked for by a search or a PDB link is placed, at the top of
+  // the listing it was taken to (focus: that PDB ID).
+  function placedLine(e, focus) {
+    const refs = (state.byPdb.get(focus) || []).filter((r) => r.type !== "mentioned");
+    if (!refs.length) return "";
+    const one = (r) => {
+      const x = r.entry, sg = `${esc(x.sg.group.topology)} › <a href="#/sg/${x.sg.k}">${x.sg.name}</a>`;
+      const what = r.type === "parent" ? "a parent"
+        : r.type === "daughter" ? `a daughter of <a href="#/entry/${x.parent.k}">${esc(x.parent.pdb)}</a>`
+        : `a related entry of <a href="#/entry/${x.k}">${esc(x.pdb)}</a>${x.parent ? ` (a daughter of ${esc(x.parent.pdb)})` : ""}`;
+      return `${what} in ${sg} ${mpMark(r.type === "related" ? relMark(x, focus) : markOf(x))}`;
+    };
+    return `<nav class="mp-placed" aria-label="Where ${esc(focus)} is placed"><span class="mp-of">Where it is placed:</span>
+      <b class="mp-pdb">${esc(focus)}</b> is ${refs.map(one).join("; also ")}.
+      <a class="mp-of" href="#/pdb/${esc(focus)}/about">PDB details</a></nav>`;
+  }
+
+  function viewEntry(e, focus = "") {
     const others = (state.byPdb.get(e.pdb.toUpperCase()) || [])
       .filter((r) => r.type !== "mentioned" && !(r.entry === e && r.type !== "related"));
     const relRows = (e.rel || []).map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
-      return `<tr><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}">${esc(id)}</a></td>
+      const hit = focus === id.toUpperCase() ? ' class="mp-hit"' : "";
+      return `<tr id="rel-${esc(id.toUpperCase())}"${hit}><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}/about">${esc(id)}</a></td>
         <td>${x ? esc(x.title || "") : '<span class="mp-frompdb">Not found in the PDB</span>'}</td>
-        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td></tr>`;
+        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td><td>${mpMark(relMark(e, id))}</td></tr>`;
     }).join("");
     const daughters = e.kind === "p" && e.d && e.d.length
       ? `<h3>Daughter structures described in full (${e.d.length})</h3>${e.d.map((d) => entryCard(d)).join("")}` : "";
@@ -574,6 +765,8 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › ${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>
         ${e.parent ? ` › <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}</p>
+      ${focus ? placedLine(e, focus) : ""}
+      ${focus && focus !== e.pdb.toUpperCase() ? `${rejectedNote(focus)}${stagedNote(focus)}` : ""}
       <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${asText(e.name)}</h2>
       <div class="mp-entry-top">
         ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true })}
@@ -588,12 +781,13 @@ links.addEventListener("click", (event) => {
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
       ${e.isNew ? `<p class="mp-newnote">Pushed to the database by ${esc(e.newBy)} on ${esc(fmtDate(e.newAt))}${e.approvedBy && e.approvedBy !== e.newBy ? ` (approved by ${esc(e.approvedBy)})` : ""}
         from the Automation tab${e.edited ? ", with the entry edited by a curator" : ""}. It is in this site's shared
-        curation record (<code>data/curation.json</code>) and in the downloads for the mpstruc maintainers, but not yet in the official mpstruc file.
+        curation record (<code>data/curation.json</code>) and in <a href="#/notinmpstruc">Ready to upload to mpstruc</a>, but not yet in the official mpstruc file${isSubmitted(e.pdb)
+          ? " (submitted to the mpstruc maintainers; it is marked In mpstruc once the weekly check finds it there)" : ""}.
         ${signedIn() ? `<a href="#/approved/pushed">See it in Decisions › Pushed</a>` : ""}</p>` : ""}
       ${stagedNote(e.pdb)}
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
       ${relRows ? `<h3>Related entries (${e.rel.length})</h3><p class="mp-frompdb">Details below come from the PDB; mpstruc records only the IDs.</p>
-        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
+        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th><th>In mpstruc?</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
       ${others.length ? `<h3>Also listed</h3><ul>${others.map((r) => `<li>${r.type === "related" ? `As a related entry of <a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>` : `As a ${r.type} in <a href="#/entry/${r.entry.k}">${esc(r.entry.k)}</a>`} · <a href="#/sg/${r.entry.sg.k}">${r.entry.sg.name}</a></li>`).join("")}</ul>` : ""}
       ${daughters}
     </div>`;
@@ -607,7 +801,11 @@ links.addEventListener("click", (event) => {
   // "curators" below). Decisions made before sign-in existed were kept in
   // this browser (localStorage); curators are offered to upload them.
   const auto = { cands: null, backtest: null, error: null, loading: false,
-                 view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null };
+                 view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null,
+                 // open: PDB IDs whose full card is shown inside their study (related entries, or a lead the filters hide);
+                 // groupRejecting: the study whose 'Reject all' form is open.
+                 // formOpened: the related entries whose card was opened only for a Change or Reject form.
+                 open: new Set(), formOpened: new Set(), groupRejecting: null };
   // Why a structure was rejected: the code is saved as reasonCode, the label
   // (plus the curator's note, if any) as reason. Rejections saved before codes
   // existed have no reasonCode and count as "other".
@@ -659,9 +857,13 @@ links.addEventListener("click", (event) => {
     auto.loading = true;
     Promise.all([fetch("data/candidates.json").then((r) => r.ok ? r.json() : Promise.reject(new Error(r.status))),
                  fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
-      .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5; })
+      .then(([c, b]) => {
+        // A suggestion without a well-formed PDB ID is dropped: the ID goes into links and image URLs.
+        if (isObj(c) && Array.isArray(c.candidates)) c.candidates = c.candidates.filter((x) => isObj(x) && PDB_RE.test(String(x.pdb ?? "")));
+        auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5;
+      })
       .catch((err) => { auto.error = err.message; })
-      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved)/.test(lastRoute)) rerender(); });
+      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc|find)/.test(lastRoute)) rerender(); });
   }
 
   const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
@@ -1250,7 +1452,8 @@ links.addEventListener("click", (event) => {
     });
   }
 
-  function candidateCard(c) {
+  // studyActs: the study's own buttons (Approve all, Reject all) when c leads one.
+  function candidateCard(c, studyActs = "") {
     const d = decisionOf(c);
     const editing = auto.editing === c.pdb;
     const saving = optimistic.has(c.pdb);
@@ -1289,6 +1492,8 @@ links.addEventListener("click", (event) => {
         ${status}
         ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
         ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
+        ${candMark(c.pdb)}
+        ${vercelBadge(c.pdb)}
         <span class="mp-of">released ${esc(c.released || "")}</span>
         <h3>${shownMp && shownMp.name ? safeMarkup(shownMp.name) : esc(c.title || c.pdb)}</h3>
       </div>
@@ -1314,35 +1519,42 @@ links.addEventListener("click", (event) => {
         <button class="mp-btn secondary" type="button" id="act-reject-${esc(c.pdb)}" data-act="reject" data-pdb="${esc(c.pdb)}"${off}>Reject</button>
         ${c.awaiting && !d ? `<button class="mp-btn secondary" type="button" id="act-unpub-${esc(c.pdb)}" data-act="reject-unpublished" data-pdb="${esc(c.pdb)}"${off}>Reject: not published yet</button>` : ""}
         ${d ? `<button class="mp-btn secondary" type="button" id="act-undo-${esc(c.pdb)}" data-act="undo" data-pdb="${esc(c.pdb)}"${off}>Undo</button>` : ""}
+        ${studyActs}
         ${signedIn() ? "" : '<p class="mp-signin-note">Sign in on the <a href="#/curators">Curators tab</a> to decide</p>'}
       </div>`}
     </article>`;
   }
 
+  // Why a suggestion is not listed with these filters (a short phrase), or ""
+  // when it is. view defaults to the current filters.
+  function candMiss(c, v = auto.view, latest = latestRelease()) {
+    const d = decisionOf(c);
+    if (d && d.status === "deleted") return "deleted"; // deleted for good: never suggested again
+    if (v.status === "undecided" && d) return d.status === "approved" ? "approved" : "rejected";
+    // Listed by the official mpstruc since the suggestions were made: nothing to decide.
+    if (v.status === "undecided" && inMpNow(c.pdb)) return "already in mpstruc";
+    if (v.status === "approved" && d?.status !== "approved") return d ? "rejected" : "not decided yet";
+    if (v.status === "rejected" && d?.status !== "rejected") return d ? "approved" : "not decided yet";
+    if (v.placement && c.placement !== v.placement) return `suggested as ${(PLACEMENT_LABEL[c.placement] || c.placement).toLowerCase()}`;
+    if (c.membrane < Number(v.min || 0)) return `below the ${pct(Number(v.min))} membrane-protein filter`;
+    if (v.age) {
+      // A structure whose paper just came out counts as new from that day.
+      const days = (Date.parse(auto.cands.window[1]) - Date.parse(sortDay(c))) / 864e5;
+      if ((v.age === "latest" && c.released !== latest && !newlyPublished(c)) || (v.age === "new" && days > 28)
+          || (v.age === "mid" && (days <= 28 || days > 91)) || (v.age === "old" && days <= 91)) return "released outside the chosen dates";
+    }
+    if (v.q && !matchesSearch(c, v.q)) return "does not match the search";
+    return "";
+  }
+  function matchesSearch(c, q) {
+    return `${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(String(q).toLowerCase());
+  }
+
   // view defaults to the current filters; pass one to count with other settings.
   function filteredCands(view) {
     const v = view || auto.view;
-    const q = v.q.toLowerCase();
     const latest = latestRelease();
-    const out = auto.cands.candidates.filter((c) => {
-      const d = decisionOf(c);
-      if (d && d.status === "deleted") return false; // deleted for good: never suggested again
-      if (v.status === "undecided" && d) return false;
-      if (v.status === "approved" && d?.status !== "approved") return false;
-      if (v.status === "rejected" && d?.status !== "rejected") return false;
-      if (v.placement && c.placement !== v.placement) return false;
-      if (c.membrane < Number(v.min || 0)) return false;
-      if (v.age) {
-        // A structure whose paper just came out counts as new from that day.
-        const days = (Date.parse(auto.cands.window[1]) - Date.parse(sortDay(c))) / 864e5;
-        if (v.age === "latest" && c.released !== latest && !newlyPublished(c)) return false;
-        if (v.age === "new" && days > 28) return false;
-        if (v.age === "mid" && (days <= 28 || days > 91)) return false;
-        if (v.age === "old" && days <= 91) return false;
-      }
-      if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
+    const out = auto.cands.candidates.filter((c) => !candMiss(c, v, latest));
     // Newest first (most likely membrane protein first within a week), where a
     // structure whose paper just came out is dated by that; otherwise the
     // order the weekly job wrote, which is by membrane likelihood.
@@ -1350,6 +1562,369 @@ links.addEventListener("click", (event) => {
       out.sort((a, b) => sortDay(b).localeCompare(sortDay(a)) || (b.membrane || 0) - (a.membrane || 0));
     }
     return out;
+  }
+
+  // ---- studies: a lead structure with its related entries -------------------
+  // In mpstruc a related entry is not a record of its own: it is a line in its
+  // owner's description (plus a related PDB code). So the Automation tab lists
+  // studies, not single structures: a lead (new parent, daughter or 'needs a
+  // decision') with the related entries listed under it (and under those, when
+  // the weekly job chained them), the way mpstruc will show them. Related
+  // entries of a structure already in mpstruc are grouped under a header for
+  // that entry. The grouping follows where each structure goes now: the
+  // curator's approved placement when there is one (Change can move a related
+  // entry to another owner, or make it a daughter or parent), else the weekly
+  // suggestion. It is rebuilt when that changes; the filters then pick studies
+  // (see filteredStudies).
+  // A study: { key, lead (suggestion or null), ext ({ pdb, key } of the mpstruc
+  // entry, or null), kids: [node], members: [every suggestion in it], first },
+  // where a node is { c, kids: [node] }.
+  // Where c goes now: { placement, owner (PDB ID), ownerKey }.
+  function placeOf(c) {
+    const d = decisionOf(c);
+    if (d && d.status === "approved" && d.placement) {
+      const owner = String(d.owner || "").toUpperCase();
+      return { placement: d.placement, owner, ownerKey: owner === c.ownerPdb ? c.ownerKey || "" : "" };
+    }
+    return { placement: c.placement, owner: c.ownerPdb || "", ownerKey: c.ownerKey || "" };
+  }
+  function studies() {
+    const all = auto.cands.candidates;
+    const places = all.map(placeOf);
+    const sig = places.map((x) => `${x.placement}:${x.owner}`).join(",");
+    if (studies.src === auto.cands && studies.sig === sig) return studies.list;
+    const by = candIndex(), place = new Map(all.map((c, i) => [c.pdb, places[i]]));
+    const pos = new Map(all.map((c, i) => [c.pdb, i]));
+    const kidsOf = new Map();
+    for (const c of all) {
+      const pl = place.get(c.pdb);
+      if (pl.placement !== "related" || !pl.owner || pl.owner === c.pdb || !by.has(pl.owner)) continue;
+      if (!kidsOf.has(pl.owner)) kidsOf.set(pl.owner, []);
+      kidsOf.get(pl.owner).push(c);
+    }
+    const seen = new Set();
+    // Related lines in mpstruc order: as the owner's drafted description lists them.
+    const order = (owner, list) => {
+      const desc = String((owner && owner.mp && owner.mp.description) || "");
+      const at = (c) => { const i = desc.indexOf(`: ${c.pdb}`); return i < 0 ? Infinity : i; };
+      return list.slice().sort((a, b) => at(a) - at(b) || (b.released || "").localeCompare(a.released || "") || a.pdb.localeCompare(b.pdb));
+    };
+    const tree = (c) => {
+      const kids = order(c, (kidsOf.get(c.pdb) || []).filter((k) => !seen.has(k.pdb)));
+      kids.forEach((k) => seen.add(k.pdb));
+      return kids.map((k) => ({ c: k, kids: tree(k) }));
+    };
+    const flat = (nodes) => nodes.flatMap((n) => [n.c, ...flat(n.kids)]);
+    const list = [], ext = new Map();
+    const add = (c) => {
+      seen.add(c.pdb);
+      const s = { key: c.pdb, lead: c, ext: null, kids: tree(c), first: pos.get(c.pdb) };
+      s.members = [c, ...flat(s.kids)];
+      list.push(s);
+    };
+    // Leads first, then related entries of mpstruc entries, then anything left
+    // (related entries pointing at each other in a loop): each its own lead.
+    for (const c of all) if (place.get(c.pdb).placement !== "related") add(c);
+    for (const c of all) {
+      const pl = place.get(c.pdb);
+      if (seen.has(c.pdb) || pl.placement !== "related" || by.has(pl.owner)) continue;
+      const k = `x-${pl.owner || "none"}`;
+      if (!ext.has(k)) {
+        const s = { key: k, lead: null, ext: { pdb: pl.owner, key: pl.ownerKey }, kids: [], members: [], first: pos.get(c.pdb) };
+        ext.set(k, s);
+        list.push(s);
+      }
+      seen.add(c.pdb);
+      ext.get(k).kids.push(c);
+    }
+    for (const s of ext.values()) {
+      s.kids = s.kids.sort((a, b) => (b.released || "").localeCompare(a.released || "") || a.pdb.localeCompare(b.pdb))
+        .map((c) => ({ c, kids: tree(c) }));
+      s.members = flat(s.kids);
+    }
+    for (const c of all) if (!seen.has(c.pdb)) add(c);
+    studies.src = auto.cands;
+    studies.sig = sig;
+    studies.list = list;
+    return list;
+  }
+
+  // The studies to list: one shows when its lead or any related entry passes the
+  // filters (hit: the PDB IDs that do). Newest first sorts by the newest
+  // release in the study; the other sort by the most likely membrane protein in it.
+  // The search finds studies: when any member (the lead included) matches it,
+  // the other filters alone decide which members count.
+  function filteredStudies(view) {
+    const v = view || auto.view, latest = latestRelease();
+    const q = v.q || "", rest = q ? { ...v, q: "" } : v;
+    const out = [];
+    for (const s of studies()) {
+      if (q && !s.members.some((c) => matchesSearch(c, q))) continue;
+      const hit = new Set(s.members.filter((c) => !candMiss(c, rest, latest)).map((c) => c.pdb));
+      if (!hit.size) continue;
+      const live = s.members.filter((c) => decisionOf(c)?.status !== "deleted");
+      out.push({ s, hit, day: live.reduce((m, c) => (sortDay(c) > m ? sortDay(c) : m), ""),
+                 mem: live.reduce((m, c) => Math.max(m, c.membrane || 0), 0) });
+    }
+    if (v.sort === "newest") out.sort((a, b) => b.day.localeCompare(a.day) || b.mem - a.mem || a.s.first - b.s.first);
+    else out.sort((a, b) => b.mem - a.mem || a.s.first - b.s.first);
+    return out;
+  }
+
+  // Where a lead goes, as a trail: group › subfamily › [the mpstruc parent it
+  // goes under, for a daughter, or the closest entry, for one to decide] › lead.
+  function studyCrumbs(c) {
+    const sg = c.subgroup && state.sgOf.get(c.subgroup);
+    const parts = sg ? [esc(sg.group.topology), `<a href="#/sg/${esc(sg.k)}">${safeMarkup(sg.name)}</a>`]
+      : c.subgroup ? [esc(c.group || ""), esc(c.subgroupName || c.subgroup)].filter(Boolean) : ["<span>No subfamily found yet</span>"];
+    if ((c.placement === "daughter" || c.placement === "review") && c.ownerPdb) {
+      const e = (c.ownerKey && state.byKey.get(c.ownerKey)) || ((state.byPdb.get(c.ownerPdb) || []).find((r) => r.type === "parent") || {}).entry;
+      const tail = c.placement === "review" ? ' <span class="mp-of">(closest match)</span>' : "";
+      parts.push(e ? `<a href="#/entry/${esc(e.k)}">${esc(e.pdb)}</a> <span class="mp-crumb-name">${safeMarkup(e.name || "")}</span>${tail}`
+        : candIndex().has(c.ownerPdb) ? `${esc(c.ownerPdb)} <span class="mp-of">(new this week)</span>${tail}`
+        : `<a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a>${tail}`);
+    } else if (c.placement === "parent") {
+      parts.push('<span class="mp-of">new parent</span>');
+    }
+    parts.push(`<b aria-current="location">${esc(c.pdb)}</b>`);
+    return `<nav class="mp-study-crumbs" aria-label="Where ${esc(c.pdb)} goes in mpstruc"><ol>${parts.map((x) => `<li>${x}</li>`).join("")}</ol></nav>`;
+  }
+
+  // A related line as mpstruc shows it ("tail-engaged TamAB complex, 3.86 &Aring;: 9TGQ"), PDB IDs linked.
+  function relLineHtml(line) {
+    return safeMarkup(line || "").replace(/(&Aring;|Å)([\s:;,]*)([0-9][A-Za-z0-9]{3})\b/g,
+      (all, a, sep, id) => `${a}${sep}<a href="https://www.rcsb.org/structure/${id}" rel="noopener">${id}</a>`);
+  }
+
+  // What a group action can do: the undecided suggestions in a study it can
+  // approve (owners first, so each is saved before the entries listed under
+  // it) or reject, and why approving is blocked, if it is. A related entry is
+  // approved only with an owner that is (or will be, in the same save)
+  // approved; the others are held back.
+  function studyPlan(s) {
+    const free = (c) => !decisionOf(c) && !optimistic.has(c.pdb) && !inMpNow(c.pdb);
+    const und = s.members.filter(free);
+    const kids = und.filter((c) => c !== s.lead);
+    const lead = s.lead, ld = lead && decisionOf(lead);
+    let block = "";
+    if (lead && !ld && (lead.placement === "review" || !lead.subgroup)) block = `Choose where ${lead.pdb} goes first (Decide on its card); then approve it with its related entries.`;
+    else if (lead && ld && ld.status !== "approved") block = `${lead.pdb} was ${ld.status}: the related entries go under it, so approve them one by one if they should stay.`;
+    const noPlace = kids.filter((c) => !c.subgroup);
+    const approve = [], held = [];
+    if (!block) {
+      if (lead && free(lead)) approve.push(lead);
+      const walk = (nodes, ownerOk) => nodes.forEach((n) => {
+        const c = n.c, d = decisionOf(c);
+        let ok = Boolean((d && d.status === "approved") || optimistic.has(c.pdb));
+        if (free(c) && c.subgroup) {
+          if (ownerOk) { approve.push(c); ok = true; } else held.push(c);
+        }
+        walk(n.kids, ok);
+      });
+      walk(s.kids, true);
+    }
+    return { und, kids, approve, noPlace, held, block, leadIn: Boolean(lead && approve[0] === lead) };
+  }
+
+  // The study's own buttons (on the lead's card, or on the header row).
+  function studyActions(s) {
+    const plan = studyPlan(s), can = signedIn();
+    if (!plan.und.length) return "";
+    const n = plan.approve.length - (plan.leadIn ? 1 : 0);
+    const rel = (k) => `${k} related ${k === 1 ? "entry" : "entries"}`;
+    const label = plan.leadIn ? (n ? `Approve ${s.lead.pdb} and its ${rel(n)}` : `Approve ${s.lead.pdb}`) : `Approve the ${rel(n)}`;
+    const notes = [];
+    if (plan.noPlace.length) notes.push(`${listIds(plan.noPlace.map((c) => c.pdb))} ${plan.noPlace.length === 1 ? "has" : "have"} no subfamily yet: use Change on ${plan.noPlace.length === 1 ? "it" : "each"}.`);
+    if (plan.held.length) notes.push(`${listIds(plan.held.map((c) => c.pdb))} ${plan.held.length === 1 ? "is" : "are"} left out: the entry ${plan.held.length === 1 ? "it goes" : "they go"} under is not approved.`);
+    const title = plan.block || notes.join(" ");
+    const k = esc(s.key), who = s.lead ? s.lead.pdb : s.ext.pdb;
+    return `<span class="mp-study-acts" role="group" aria-label="${esc(s.lead ? `${who} and its related entries` : `Related entries of ${who}`)}">
+      ${plan.kids.length || !plan.leadIn ? `<button class="mp-btn" type="button" id="g-approve-${k}" data-gact="approve" data-group="${k}"${!can || !plan.approve.length ? " disabled" : ""}${title ? ` title="${esc(title)}"` : ""}>${esc(plan.approve.length ? label : "Approve all")}</button>` : ""}
+      ${plan.und.length > 1 ? `<button class="mp-btn secondary" type="button" id="g-reject-${k}" data-gact="reject" data-group="${k}"${can ? "" : " disabled"}>Reject all ${plan.und.length}</button>` : ""}
+    </span>${can && (plan.block || plan.held.length) ? `<p class="mp-study-block">${esc(plan.block || notes[notes.length - 1])}</p>` : ""}`;
+  }
+
+  function studyRejectForm(s) {
+    if (auto.groupRejecting !== s.key || !signedIn()) return "";
+    const plan = studyPlan(s), k = esc(s.key);
+    return `<form class="mp-edit mp-greject" data-group="${k}" novalidate aria-label="${esc(s.lead ? `Reject ${s.lead.pdb} and its related entries` : `Reject the related entries of ${s.ext.pdb}`)}">
+        <p class="mp-greject-what">Reject ${esc(listIds(plan.und.map((c) => c.pdb)))} (${plan.und.length} ${plan.und.length === 1 ? "structure" : "structures"}) in one save.</p>
+        <label>Why reject? (required)<select name="reason" id="grej-reason-${k}" required aria-describedby="grej-err-${k}">${reasonOptions("", true)}</select></label>
+        <label>Note (optional)<input name="note" maxlength="200" autocomplete="off" placeholder="For example: only the soluble domain"></label>
+        <p class="mp-form-note" id="grej-err-${k}" aria-live="polite"></p>
+        <div class="mp-actions"><button class="mp-btn" type="submit">Reject all ${plan.und.length}</button>
+          <button class="mp-btn secondary" type="button" data-gact="cancel" data-group="${k}">Cancel</button></div>
+      </form>`;
+  }
+
+  // One related entry under its lead: a compact row, with its full card (and
+  // 3D preview) on demand. When open, the card carries the actions and the id.
+  function relRow(node, hit, depth) {
+    const c = node.c, d = decisionOf(c);
+    if (d && d.status === "deleted") return "";
+    const id = esc(c.pdb), open = auto.open.has(c.pdb) || auto.editing === c.pdb || auto.rejecting === c.pdb;
+    const saving = optimistic.has(c.pdb), can = signedIn() && !saving, off = can ? "" : " disabled";
+    const ap = d && d.status === "approved" ? d : null;
+    const m = safeMp(effectiveMp(ap, c) || {});
+    // The search finds studies: a related entry is not dimmed only because its own text does not match.
+    const miss0 = hit.has(c.pdb) ? "" : candMiss(c), miss = miss0 === "does not match the search" ? "" : miss0;
+    const why = miss && !/^(approved|rejected|not decided yet)$/.test(miss) ? miss : "";
+    const status = d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "related"}">${d.status === "approved" ? "Approved" : "Rejected"}</span>` : "";
+    const who = d && (d.byName || d.by) ? ` <span class="mp-of">by ${esc(d.byName || d.by)}</span>` : "";
+    const kids = node.kids.map((n) => relRow(n, hit, depth + 1)).join("");
+    return `<li class="mp-relnode">
+      <div class="mp-relitem${miss ? " dim" : ""}${d ? ` decided ${d.status}` : ""}" id="${open ? "rr" : "c"}-${id}">
+        <div class="mp-relitem-head">
+          <h5 class="mp-relitem-id"><a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a></h5>
+          ${status}${who}${saving ? '<span class="mp-saving">Saving…</span>' : ""}
+          ${c.awaiting ? '<span class="mp-badge related">Awaiting paper</span>' : ""}
+          ${candMark(c.pdb)}
+        </div>
+        <p class="mp-relitem-line">${m.relatedLine ? relLineHtml(m.relatedLine) : `<span class="mp-of">No related line drafted:</span> ${esc(c.title || "")}`}</p>
+        <p class="mp-relitem-title"><span class="mp-of">PDB title:</span> ${esc(c.title || "")}</p>
+        <p class="mp-relitem-facts"><span class="mp-relitem-mem${c.membrane < Number(auto.view.min || 0) ? " low" : ""}">${pct(c.membrane)} membrane protein</span>
+          <span>released ${esc(c.released || "")}</span>${why ? `<span class="mp-relitem-why">${esc(why)}</span>` : ""}</p>
+        <div class="mp-relitem-acts">
+          ${open ? "" : `${ap ? "" : `<button class="mp-btn" type="button" id="rel-approve-${id}" data-act="approve" data-pdb="${id}"${!can ? off : !c.subgroup ? " disabled title='Choose a subfamily first with Change'" : ""}>Approve</button>`}
+          ${d?.status === "rejected" ? "" : `<button class="mp-btn secondary" type="button" id="rel-reject-${id}" data-act="reject" data-pdb="${id}"${off}>Reject</button>`}
+          <button class="mp-btn secondary" type="button" id="rel-edit-${id}" data-act="edit" data-pdb="${id}"${off}>${ap ? "Edit entry" : "Change"}</button>
+          ${d ? `<button class="mp-btn secondary" type="button" id="rel-undo-${id}" data-act="undo" data-pdb="${id}"${off}>Undo</button>` : ""}`}
+          <button class="mp-btn secondary mp-relitem-more" type="button" id="rel-open-${id}" data-act="details" data-pdb="${id}" aria-expanded="${open}"${open ? ` aria-controls="rc-${id}"` : ""}>${open ? "Hide details" : "Details"}</button>
+        </div>
+      </div>
+      ${open ? `<div class="mp-relitem-card" id="rc-${id}">${candidateCard(c)}</div>` : ""}
+      ${kids ? `<ul class="mp-rel-list" aria-label="Related entries listed under ${id}">${kids}</ul>` : ""}
+    </li>`;
+  }
+
+  // The header of a study whose lead is not listed with these filters (or is an
+  // mpstruc entry already): what the related entries below go under, and why.
+  function studyHead(s, hit) {
+    if (s.ext) {
+      const e = (s.ext.key && state.byKey.get(s.ext.key)) || ((state.byPdb.get(s.ext.pdb) || []).find((r) => r.type !== "related") || {}).entry;
+      const sg = e && e.sg;
+      return `<div class="mp-study-head" id="sh-${esc(s.key)}">
+        ${sg ? `<nav class="mp-study-crumbs" aria-label="Where these go in mpstruc"><ol><li>${esc(sg.group.topology)}</li><li><a href="#/sg/${esc(sg.k)}">${safeMarkup(sg.name)}</a></li>${e.parent ? `<li><a href="#/entry/${esc(e.parent.k)}">${esc(e.parent.pdb)}</a></li>` : ""}<li><b aria-current="location">${esc(s.ext.pdb)}</b></li></ol></nav>` : ""}
+        <h3 class="mp-study-title" id="gt-${esc(s.key)}">Related to ${e ? `<a href="#/entry/${esc(e.k)}">${esc(s.ext.pdb)}</a> – ${safeMarkup(e.name || "")}` : `<a href="#/pdb/${esc(s.ext.pdb)}">${esc(s.ext.pdb)}</a>`}
+          <span class="mp-badge in-db">Already in mpstruc</span></h3>
+        <p class="mp-study-note">These would be added as related lines to ${esc(s.ext.pdb)}'s entry in mpstruc.</p>
+        <div class="mp-actions">${studyActions(s)}</div>${studyRejectForm(s)}
+      </div>`;
+    }
+    const c = s.lead, d = decisionOf(c), miss = candMiss(c);
+    const why = d && d.status === "deleted" ? `${c.pdb} was deleted on the Rejected tab`
+      : d && /^(approved|rejected)$/.test(miss) ? `${c.pdb} is ${d.status}${d.byName || d.by ? ` (by ${plain(d.byName || d.by)})` : ""}, so it is not listed with ‘Show: ${auto.view.status === "undecided" ? "To decide" : auto.view.status}’`
+      : `${c.pdb} itself is not listed: ${miss}`;
+    const m = safeMp(effectiveMp(d && d.status === "approved" ? d : null, c) || {});
+    return `<div class="mp-study-head" id="sh-${esc(s.key)}">
+      ${studyCrumbs(c)}
+      <h3 class="mp-study-title" id="gt-${esc(s.key)}">Related to <a href="${rcsb(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a> – ${m.name || esc(c.title || "")}
+        <span class="mp-badge${c.placement === "daughter" ? " daughter" : ""}">${esc(PLACEMENT_LABEL[c.placement] || c.placement)}</span>
+        ${d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "dropped"}">${esc(d.status === "approved" ? "Approved" : d.status === "deleted" ? "Deleted" : "Rejected")}</span>` : ""}</h3>
+      <p class="mp-study-note">${esc(why)}. The related entries below go under it.</p>
+      <div class="mp-actions">
+        ${d && d.status === "deleted" ? "" : `<button class="mp-btn secondary" type="button" id="g-lead-${esc(s.key)}" data-gact="lead" data-group="${esc(s.key)}">Show ${esc(c.pdb)}'s card</button>`}
+        ${studyActions(s)}</div>${studyRejectForm(s)}
+    </div>`;
+  }
+
+  // A study as listed: the lead's card (with the study's buttons) or a header,
+  // then its related entries as a tree, in mpstruc order.
+  function studyBlock({ s, hit }) {
+    const lead = s.lead, d = lead && decisionOf(lead);
+    const live = lead && !(d && d.status === "deleted");
+    const forced = live && !hit.has(lead.pdb) && auto.open.has(lead.pdb);
+    const showLead = live && (hit.has(lead.pdb) || forced);
+    const rows = s.kids.map((n) => relRow(n, hit, 1)).join("");
+    const nRel = s.members.filter((c) => c !== lead && decisionOf(c)?.status !== "deleted").length;
+    const k = esc(s.key);
+    // A lead shown on request (the filters hide it) can be hidden again.
+    const hide = forced ? `<p class="mp-study-forced">${esc(lead.pdb)}'s card is shown on request: the filters would hide it.
+        <button class="mp-btn secondary" type="button" id="g-hide-${k}" data-gact="hide" data-group="${k}">Hide ${esc(lead.pdb)}'s card</button></p>` : "";
+    const top = showLead ? `${studyCrumbs(lead)}${hide}${candidateCard(lead, rows ? studyActions(s) : "")}${rows ? studyRejectForm(s) : ""}` : studyHead(s, hit);
+    // A group, not a landmark: a long list would otherwise fill the landmark list.
+    return `<div class="mp-study${rows ? " has-rel" : ""}" id="g-${k}" role="group" aria-label="${esc(lead ? `${lead.pdb}${nRel ? ` and ${nRel} related ${nRel === 1 ? "entry" : "entries"}` : ""}` : `Related entries of ${s.ext.pdb}`)}">
+      ${top}
+      ${rows ? `<div class="mp-rel-tree"><h4 class="mp-rel-tree-h">Related entries (${nRel})${lead ? ` <span class="mp-of">· lines in ${esc(lead.pdb)}'s mpstruc entry</span>` : ""}</h4>
+        <ul class="mp-rel-list" aria-label="Related entries${lead ? ` of ${esc(lead.pdb)}` : ""}">${rows}</ul></div>` : ""}
+    </div>`;
+  }
+
+  // ---- new releases mpstruc already has ----------------------------------
+  // The weekly run lists them in candidates.json "inMpstruc" ({ pdb, as:
+  // parent | daughter | related | description, key: the mpstruc record of the
+  // entry it is or is listed under, ownerPdb, subgroup, subgroupName }) and
+  // leaves them out of the suggestions; files from before that have none.
+  // Suggestions the official file lists since (it can be newer) are added from
+  // the database, marked late.
+  const hasInMpList = () => Boolean(auto.cands && Array.isArray(auto.cands.inMpstruc));
+  function alreadyRows() {
+    if (alreadyRows.src === auto.cands) return alreadyRows.list;
+    const rows = [], seen = new Set();
+    for (const r of hasInMpList() ? auto.cands.inMpstruc : []) {
+      if (!isObj(r) || typeof r.pdb !== "string" || seen.has(r.pdb.toUpperCase())) continue;
+      seen.add(r.pdb.toUpperCase());
+      rows.push({ pdb: r.pdb.toUpperCase(), as: String(r.as || ""), key: plain(r.key), ownerPdb: plain(r.ownerPdb).toUpperCase(),
+                  subgroup: plain(r.subgroup), subgroupName: plain(r.subgroupName), late: false });
+    }
+    for (const c of auto.cands.candidates) {
+      if (seen.has(c.pdb) || !inMpNow(c.pdb)) continue;
+      seen.add(c.pdb);
+      const refs = (state.byPdb.get(c.pdb) || []).filter((x) => !x.entry.isNew && (x.type !== "related" || relInMp(x.entry, c.pdb)));
+      const r = refs.find((x) => x.type === "parent") || refs.find((x) => x.type === "daughter") || refs.find((x) => x.type === "related");
+      if (r) {
+        rows.push({ pdb: c.pdb, as: r.type, key: r.entry.k, ownerPdb: r.type === "related" ? r.entry.pdb.toUpperCase() : "",
+                    subgroup: r.entry.sg.k, subgroupName: strip(r.entry.sg.name), late: true });
+      } else {
+        const e = state.byKey.get(base.mentioned.get(c.pdb));
+        rows.push({ pdb: c.pdb, as: "description", key: e ? e.k : "", ownerPdb: e ? e.pdb.toUpperCase() : "",
+                    subgroup: e ? e.sg.k : "", subgroupName: e ? strip(e.sg.name) : "", late: true });
+      }
+    }
+    alreadyRows.src = auto.cands;
+    alreadyRows.list = rows;
+    return rows;
+  }
+  // Where it is, in plain English: "related entry of 9T7P in GPCRs: Class A".
+  function alreadyWhere(r) {
+    const e = r.key ? state.byKey.get(r.key) : null;
+    const sg = (r.subgroup && state.sgOf.get(r.subgroup)) || (e && e.sg);
+    const inSg = sg ? ` in <a href="#/sg/${esc(sg.k)}">${safeMarkup(sg.name)}</a>` : r.subgroupName ? ` in ${esc(r.subgroupName)}` : "";
+    const ent = (pdb, k) => (k && state.byKey.has(k) ? `<a href="#/entry/${esc(k)}">${esc(pdb)}</a>` : pdb ? `<a href="#/pdb/${esc(pdb)}">${esc(pdb)}</a>` : "");
+    if (r.as === "parent") return `parent entry${inSg}`;
+    if (r.as === "daughter") {
+      const p = e && e.parent;
+      return p ? `daughter of ${ent(p.pdb, p.k)}${inSg}` : `daughter entry${inSg}`;
+    }
+    if (r.as === "related") {
+      const o = r.ownerPdb || (e ? e.pdb : "");
+      return o ? `related entry of ${ent(o, r.key)}${inSg}` : `related entry${inSg}`;
+    }
+    if (r.as === "description") {
+      const o = r.ownerPdb || (e ? e.pdb : "");
+      return o ? `named in ${ent(o, r.key)}'s description${sg ? ` <span class="mp-of">(${safeMarkup(sg.name)})</span>` : ""}` : "named in an entry's description";
+    }
+    return `listed${inSg}`;
+  }
+  // The PDB's title, when the database has it.
+  function pdbTitle(id) {
+    const x = state.data.relPdb[id] || ((state.byPdb.get(id) || []).find((r) => r.type !== "mentioned" && r.entry.pdb.toUpperCase() === id) || { entry: {} }).entry.x;
+    return x && x.title ? plain(x.title) : "";
+  }
+  function alreadyList(q) {
+    const terms = String(q || "").toLowerCase().split(/\s+/).filter(Boolean);
+    return alreadyRows().filter((r) => {
+      const t = `${r.pdb} ${r.ownerPdb} ${r.subgroupName} ${sgName(r.subgroup)} ${pdbTitle(r.pdb)}`.toLowerCase();
+      return terms.every((x) => t.includes(x));
+    });
+  }
+  function alreadyRow(r) {
+    const id = esc(r.pdb), title = pdbTitle(r.pdb);
+    return `<li class="mp-inmp-row" id="im-${id}">
+      <span class="mp-inmp-id"><a class="mp-pdb" href="#/pdb/${id}">${id}</a>${mpMark("in")}</span>
+      <span class="mp-inmp-where">${alreadyWhere(r)}${r.late ? ' <span class="mp-of">(listed since this week\'s suggestions were made)</span>' : ""}</span>
+      ${title ? `<span class="mp-inmp-title">${esc(title)}</span>` : ""}
+    </li>`;
   }
 
   function latestRelease() {
@@ -1381,10 +1956,25 @@ links.addEventListener("click", (event) => {
   }
 
   function viewAutomation(sub) {
+    if (/^vercel(\/|$)/.test(sub || "")) return viewVercel(sub);
     if (auto.error) return `<div class="mp-view"><h2>Automation</h2><p class="mp-empty">Could not load this week's suggestions (${esc(auto.error)}).</p></div>`;
     if (!auto.cands) { loadAutomation(); return '<div class="mp-view"><h2>Automation</h2><p class="mp-loading">Loading suggestions…</p></div>'; }
     if (sub === "accuracy") return viewAccuracy();
     // #/automation/edit/<PDB> (from an approved entry's page): open its editor, then tidy the address.
+    // #/automation/card/<PDB> (from the Vercel comparison): show that card, then tidy the address.
+    const cardMatch = /^card\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
+    if (cardMatch) {
+      const id = cardMatch[1].toUpperCase();
+      history.replaceState(null, "", "#/automation");
+      lastRoute = "automation";
+      if (auto.cands.candidates.some((x) => x.pdb === id)) {
+        Object.assign(auto.view, { status: "all", placement: "", age: "", q: id, min: 0.1 });
+        auto.focusCard = id;
+      }
+    }
+    // Vercel badges on the cards: the comparison (and its snapshot) load in the background.
+    loadVercel();
+    loadVercelSnapshot();
     const editMatch = /^edit\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
     if (editMatch) {
       const id = editMatch[1].toUpperCase();
@@ -1396,8 +1986,15 @@ links.addEventListener("click", (event) => {
       }
     }
     const c = auto.cands, v = auto.view;
-    const list = filteredCands();
+    // Cards opened only to show a Change or Reject form close with the form.
+    for (const pdb of auto.formOpened) {
+      if (auto.editing !== pdb && auto.rejecting !== pdb) { auto.open.delete(pdb); auto.formOpened.delete(pdb); }
+    }
+    // Show: Already in mpstruc lists new releases mpstruc has (not suggestions).
+    const nAlready = alreadyRows().length, inMode = v.status === "inmpstruc";
+    const list = inMode ? alreadyList(v.q) : filteredStudies();
     const shown = list.slice(0, state.limit);
+    const nStructs = inMode ? list.length : list.reduce((n, x) => n + x.hit.size, 0);
     const counts = { approved: 0, rejected: 0 };
     Object.values(decisions).forEach((d) => { if (counts[d.status] != null) counts[d.status]++; });
     const older = Object.keys(decisions).filter((pdb) => !c.candidates.some((x) => x.pdb === pdb)).length;
@@ -1407,11 +2004,14 @@ links.addEventListener("click", (event) => {
     // 'Latest' also lists older releases whose paper just came out: say so.
     const latestDay = latestRelease();
     const latestLabel = `Latest: ${esc(shortDay(latestDay))}${c.candidates.some((x) => newlyPublished(x) && x.released !== latestDay) ? " releases + new papers" : ""}`;
-    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x)).length;
+    const nowOut = c.candidates.filter((x) => newlyPublished(x) && !decisionOf(x) && !inMpNow(x.pdb)).length;
     const nStaged = Object.values(decisions).filter(isStaged).length;
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
+      ${pipeline("automation")}
+      <p class="mp-summary mp-auto-links"><a href="#/automation/vercel">Compared with the Vercel demo</a>: membrane proteins another group's demo site
+        missed, and structures it lists that are not membrane proteins.</p>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
       ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} in 'To decide' matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
@@ -1420,7 +2020,7 @@ links.addEventListener("click", (event) => {
         ${nowOut ? `<b>${nowOut.toLocaleString()} ${nowOut === 1 ? "paper has" : "papers have"} come out</b> since the last check; ${nowOut === 1 ? "that structure is" : "those structures are"} back in 'To decide'.` : ""}</p>` : ""}
       ${accuracySummary()}
       <form class="mp-filters" id="mp-auto-filters" aria-label="Filter suggestions">
-        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}</select></label>
+        <label>Show<select name="status">${opt("undecided", "To decide", v.status)}${opt("approved", `Approved (${counts.approved})`, v.status)}${opt("rejected", `Rejected (${counts.rejected})`, v.status)}${opt("all", "All", v.status)}${hasInMpList() || nAlready || inMode ? opt("inmpstruc", `Already in mpstruc (${nAlready.toLocaleString()})`, v.status) : ""}</select></label>
         <label>Suggestion<select name="placement">${opt("", "Any", v.placement)}${["parent", "daughter", "related", "review"].map((p) => opt(p, PLACEMENT_LABEL[p], v.placement)).join("")}</select></label>
         <label>Membrane protein at least<select name="min">${[0.1, 0.3, 0.5, 0.7, 0.9].map((t) =>
           opt(t, `${pct(t)}${t === c.threshold ? " (default)" : ""}`, v.min)).join("")}</select></label>
@@ -1430,7 +2030,9 @@ links.addEventListener("click", (event) => {
       </form>
       ${v.status === "rejected" ? `<p class="mp-summary mp-rej-pointer">${signedIn() ? `Sort, change the reason, move back to 'To decide' or delete rejected structures in
         <a href="#/rejected">Decisions › Rejected</a>.` : "Curators manage rejected structures in Decisions › Rejected once signed in."} Only rejections from this week's suggestions are listed here.</p>` : ""}
-      <div class="mp-toolbar"><p class="mp-summary">${list.length} suggestions</p>
+      <div class="mp-toolbar"><p class="mp-summary">${inMode ? `${list.length.toLocaleString()} new ${list.length === 1 ? "release" : "releases"} already in mpstruc${v.q ? " matching the search" : ""}`
+        : `${list.length.toLocaleString()} ${list.length === 1 ? "entry" : "entries"} with their related entries
+        (${nStructs.toLocaleString()} ${nStructs === 1 ? "structure matches" : "structures match"} the filters)`}</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
@@ -1446,8 +2048,15 @@ links.addEventListener("click", (event) => {
       ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve, change or reject them,
         <a href="#/curators">sign in on the Curators tab</a>.</p>`}
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
-      ${shown.map(candidateCard).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
-      ${more(shown.length, list.length)}
+      ${inMode ? `<p class="mp-summary mp-study-intro">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} that the official mpstruc already
+        lists, as an entry, a related entry or only in an entry's description, so they are not suggested. Only the search applies here.
+        ${hasInMpList() ? "" : "This week's file was made before the weekly run listed them; only suggestions mpstruc has listed since are shown."}</p>
+        ${shown.length ? `<ul class="mp-inmp-list" aria-label="New releases already in mpstruc">${shown.map(alreadyRow).join("")}</ul>` : '<p class="mp-empty">None to show.</p>'}
+        ${more(shown.length, list.length)}` : `${shown.length ? `<p class="mp-summary mp-study-intro">Each new parent or daughter is listed once, with its related entries (the lines
+        mpstruc adds to its entry) nested under it. Related entries that the filters would hide stay listed, dimmed, with the reason,
+        while their entry is shown.</p>` : ""}
+      ${shown.map(studyBlock).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
+      ${more(shown.length, list.length)}`}
     </div>`;
   }
 
@@ -1571,7 +2180,7 @@ links.addEventListener("click", (event) => {
     const today = new Date().toISOString().slice(0, 10);
     const out = ['<?xml version="1.0" encoding="UTF-8"?>',
       `<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`,
-      "<!-- Field text is mpstruc markup written as in mpstruc's own XML export: <sub> appears as &lt;sub&gt;, and entities such as &Aring; as the character itself. -->",
+      "<!-- Field text is mpstruc markup written as in mpstruc's own XML export: <sub> appears as &lt;sub&gt;, named entities such as &Aring; as the character itself, and &amp; (part of the markup) as &amp;amp;, as in mpstruc's own file. -->",
       `<mpstrucApproved date="${today}">`];
     // Every field goes through xmlText() (it is curator-edited markup), so the file is well-formed XML.
     const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${xmlText(raw)}</${tag}>`);
@@ -1655,7 +2264,7 @@ links.addEventListener("click", (event) => {
   // Re-render after a decision and keep keyboard focus nearby: on the same card
   // if it is still listed, otherwise on the next card (or the list heading).
   function afterAction(pdb, selector = "[data-act]") {
-    const cards = [...app.querySelectorAll(".mp-cand, .mp-appr-row")].map((el) => el.id);
+    const cards = [...app.querySelectorAll(".mp-cand, .mp-relitem, .mp-appr-row")].map((el) => el.id);
     const idx = cards.indexOf(`c-${pdb}`);
     const y = window.scrollY;
     render();
@@ -1675,7 +2284,12 @@ links.addEventListener("click", (event) => {
         for (const el of form.elements) {
           if (el.name && auto.view[el.name] !== el.value) { auto.view[el.name] = el.value; changed = true; }
         }
-        if (changed) { state.limit = PAGE; render(); }
+        // New filters: cards shown on request close again.
+        if (changed) {
+          state.limit = PAGE;
+          for (const p of [...auto.open]) if (p !== auto.editing && p !== auto.rejecting) { auto.open.delete(p); auto.formOpened.delete(p); }
+          render();
+        }
       };
       form.addEventListener("change", update);
       form.addEventListener("submit", (ev) => { ev.preventDefault(); update(); });
@@ -1694,10 +2308,24 @@ links.addEventListener("click", (event) => {
       download("mpstruc_approved.xml", approvedXml(), "application/xml");
     });
     wireUploadOffer();
-    app.querySelectorAll(".mp-cand [data-act]").forEach((btn) => btn.addEventListener("click", () => {
+    app.querySelectorAll(".mp-cand [data-act], .mp-relitem [data-act]").forEach((btn) => btn.addEventListener("click", () => {
       const pdb = btn.dataset.pdb || btn.closest("form")?.dataset.pdb;
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
       const act = btn.dataset.act;
+      // A related entry's row: Details shows (or hides) its full card; Change and Reject open their form there.
+      if (act === "details") {
+        if (auto.open.has(pdb) || auto.editing === pdb || auto.rejecting === pdb) {
+          auto.open.delete(pdb);
+          auto.formOpened.delete(pdb);
+          if (auto.editing === pdb) auto.editing = null;
+          if (auto.rejecting === pdb) auto.rejecting = null;
+        } else { auto.open.add(pdb); auto.formOpened.delete(pdb); }
+        rerender();
+        const t = document.getElementById(`rel-open-${pdb}`);
+        if (t) focusEl(t);
+        return;
+      }
+      if (btn.closest(".mp-relitem") && (act === "edit" || act === "reject") && !auto.open.has(pdb)) { auto.open.add(pdb); auto.formOpened.add(pdb); }
       if (act === "cancel") {
         auto.editing = null;
         auto.rejecting = null;
@@ -1712,7 +2340,7 @@ links.addEventListener("click", (event) => {
       // Reopening a form whose changes were not saved: say they are back.
       if (act === "edit" && drafts.has(pdb)) drafts.get(pdb).restored = true;
       if (act === "approve") {
-        approve(c, { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" });
+        approveOne(c, btn);
       } else if (act === "reject-unpublished") {
         reject(c, "unpublished", "", unpublishedText(c));
       } else if (act === "undo") {
@@ -1738,17 +2366,110 @@ links.addEventListener("click", (event) => {
       f.elements.reason.removeAttribute("aria-invalid");
       f.querySelector(".mp-form-note").textContent = "";
     }));
+    // The study's own buttons: Approve all, Reject all (a form), and showing a lead the filters hide.
+    const studyOf = (key) => studies().find((s) => s.key === key);
+    app.querySelectorAll("[data-gact]").forEach((btn) => btn.addEventListener("click", () => {
+      const s = studyOf(btn.dataset.group), act = btn.dataset.gact;
+      if (!s) return;
+      if (act === "lead") {
+        auto.open.add(s.lead.pdb);
+        rerender();
+        const t = document.getElementById(`act-edit-${s.lead.pdb}`) || document.getElementById(`c-${s.lead.pdb}`);
+        if (t) focusEl(t);
+        return;
+      }
+      if (act === "hide") {
+        auto.open.delete(s.lead.pdb);
+        rerender();
+        const t = document.getElementById(`g-lead-${s.key}`) || document.getElementById(`g-${s.key}`);
+        if (t) focusEl(t);
+        return;
+      }
+      if (act === "cancel") {
+        auto.groupRejecting = null;
+        rerender();
+        const t = document.getElementById(`g-reject-${s.key}`);
+        if (t) focusEl(t);
+        return;
+      }
+      if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+      if (act === "approve") {
+        approveStudy(s, studyPlan(s).approve);
+      } else if (act === "reject") {
+        auto.groupRejecting = s.key;
+        auto.editing = null;
+        auto.rejecting = null;
+        rerender();
+        const sel = document.getElementById(`grej-reason-${s.key}`);
+        if (sel) focusEl(sel);
+      }
+    }));
+    app.querySelectorAll("form.mp-greject").forEach((f) => {
+      f.elements.reason.addEventListener("change", () => {
+        f.elements.reason.removeAttribute("aria-invalid");
+        f.querySelector(".mp-form-note").textContent = "";
+      });
+      f.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const s = studyOf(f.dataset.group), sel = f.elements.reason;
+        if (!sel.value) {
+          sel.setAttribute("aria-invalid", "true");
+          f.querySelector(".mp-form-note").textContent = "Choose why you are rejecting them.";
+          sel.focus();
+          return;
+        }
+        auto.groupRejecting = null;
+        if (s && signedIn()) rejectStudy(s, sel.value, f.elements.note.value.trim().replace(/\s+/g, " "));
+      });
+    });
     app.querySelectorAll("form.mp-ed").forEach(wireEditor);
+    if (auto.focusCard) {
+      const card = document.getElementById(`c-${auto.focusCard}`);
+      auto.focusCard = null;
+      if (card) {
+        state.focusHeading = false;
+        card.setAttribute("tabindex", "-1");
+        card.focus({ preventScroll: true });
+        pendingScroll.set(card.id);
+      }
+    }
     if (auto.focusEditor) {
       const el = document.getElementById(edId(auto.focusEditor, "placement"));
       auto.focusEditor = null;
       if (el) {
         state.focusHeading = false;
         el.focus({ preventScroll: true });
-        requestAnimationFrame(() => el.closest(".mp-ed").scrollIntoView({ block: "start" }));
+        pendingScroll.set(el.id);
       }
     }
+    // A card opened from a link stays at the top while background loads re-render the list.
+    if (pendingScroll.id) requestAnimationFrame(() => pendingScroll.apply());
   }
+
+  // A card (or editor) opened from a link (#/automation/card/<ID>, an exact
+  // search, #/automation/edit/<ID>) is scrolled to the top of the view. The
+  // suggestions, the Vercel comparison and its snapshot can finish loading just
+  // after, and each re-renders the list; while the target is pending, those
+  // re-renders scroll back to it instead of restoring the old position. It is
+  // dropped once the reader scrolls or presses a key, on navigation, or after 10 s.
+  // The scroll is instant: a smooth one (html { scroll-behavior: smooth }) would
+  // be cancelled by the next re-render.
+  const pendingScroll = {
+    id: null, until: 0,
+    set(id) { this.id = id; this.until = Date.now() + 10000; },
+    clear() { this.id = null; },
+    // Scroll to the target; false when there is none (any more) on the page.
+    apply() {
+      if (!this.id) return false;
+      if (Date.now() > this.until) { this.clear(); return false; }
+      const el = document.getElementById(this.id);
+      if (!el) return false;
+      (el.closest(".mp-ed") || el).scrollIntoView({ block: "start", behavior: "instant" });
+      return true;
+    },
+  };
+  ["wheel", "touchmove", "keydown", "mousedown"].forEach((t) =>
+    window.addEventListener(t, () => pendingScroll.clear(), { capture: true, passive: true }));
 
   // ---- curators: GitHub sign-in, shared decisions, activity log -----------
   // Curators sign in with a classic GitHub token with the public_repo scope
@@ -1808,6 +2529,12 @@ links.addEventListener("click", (event) => {
       // A push record must say who and when; anything else counts as not pushed.
       if (e.pushed !== undefined && !(isObj(e.pushed) && typeof e.pushed.at === "string" && (typeof e.pushed.by === "string" || typeof e.pushed.byName === "string"))) {
         const { pushed, ...rest } = e;
+        e = rest;
+      }
+      // "Submitted to mpstruc" (Ready to upload) likewise; it means something only for a pushed structure.
+      if (e.submitted !== undefined && !(isObj(e.pushed) && isObj(e.submitted) && typeof e.submitted.at === "string"
+          && (typeof e.submitted.by === "string" || typeof e.submitted.byName === "string"))) {
+        const { submitted, ...rest } = e;
         e = rest;
       }
       out.entries[pdb] = e;
@@ -2030,7 +2757,7 @@ links.addEventListener("click", (event) => {
   }
 
   // ---- placing pushed structures in the database ----
-  const base = { counts: null, listed: new Set(), related: new Set(), relPdb: [] };
+  const base = { counts: null, listed: new Set(), related: new Set(), mentioned: new Map(), relPdb: [] };
   function snapshotBase() {
     base.counts = { ...state.data.meta.counts };
     for (const g of state.data.groups) for (const sg of g.subgroups) sg.n0 = sg.n;
@@ -2038,6 +2765,11 @@ links.addEventListener("click", (event) => {
       e.rel0 = e.rel;
       base.listed.add(e.pdb.toUpperCase());
       (e.rel || []).forEach((r) => base.related.add(r.toUpperCase()));
+    }
+    // PDB IDs named only in an official entry's description: PDB ID -> that entry's key.
+    for (const [id, refs] of state.byPdb) {
+      const m = refs.find((r) => r.type === "mentioned");
+      if (m && !base.listed.has(id) && !base.related.has(id)) base.mentioned.set(id, m.entry.k);
     }
   }
 
@@ -2197,8 +2929,9 @@ links.addEventListener("click", (event) => {
       // repository as it is now: saving an edit never puts a structure into
       // the database or takes it out.
       if (entry && entry.status === "approved" && isObj(now) && now.status === "approved") {
-        const { pushed: _old, ...rest } = entry;
-        entry = isPushed(now) ? { ...rest, pushed: now.pushed } : rest;
+        const { pushed: _old, submitted: _sent, ...rest } = entry;
+        // The same for "submitted to mpstruc", which goes with the push.
+        entry = isPushed(now) ? { ...rest, pushed: now.pushed, ...(isObj(now.submitted) ? { submitted: now.submitted } : {}) } : rest;
       }
       if (entry) raw.entries[pdb] = entry; else delete raw.entries[pdb];
       raw.log.push(event);
@@ -2230,7 +2963,7 @@ links.addEventListener("click", (event) => {
   function rerender() {
     const y = window.scrollY;
     render();
-    window.scrollTo(0, y);
+    if (!pendingScroll.apply()) window.scrollTo({ top: y, behavior: "instant" });
   }
 
   function stamp() { return { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() }; }
@@ -2251,7 +2984,7 @@ links.addEventListener("click", (event) => {
                     ...(moved || fromSuggestion.length ? { edited: true } : {}), ...stamp(), ...snapshot(c),
                     ...(fromSuggestion.length ? { mpEdited: mpNew } : {}), ...(note ? { note } : {}),
                     // Editing a structure already pushed keeps it in the database.
-                    ...(prevAp && isObj(prevAp.pushed) ? { pushed: prevAp.pushed } : {}) };
+                    ...(prevAp && isObj(prevAp.pushed) ? { pushed: prevAp.pushed, ...(isObj(prevAp.submitted) ? { submitted: prevAp.submitted } : {}) } : {}) };
     // What changed, for the log: against the saved entry when editing one, else against the suggestion.
     const before = prevAp || { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" };
     const changed = [
@@ -2333,6 +3066,96 @@ links.addEventListener("click", (event) => {
         actions: [{ label: "Undo", keys: "Alt+Z", run: undo },
                   { label: "View in Rejected", run: () => { location.hash = `#/rejected/${code}`; } }] }), undo),
     });
+  }
+
+  // ---- decisions on a whole study ----
+  // Approve several suggestions of one study in one save, each where the weekly
+  // job suggested (as its own Approve button would), owners before the entries
+  // listed under them: an entry whose owner could not be saved is held back.
+  // Undo (also Alt+Z) puts them all back in To decide.
+  function approveStudy(s, list) {
+    list = list.filter((c) => !curation.entries[c.pdb] && !optimistic.has(c.pdb) && c.subgroup && c.placement !== "review");
+    if (!list.length || !signedIn()) return;
+    const ids = list.map((c) => c.pdb), written = new Map();
+    const lead = s && s.lead && ids.includes(s.lead.pdb) ? s.lead.pdb : "";
+    const changes = list.map((c) => {
+      const entry = { status: "approved", placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "", ...stamp(), ...snapshot(c) };
+      written.set(c.pdb, JSON.stringify(entry));
+      const others = ids.filter((p) => p !== c.pdb);
+      return { pdb: c.pdb, entry, needs: c.ownerPdb && ids.includes(c.ownerPdb) ? [c.ownerPdb] : [],
+               detail: `Added ${c.pdb} ${where(entry)}${others.length ? ` (approved together with ${listIds(others)})` : ""}` };
+    });
+    const nRel = changes.filter((ch) => ch.entry.placement === "related").length;
+    mutate({ changes, action: "approve", what: `approve ${subject(ids)}`,
+             message: `Curator ${cur.user.login}: approve ${listIds(ids)}${lead ? ` (${lead} and related entries)` : ""}`,
+             done: (ok, miss, before, held = []) => {
+               const okLead = lead && ok.includes(lead);
+               const text = `Approved ${subject(ok)}${okLead ? `: ${lead} and ${ok.length - 1} related ${ok.length - 1 === 1 ? "entry" : "entries"}` : nRel ? " as related entries" : ""}.`
+                 + (held.length ? ` ${listIds(held)} ${held.length === 1 ? "was" : "were"} not saved because the entry ${held.length === 1 ? "it goes" : "they go"} under could not be.` : "")
+                 + ` ${ok.length === 1 ? "It waits" : "They wait"} in Decisions › Approved until a curator pushes ${ok.length === 1 ? "it" : "them"} to the database.`;
+               afterRej(text, ok, miss, before, written, "the approval", {
+                 actions: [{ label: "Push to database", run: () => pushToDatabase(ok.filter((p) => isStaged(curation.entries[p]))) },
+                           { label: "Review", run: () => { location.hash = "#/approved"; } }] });
+             } });
+  }
+
+  // Reject every undecided suggestion of a study in one save, with one reason.
+  function rejectStudy(s, code, note) {
+    const list = studyPlan(s).und;
+    if (!list.length || !signedIn()) return;
+    const ids = list.map((c) => c.pdb), reason = reasonText(code, note), written = new Map();
+    const changes = list.map((c) => {
+      const entry = { status: "rejected", reasonCode: code, reason, ...stamp(), ...snapshot(c) };
+      written.set(c.pdb, JSON.stringify(entry));
+      return { pdb: c.pdb, entry, detail: `Rejected ${c.pdb}: ${reason}${ids.length > 1 ? ` (with ${listIds(ids.filter((p) => p !== c.pdb))})` : ""}` };
+    });
+    mutate({ changes, action: "reject", what: `reject ${subject(ids)}`,
+             message: `Curator ${cur.user.login}: reject ${listIds(ids)} (${reason})`,
+             done: (ok, miss, before) => afterRej(`Rejected ${subject(ok)} - reason: ${reason}. ${ok.length === 1 ? "It is" : "They are"} now in Decisions › Rejected.`,
+                                                  ok, miss, before, written, "the rejection",
+                                                  { actions: [{ label: "View in Rejected", run: () => { location.hash = `#/rejected/${code}`; } }] }) });
+  }
+
+  // Approve one suggestion. A related entry goes under its owner; when that is
+  // a new structure this week that is not approved, ask first: approve it too
+  // in one save, or this one alone (it cannot be pushed before its owner).
+  // When the owner is itself a related entry, the chain is followed up to the
+  // first approved entry (or the lead), and all of it is offered together.
+  async function approveOne(c, opener) {
+    const choice = { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" };
+    const by = candIndex(), chain = [];
+    // chain: the owner, its owner, ... while not approved (nearest first).
+    for (let x = c.placement === "related" && c.ownerPdb ? by.get(c.ownerPdb) : null; x && !chain.includes(x) && x !== c;
+         x = x.placement === "related" && x.ownerPdb ? by.get(x.ownerPdb) : null) {
+      const xd = curation.entries[x.pdb];
+      if ((xd && xd.status === "approved") || optimistic.has(x.pdb)) break;
+      chain.push(x);
+    }
+    if (!chain.length) { approve(c, choice); return; }
+    const o = chain[0], od = curation.entries[o.pdb] || null;
+    // The first entry up the chain that cannot be approved here, and why.
+    const stuck = chain.find((x) => curation.entries[x.pdb] || x.placement === "review" || !x.subgroup);
+    const sd = stuck && curation.entries[stuck.pdb];
+    const stuckWhy = !stuck ? "" : sd ? `was ${sd.status === "deleted" ? "deleted" : "rejected"}`
+      : `still needs a decision on where it goes (Decide on its card)`;
+    const canAll = !stuck;
+    const ups = chain.slice().reverse(); // owners first
+    const upText = chain.length > 1
+      ? ` ${o.pdb} is itself a related entry of ${chain[1].pdb}${chain.length > 2 ? `, which goes under ${listIds(chain.slice(2).map((x) => x.pdb))}` : ""}; ${chain.length > 2 ? "none of them is" : `${chain[1].pdb} is not`} approved yet either.`
+      : "";
+    const ans = await confirmDialog({
+      title: canAll ? `Approve ${listIds(chain.map((x) => x.pdb))} too?` : `${o.pdb} is not approved`,
+      text: `${c.pdb} is a related entry: in mpstruc it is a line in ${o.pdb}'s entry, and ${o.pdb} is a new structure this week that `
+        + (od ? `was ${od.status === "deleted" ? "deleted" : "rejected"}.` : `is not approved yet.`) + upText
+        + (canAll ? ` Approve ${chain.length > 1 ? "them" : "both"} in one save, or only ${c.pdb}`
+          : `${stuck !== o || !od ? ` ${stuck.pdb} ${stuckWhy}.` : ""} You can still approve ${c.pdb}`)
+        + `; it cannot be pushed to the database until ${listIds(chain.map((x) => x.pdb))} ${chain.length > 1 ? "are" : "is"} approved and pushed.`,
+      confirm: canAll ? `Approve ${listIds([...ups, c].map((x) => x.pdb))}` : `Approve ${c.pdb} anyway`,
+      alt: canAll ? `Only ${c.pdb}` : "", opener, danger: false,
+    });
+    if (!ans || !signedIn() || curation.entries[c.pdb] || optimistic.has(c.pdb)) return;
+    if (ans === "alt" || !canAll) approve(c, choice);
+    else approveStudy(studies().find((s) => s.members.includes(o)) || null, [...ups, c]);
   }
 
   // deps: pushed structures listed under pdb in the database (undoApproval asked
@@ -2629,12 +3452,13 @@ links.addEventListener("click", (event) => {
   // Log actions as shown in the terminal, and a plain sentence for lines saved without one.
   const LOG_ACT = { approve: "APPROVE", reject: "REJECT", undo: "UNDO", change: "CHANGE", edit: "EDIT", reason: "REASON",
                     unarchive: "UNARCHIVE", delete: "DELETE", restore: "RESTORE", "auto-reject": "AUTO-REJECT", "auto-unreject": "AUTO-UNREJECT",
-                    push: "PUSH", unpush: "UNPUSH" };
+                    push: "PUSH", unpush: "UNPUSH", submit: "SUBMIT", unsubmit: "UNSUBMIT", "in-mpstruc": "IN-MPSTRUC" };
   const LOG_SAY = { approve: "Approved", reject: "Rejected", undo: "Undid the last decision on", change: "Changed the decision on",
                     edit: "Edited the mpstruc entry for", reason: "Changed the reject reason of", unarchive: "Moved back to To decide:",
                     delete: "Deleted permanently (never suggested again):", restore: "Restored from Deleted to To decide:",
                     "auto-reject": "Rejected automatically as not published yet:", "auto-unreject": "Paper now published, back in To decide:",
-                    push: "Pushed to the database:", unpush: "Removed from the database (still approved):" };
+                    push: "Pushed to the database:", unpush: "Removed from the database (still approved):",
+                    submit: "Marked as submitted to mpstruc:", unsubmit: "Marked as not submitted to mpstruc:", "in-mpstruc": "Now in the official mpstruc:" };
   const isAuto = (x) => x && x.by === AUTO_BY;
   function logLines() {
     const lines = curation.log.map((x) => {
@@ -2654,6 +3478,7 @@ links.addEventListener("click", (event) => {
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).
     const m = state.data.meta, c = base.counts;
+    lines.push(...nowInMpLines(lines));
     lines.push({ at: parseSnapshotTime(m.timestamp) || m.lastEdit, who: "mpstruc", act: "SNAPSHOT", pdb: "", snapshot: true,
       msg: `Database snapshot of ${m.timestamp}: ${c.parents.toLocaleString()} parents, ${c.daughters.toLocaleString()} daughter structures, `
         + `${c.subgroups} subfamilies${state.nNew ? `; ${state.nNew} added by curators since` : ""}` });
@@ -2907,7 +3732,8 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       ${filter ? `<p class="mp-crumbs">Decisions › <a href="#/rejected">Rejected</a> › ${esc(filterName(filter))}</p>` : ""}
       <h2>${filter === "deleted" ? "Deleted structures" : filter ? `Rejected: ${esc(REASON_LABEL[filter])}` : "Rejected structures"}</h2>
-      <p class="mp-summary">${intro}</p>
+      ${pipeline("")}
+      <p class="mp-summary">${intro} Rejected structures leave these steps.</p>
       <form class="mp-filters mp-rej-filters" id="mp-rej-filters" role="search" aria-label="Filter rejected structures">
         <label>Reason<select name="filter" id="mp-rej-filter">${opt("", `All rejected (${counts.all})`, filter)}${REASONS.map((r) => opt(r.code, `${esc(r.label)} (${counts[r.code]})`, filter)).join("")}${opt("deleted", `Deleted (${counts.deleted})`, filter)}</select></label>
         <label>Sort<select name="sort" id="mp-rej-sort">${REJ_SORTS.map(([v, l]) => opt(v, l, rej.sort)).join("")}</select></label>
@@ -3100,7 +3926,8 @@ links.addEventListener("click", (event) => {
 
   // A modal yes/no question (native <dialog>: focus stays inside, Escape cancels).
   // Focus goes back to the opener afterwards, or to the view heading if it is gone.
-  function confirmDialog({ title, text, confirm, opener, danger = true }) {
+  // alt (optional): a third choice, between Cancel and confirm; the promise then gives "alt".
+  function confirmDialog({ title, text, confirm, opener, danger = true, alt = "" }) {
     return new Promise((resolve) => {
       const dlg = document.createElement("dialog");
       dlg.className = "mp-dialog";
@@ -3110,15 +3937,16 @@ links.addEventListener("click", (event) => {
           <h2 id="mp-dialog-title">${esc(title)}</h2>
           <p id="mp-dialog-text">${esc(text)}</p>
           <div class="mp-actions"><button class="mp-btn secondary" value="cancel" autofocus>Cancel</button>
+            ${alt ? `<button class="mp-btn secondary" value="alt">${esc(alt)}</button>` : ""}
             <button class="mp-btn${danger ? " danger-solid" : ""}" value="ok">${esc(confirm)}</button></div>
         </form>`;
       document.body.appendChild(dlg);
       dlg.addEventListener("close", () => {
-        const yes = dlg.returnValue === "ok";
+        const yes = dlg.returnValue === "ok", other = Boolean(alt) && dlg.returnValue === "alt";
         dlg.remove();
         const back = opener && opener.isConnected && !opener.disabled ? opener : app.querySelector(".mp-view h2");
-        if (back && !yes) focusEl(back);
-        resolve(yes);
+        if (back && !yes && !other) focusEl(back);
+        resolve(yes ? true : other ? "alt" : false);
       });
       dlg.addEventListener("click", (ev) => { if (ev.target === dlg) dlg.close("cancel"); }); // click on the backdrop
       dlg.showModal();
@@ -3248,8 +4076,8 @@ links.addEventListener("click", (event) => {
   // (approved with mpEdited, pushed or not) and pushed.
   const appr = { sort: "newest", q: "", selected: new Set() };
   const APPR_SORTS = [["newest", "Newest approved first"], ["pdb", "PDB ID"], ["subfamily", "Subfamily"], ["curator", "Curator who approved it"]];
-  const apprFilterOf = (arg) => (arg === "edited" || arg === "pushed" ? arg : "");
-  const APPR_NAME = { "": "Approved – ready to push", edited: "Edited by curators", pushed: "Pushed to database" };
+  const apprFilterOf = (arg) => (arg === "edited" || arg === "pushed" || arg === "inmpstruc" ? arg : "");
+  const APPR_NAME = { "": "Approved – ready to push", edited: "Edited by curators", pushed: "Pushed to database", inmpstruc: "Now in mpstruc" };
   // The one-time notice about the new push step, for approvals saved before it existed.
   const PUSH_NOTICE_KEY = "mpstruc-push-step-notice-v1", PUSH_STEP_FROM = "2026-11-07T00:00:00.000Z";
   const inOfficial = (pdb) => base.listed.has(pdb) || base.related.has(pdb);
@@ -3305,10 +4133,11 @@ links.addEventListener("click", (event) => {
     });
   }
   function apprCounts(rows = apprRows()) {
-    return { ready: rows.filter((r) => !r.pushed).length, edited: rows.filter((r) => r.edited).length, pushed: rows.filter((r) => r.pushed).length,
-             official: rows.filter((r) => r.pushed && r.official).length };
+    return { ready: rows.filter((r) => !r.pushed && !r.official).length, edited: rows.filter((r) => r.edited).length, pushed: rows.filter((r) => r.pushed).length,
+             official: rows.filter((r) => r.official).length, pushedOfficial: rows.filter((r) => r.pushed && r.official).length };
   }
-  const apprIn = (filter) => (r) => (filter === "pushed" ? r.pushed : filter === "edited" ? r.edited : !r.pushed);
+  // An approved structure mpstruc already lists needs no push: it is under Now in mpstruc, not Ready to push.
+  const apprIn = (filter) => (r) => (filter === "pushed" ? r.pushed : filter === "inmpstruc" ? r.official : filter === "edited" ? r.edited : !r.pushed && !r.official);
 
   function apprList(filter) {
     const rows = apprRows();
@@ -3322,7 +4151,8 @@ links.addEventListener("click", (event) => {
     const shown = rows.filter(apprIn(filter)).filter((r) => {
       const t = `${r.pdb} ${strip(r.name)} ${r.title} ${r.sg} ${groupOf(r.d.subgroup)} ${r.d.owner || ""} ${PLACEMENT_LABEL[r.d.placement] || ""} ${r.who} ${r.d.by || ""} ${r.pushedBy}`.toLowerCase();
       return terms.every((x) => t.includes(x));
-    }).sort((a, b) => (cmp[appr.sort] || cmp.newest)(a, b) || a.pdb.localeCompare(b.pdb));
+    }).sort((a, b) => (filter === "pushed" ? a.official - b.official : 0) || (cmp[appr.sort] || cmp.newest)(a, b) || a.pdb.localeCompare(b.pdb));
+    // Pushed to database: the ones now in mpstruc come last, under their own heading.
     return { rows, shown, counts: apprCounts(rows) };
   }
 
@@ -3356,14 +4186,16 @@ links.addEventListener("click", (event) => {
           <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${r.pushed ? '<span class="mp-badge in-db">In the database</span>' : '<span class="mp-badge staged">Not yet pushed</span>'}
-          ${r.official ? `<span class="mp-badge new">${r.pushed ? "Now in official mpstruc" : "Already in official mpstruc"}</span>` : ""}
+          ${r.official ? mpMark("in") : r.pushed ? mpMark(isObj(d.submitted) ? "sent" : "out") : ""}
           ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
           ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
         </div>
         <p class="mp-rej-name">${r.name || esc(r.title || r.pdb)}</p>
+        ${stageLine(r.pdb, d)}
         <p class="mp-appr-where"><span class="mp-of">Goes to:</span> ${apprWhere(d)}</p>
-        ${r.official ? `<p class="mp-rej-wait mp-appr-info">${r.pushed ? `The official mpstruc file now lists ${id} too, so the database shows the official entry and not this pushed copy.`
+        ${r.official ? `<p class="mp-rej-wait mp-appr-info">${r.pushed ? `Now in mpstruc: the official mpstruc snapshot of ${esc(snapDate())} lists ${id}, so the database shows the official entry and not this pushed copy.`
           : `The official mpstruc file already lists ${id}: pushing it would not change the database.`}</p>` : ""}
+        ${r.official ? differentNote(r.pdb, d) : ""}
         ${r.unplaced ? `<p class="mp-rej-wait">Pushed, but not shown in the database: ${esc(String(d.owner).toUpperCase())}, the entry it goes under, is not listed there.</p>` : ""}
         ${d.note ? `<p class="mp-rej-note"><span class="mp-of">Curator note:</span> ${esc(plain(d.note))}</p>` : ""}
         ${diff}
@@ -3374,11 +4206,47 @@ links.addEventListener("click", (event) => {
           <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
         </dl>
         <details class="mp-appr-listing"><summary>Full listing as drafted</summary>
-          <div class="mp-appr-preview"><h4 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h4>
+          <div class="mp-appr-preview"><h3 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h3>
           ${c ? mpListing(c, effectiveMp(d, r.c) || {}, { placement: d.placement, owner: d.owner }) : ""}</div></details>
         ${editing && signedIn() ? editorForm(c, d) : actions}
       </div>
     </article>`;
+  }
+
+  // The listed rows as groups { r, kids: [group] }: a related entry whose owner
+  // is listed too goes under it (in the order the owner's description lists
+  // the related lines, as mpstruc shows them); the rest keep the list's order.
+  function apprGroups(shown) {
+    const byPdb = new Map(shown.map((r) => [r.pdb, { r, kids: [] }]));
+    const top = [];
+    for (const r of shown) {
+      const g = byPdb.get(r.pdb), o = String(r.d.owner || "").toUpperCase();
+      // Hang it under its owner unless that would make a loop.
+      let p = r.d.placement === "related" && o !== r.pdb ? byPdb.get(o) : null;
+      for (let up = p, n = 0; up && n < 50; n++) {
+        if (up === g) { p = null; break; }
+        const uo = String(up.r.d.owner || "").toUpperCase();
+        up = up.r.d.placement === "related" ? byPdb.get(uo) : null;
+      }
+      if (p) { p.kids.push(g); g.under = p; } else top.push(g);
+    }
+    const sortKids = (g) => {
+      const desc = String((g.r.m && g.r.m.description) || "");
+      const at = (k) => { const i = desc.indexOf(`: ${k.r.pdb}`); return i < 0 ? Infinity : i; };
+      g.kids.sort((a, b) => at(a) - at(b));
+      g.kids.forEach(sortKids);
+    };
+    top.forEach(sortKids);
+    return top;
+  }
+  function apprGroup(g) {
+    if (!g.kids.length) return g.under ? apprRow(g.r) : `<div class="mp-appr-group">${apprRow(g.r)}</div>`;
+    const n = (function count(x) { return x.kids.reduce((k, y) => k + 1 + count(y), 0); })(g);
+    return `<div class="mp-appr-group has-rel">${apprRow(g.r)}
+      <div class="mp-appr-kids" role="group" aria-label="Related entries of ${esc(g.r.pdb)}">
+        <h3 class="mp-rel-tree-h">Related entries (${n}) <span class="mp-of">· lines in ${esc(g.r.pdb)}'s mpstruc entry</span></h3>
+        ${g.kids.map(apprGroup).join("")}
+      </div></div>`;
   }
 
   function viewApproved(arg) {
@@ -3391,7 +4259,11 @@ links.addEventListener("click", (event) => {
     }
     loadAutomation();
     const { rows, shown, counts } = apprList(filter);
-    const page = shown.slice(0, state.limit);
+    // Related entries listed in this list under their approved owner, as in mpstruc; a page counts groups.
+    const groups = apprGroups(shown);
+    const pageGroups = groups.slice(0, state.limit);
+    const flatG = (gs) => gs.flatMap((g) => [g.r, ...flatG(g.kids)]);
+    const page = flatG(pageGroups);
     // As on the Rejected tab: a selection survives a search, and is dropped only
     // for structures that left this list; buttons act on selected rows listed now.
     const inList = new Set(rows.filter(apprIn(filter)).map((r) => r.pdb));
@@ -3411,7 +4283,11 @@ links.addEventListener("click", (event) => {
         <div class="mp-actions"><button class="mp-btn secondary" type="button" id="mp-push-notice-ok">Got it</button></div></div>` : "";
     const intro = filter === "pushed"
       ? `Approved structures a curator has pushed: they are listed in the <a href="#/">Database</a> tab. <b>Remove from database</b> takes one out again
-         (it stays approved). When the official mpstruc file lists one too, it is marked <i>Now in official mpstruc</i> and the database shows the official entry.`
+         (it stays approved). The next step is to <a href="#/notinmpstruc">upload them to mpstruc</a>. Each week the site reads the newest official
+         mpstruc file; a structure it lists moves to <i>Now in mpstruc</i> at the bottom, and the database shows the official entry.`
+      : filter === "inmpstruc"
+        ? `Approved structures the official mpstruc file now lists (snapshot of ${esc(snapDate())}), found automatically by the weekly check: nothing more
+           to do for them, pushed or not. If mpstruc placed one differently from what the team pushed, it says so.`
       : filter === "edited"
         ? `Approved structures whose listing a curator changed from the weekly suggestion, pushed or not. Open <i>Changed</i> on a structure to see
            each change, before and after.`
@@ -3419,19 +4295,21 @@ links.addEventListener("click", (event) => {
            then press <b>Push to database</b>. Pushed ones move to <a href="#/approved/pushed">Pushed to database</a>.`;
     const empty = appr.q ? "No structure matches the search."
       : filter === "pushed" ? "No structure has been pushed to the database yet."
+      : filter === "inmpstruc" ? `No approved structure is in the official mpstruc yet. <a href="#/notinmpstruc">See what is ready to upload</a>.`
       : filter === "edited" ? "No approved structure has been edited by a curator."
       : `Nothing is waiting to be pushed. Approve suggestions on the <a href="#/automation">Automation</a> tab.`;
     return `<div class="mp-view">
-      <p class="mp-crumbs">Decisions › Approved${filter ? ` › ${esc(filter === "edited" ? "Edited by curators" : "Pushed to database")}` : ""}</p>
+      <p class="mp-crumbs">Decisions › Approved${filter ? ` › ${esc(APPR_NAME[filter])}` : ""}</p>
       <h2>${esc(title)}</h2>
+      ${pipeline({ "": "approve", edited: "edit", pushed: "push", inmpstruc: "inmp" }[filter])}
       <p class="mp-summary">${intro}</p>
       ${notice}
       <form class="mp-filters mp-rej-filters" id="mp-appr-filters" role="search" aria-label="Filter approved structures">
-        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("edited", `Edited by curators (${counts.edited})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}</select></label>
+        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("edited", `Edited by curators (${counts.edited})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}${opt("inmpstruc", `Now in mpstruc (${counts.official})`, filter)}</select></label>
         <label>Sort<select name="sort" id="mp-appr-sort">${APPR_SORTS.map(([v, l]) => opt(v, l, appr.sort)).join("")}</select></label>
         <label class="mp-rej-q">Search<input type="search" name="q" id="mp-appr-q" value="${esc(appr.q)}" placeholder="PDB ID, name, subfamily, curator" autocomplete="off"></label>
       </form>
-      <div class="mp-toolbar"><p class="mp-summary" id="mp-appr-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${appr.q ? " match the search" : ""}${filter === "pushed" && counts.official ? ` · ${counts.official} now in official mpstruc` : ""}</p>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-appr-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${appr.q ? " match the search" : ""}${filter === "pushed" && counts.pushedOfficial ? ` · ${counts.pushedOfficial} now in official mpstruc` : ""}</p>
         <span><button type="button" class="mp-btn secondary" id="mp-appr-xml" aria-describedby="mp-appr-xml-hint">Download as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-appr-xml-hint">${nSel ? `The download has the ${nSel} selected ${nSel === 1 ? "structure" : "structures"}.` : "The download has every structure listed below; select some to download only those."} Structures already in the official mpstruc are left out.</p>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
@@ -3443,8 +4321,14 @@ links.addEventListener("click", (event) => {
           ${filter !== "" ? `<button class="mp-btn secondary" type="button" id="ap-bulk-unpush" data-abulk="unpush"${selUnpush ? "" : " disabled"}>Remove ${selUnpush || ""} selected from database</button>` : ""}
         </span>
       </div>` : ""}
-      <div class="mp-rej-list">${page.map(apprRow).join("") || `<p class="mp-empty">${empty}</p>`}</div>
-      ${more(page.length, shown.length)}
+      <div class="mp-rej-list">${pageGroups.map((g, i) => {
+          const off = g.r.official, prev = i > 0 && pageGroups[i - 1].r.official, any = filter === "pushed" && pageGroups.some((x) => x.r.official);
+          return (any && off && (i === 0 || !prev)
+            ? `<h3 class="mp-list-head" id="mp-now-in">Now in mpstruc <span class="mp-of">· found in the official snapshot of ${esc(snapDate())}</span></h3>` : "")
+            + (any && !off && (i === 0 || prev) ? '<h3 class="mp-list-head">Not in mpstruc yet</h3>' : "")
+            + apprGroup(g);
+        }).join("") || `<p class="mp-empty">${empty}</p>`}</div>
+      ${more(pageGroups.length, groups.length)}
     </div>`;
   }
 
@@ -3573,7 +4457,8 @@ links.addEventListener("click", (event) => {
     }
     const written = new Map();
     const changes = all.filter((p) => isPushed(curation.entries[p]) && !optimistic.has(p)).map((p) => {
-      const { pushed, ...entry } = curation.entries[p];
+      // Out of the database means out of the upload list too, so "submitted" goes with the push.
+      const { pushed, submitted, ...entry } = curation.entries[p];
       written.set(p, JSON.stringify(entry));
       const under = deps.includes(p) ? ` (it goes under ${String(entry.owner).toUpperCase()}, which was removed too)` : "";
       return { pdb: p, entry, detail: `Removed ${p} from the database${under}; it stays approved, waiting to be pushed` };
@@ -3690,6 +4575,591 @@ links.addEventListener("click", (event) => {
     app.querySelectorAll("form.mp-ed").forEach(wireEditor);
   }
 
+  // ---- Automation › Compared with the Vercel demo ------------------------------
+  // data/vercel_compare.json (written by `python -m mpstruc.vercel_compare` in
+  // mpstruc/) compares the structures the Vercel demo of another group lists
+  // as potential membrane matches with our own evidence: per release week, and
+  // for Vercel's whole database. It is optional and loaded only when needed;
+  // the Automation cards also read Vercel's snapshot (data/vercel_snapshot.json)
+  // to say which suggestions Vercel does not list at all.
+  const vc = { data: null, loading: false, missing: false, error: null, snap: null, snapLoading: false, idx: null,
+               list: "missed", q: "", source: "", status: "" };
+  const VC_SOURCES = [["curators", "Our curators"], ["mpstruc", "mpstruc"], ["pdbtm", "PDBTM"], ["opm", "OPM"],
+                      ["memprotmd", "MemProtMD"], ["model", "Our model"], ["uniprot", "UniProt"]];
+  const VC_SOURCE_LABEL = Object.fromEntries(VC_SOURCES);
+  const VC_BY_LABEL = { ...VC_SOURCE_LABEL, databases: "PDBTM, MemProtMD or OPM", none: "no source (uncertain)" };
+  const VC_STATUS = { already_in: "Already in", yes: "Yes", maybe: "Maybe", ready_for_yes: "Ready for yes", pubmed_ready: "PubMed ready",
+                      no: "No", pending: "Pending (no verdict yet)" };
+  const VC_VERDICT = { membrane: "Membrane protein", not_membrane: "Not a membrane protein", uncertain: "Uncertain" };
+  const vcStatusText = (s) => (s == null ? "Not listed" : VC_STATUS[s] || String(s));
+  const vcRows = (v) => (Array.isArray(v) ? v.filter((r) => isObj(r) && typeof r.pdb === "string") : []);
+  const vcWeeks = () => (vc.data && Array.isArray(vc.data.weeks) ? vc.data.weeks.filter((w) => isObj(w) && /^\d{4}-\d\d-\d\d$/.test(w.week || ""))
+    .slice().sort((a, b) => b.week.localeCompare(a.week)) : []);
+  const vcWhole = () => (vc.data && isObj(vc.data.wholeDatabase) ? vc.data.wholeDatabase : null);
+
+  function loadVercel() {
+    if (vc.data || vc.loading || vc.missing || vc.error) return;
+    vc.loading = true;
+    fetch("data/vercel_compare.json", { cache: "no-cache" })
+      .then((r) => {
+        if (r.status === 404) { vc.missing = true; return null; }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (d == null) return;
+        if (!isObj(d)) throw new Error("not a comparison file");
+        vc.data = d;
+        vc.idx = null;
+      })
+      .catch((err) => { vc.error = err.message || "could not read it"; })
+      .finally(() => { vc.loading = false; if (/^(automation|find)/.test(lastRoute)) rerender(); });
+  }
+  // Vercel's snapshot, only to know which suggestions it does not list at all.
+  function loadVercelSnapshot() {
+    if (vc.snap !== null || vc.snapLoading || !vc.data) return;
+    vc.snapLoading = true;
+    fetch("data/vercel_snapshot.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        vc.snap = d && isObj(d.entries) ? new Set(Object.keys(d.entries).map((k) => k.toUpperCase())) : false;
+        vc.snapEntries = vc.snap ? Object.fromEntries(Object.entries(d.entries).map(([k, x]) => [k.toUpperCase(), x])) : null;
+      })
+      .catch(() => { vc.snap = false; })
+      .finally(() => { vc.snapLoading = false; if (/^find\//.test(lastRoute) || (vc.snap && lastRoute.split("/")[0] === "automation" && !/^automation\/vercel/.test(lastRoute))) rerender(); });
+  }
+  // What the comparison itself says about a PDB ID (without the snapshot).
+  function vercelIndex() {
+    if (vc.idx) return vc.idx;
+    const latest = vcWeeks()[0];
+    const missedLatest = new Set(latest ? vcRows(latest.missed).map((r) => r.pdb) : []);
+    const status = new Map();
+    const rows = [...vcWeeks().flatMap((w) => [...vcRows(w.missed), ...vcRows(w.notMembrane)]),
+                  ...(vcWhole() ? [...vcRows(vcWhole().missed), ...vcRows(vcWhole().notMembrane)] : [])];
+    rows.forEach((r) => { if (!status.has(r.pdb)) status.set(r.pdb, r.vercelStatus ?? null); });
+    vc.idx = { latest, missedLatest, status };
+    return vc.idx;
+  }
+  function vercelBadge(pdb) {
+    if (!vc.data) return "";
+    const ix = vercelIndex();
+    if (ix.missedLatest.has(pdb)) {
+      return `<a class="mp-badge vc-flag vc-flag-missed" href="#/automation/vercel" title="A membrane protein released in the week of ${esc(shortDay(ix.latest.week))} that the Vercel demo does not list">Vercel missed this</a>`;
+    }
+    const absent = vc.snap instanceof Set ? !vc.snap.has(pdb) : ix.status.has(pdb) && ix.status.get(pdb) === null;
+    return absent ? `<span class="mp-badge vc-flag" title="The Vercel demo's database does not list this structure">Not in Vercel</span>` : "";
+  }
+
+  // Where a structure stands with us: official mpstruc, this week's Automation list, a curator's decision.
+  function vcWhere(r) {
+    const out = [];
+    const d = decisions[r.pdb];
+    if (r.inMpstruc || state.byPdb.has(r.pdb)) out.push(`<a href="#/pdb/${esc(r.pdb)}">In official mpstruc</a>`);
+    const live = auto.cands && auto.cands.candidates.find((c) => c.pdb === r.pdb);
+    if (isObj(d) && d.status === "approved") out.push(`<a href="${isPushed(d) ? "#/approved/pushed" : "#/approved"}">Approved${isPushed(d) ? " and pushed" : ""} - Decisions</a>`);
+    else if (isObj(d) && d.status === "rejected") out.push(`<a href="#/rejected/${reasonCode(d)}">Rejected: ${esc(REASON_LABEL[reasonCode(d)])} - Decisions</a>`);
+    else if (isObj(d) && d.status === "deleted") out.push(`<a href="#/rejected/deleted">Deleted - Decisions</a>`);
+    if (live && !(isObj(d) && d.status === "deleted")) out.push(`<a href="#/automation/card/${esc(r.pdb)}">Card in our Automation list</a>`);
+    else if (r.inOurList && !d) out.push("In our Automation list");
+    return out.length ? out.join(" · ") : "Not in our lists";
+  }
+
+  function vcRow(r, key) {
+    const id = esc(r.pdb);
+    const verdict = VC_VERDICT[r.verdict] ? r.verdict : "uncertain";
+    const ev = Array.isArray(r.evidence) ? r.evidence.filter(isObj) : [];
+    const score = r.ourScore != null && Number.isFinite(Number(r.ourScore)) ? `${pct(Number(r.ourScore))} likely` : "not scored";
+    return `<article class="mp-vc-row" id="vc-${key}-${id}" aria-labelledby="vc-h-${key}-${id}">
+      <div class="mp-rej-head">
+        <a class="mp-pdb" id="vc-h-${key}-${id}" href="#/pdb/${id}">${id}</a>
+        <span class="mp-badge vc-verdict vc-v-${verdict}">${esc(VC_VERDICT[verdict])}</span>
+        <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener" target="_blank">RCSB ↗<span class="mp-visually-hidden"> (opens in a new tab)</span></a>
+      </div>
+      <p class="mp-rej-title">${esc(r.title || "Title not known")}</p>
+      ${ev.length ? `<ul class="mp-vc-ev">${ev.map((e) => `<li><span class="mp-vc-src">${esc(VC_SOURCE_LABEL[e.source] || e.source || "Other")}</span> ${esc(e.text)}</li>`).join("")}</ul>` : ""}
+      <dl class="mp-rej-facts">
+        <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
+        <div><dt>Our score</dt><dd>${esc(score)}</dd></div>
+        <div><dt>Vercel says</dt><dd>${esc(vcStatusText(r.vercelStatus))}${r.vercelFamily ? ` <span class="mp-of">(${esc(r.vercelFamily)})</span>` : ""}</dd></div>
+        <div><dt>With us</dt><dd>${vcWhere(r)}</dd></div>
+      </dl>
+    </article>`;
+  }
+
+  function vcCsv(list) {
+    const q = (v) => `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    const cols = ["PDB ID", "Title", "Released", "Our verdict", "Evidence", "Our score (%)", "Vercel status", "Vercel family",
+                  "In official mpstruc", "In our Automation list or decisions", "RCSB PDB page"];
+    const rows = list.map((r) => [r.pdb, r.title, r.released, VC_VERDICT[r.verdict] || r.verdict,
+      (Array.isArray(r.evidence) ? r.evidence.filter(isObj) : []).map((e) => `${VC_SOURCE_LABEL[e.source] || e.source}: ${e.text}`).join(" | "),
+      r.ourScore != null && Number.isFinite(Number(r.ourScore)) ? Math.round(100 * Number(r.ourScore)) : "",
+      vcStatusText(r.vercelStatus), r.vercelFamily, r.inMpstruc ? "yes" : "no", r.inOurList ? "yes" : "no", rcsb(r.pdb)].map(q).join(","));
+    return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+  }
+  const vcCodesCsv = (pdbs) => "﻿" + ["\"PDB ID\",\"RCSB PDB page\"", ...pdbs.map((p) => `"${String(p).replace(/"/g, '""')}","${rcsb(p)}"`)].join("\r\n");
+
+  function vcWholeFiltered() {
+    const w = vcWhole();
+    if (!w) return { all: [], shown: [] };
+    const all = vcRows(vc.list === "notMembrane" ? w.notMembrane : w.missed);
+    const q = vc.q.trim().toLowerCase();
+    const shown = all.filter((r) => {
+      if (vc.source && !(Array.isArray(r.evidence) && r.evidence.some((e) => isObj(e) && e.source === vc.source))) return false;
+      if (vc.status && (vc.status === "none" ? r.vercelStatus != null : r.vercelStatus !== vc.status)) return false;
+      if (q && !`${r.pdb} ${r.title || ""} ${(r.evidence || []).map((e) => (isObj(e) ? e.text : "")).join(" ")} ${r.vercelFamily || ""}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    return { all, shown };
+  }
+
+  function vcCodes(name, label, pdbs, note) {
+    const CAP = 300;
+    if (!pdbs.length) return "";
+    return `<details class="mp-why mp-vc-codes-box"><summary>${esc(label)} (${pdbs.length.toLocaleString()})</summary>
+      ${note ? `<p class="mp-summary">${note}</p>` : ""}
+      <p class="mp-vc-codes">${pdbs.slice(0, CAP).map((p) => `<a href="#/pdb/${esc(p)}">${esc(p)}</a>`).join(" ")}${pdbs.length > CAP ? ` <span class="mp-of">and ${(pdbs.length - CAP).toLocaleString()} more (in the download)</span>` : ""}</p>
+      <button type="button" class="mp-btn secondary" data-vc-csv="${name}">Download all ${pdbs.length.toLocaleString()} (CSV)</button>
+    </details>`;
+  }
+
+  function viewVercel(arg) {
+    loadAutomation();
+    const crumbs = `<p class="mp-crumbs"><a href="#/automation">Automation</a> › Compared with the Vercel demo</p>`;
+    const intro = `<h2>Compared with the Vercel demo</h2>
+      <p class="mp-summary mp-vc-intro">Another group runs a demo website, <a href="https://mpstruc-viewer-demo.vercel.app/" rel="noopener" target="_blank">mpstruc-viewer-demo.vercel.app<span class="mp-visually-hidden"> (opens in a new tab)</span></a>,
+        that lists new PDB structures as potential membrane proteins, with its own curators' verdicts. This page compares that list with our evidence,
+        to find membrane proteins it has missed and structures it lists that are not membrane proteins.</p>
+      <div class="mp-vc-rule">
+        <p><b>The rule we use</b> (mpstruc curators'): a structure is a membrane protein only when a significant membrane-crossing segment, or a
+          membrane-spanning beta-barrel, is present in the structure itself - not just somewhere in the full-length protein.</p>
+        <p>Each structure's verdict comes from the first of these that applies: <b>our curators' decision</b> (approved means membrane protein; rejected as
+          'not a membrane protein' means not), then being <b>listed in official mpstruc</b> (unless the structure at that code has no membrane-crossing part resolved: a
+          soluble fragment or partner, or a possible typo in mpstruc's PDB code), then <b>PDBTM, MemProtMD or OPM</b> finding it crosses the
+          membrane (OPM only when it finds a membrane-crossing segment in the structure itself), then <b>our model's score</b> (50% or more: membrane protein; under 10%: not, with the segments it found as reasons; in between: uncertain).</p>
+        <p><b>Missed</b> means our verdict is 'membrane protein', it was released in the period compared, and Vercel's database does not list it at all.
+          <b>Not membrane proteins</b> are structures Vercel lists that our verdict says are not, with Vercel's own status, so you can see whether it already said No.</p>
+      </div>`;
+    if (vc.loading || (!vc.data && !vc.missing && !vc.error)) {
+      loadVercel();
+      return `<div class="mp-view mp-vc">${crumbs}${intro}<p class="mp-loading">Loading the comparison…</p></div>`;
+    }
+    if (vc.missing || vc.error) {
+      return `<div class="mp-view mp-vc">${crumbs}${intro}<p class="mp-empty">${vc.missing ? "No comparison has been made yet: data/vercel_compare.json is not on the site."
+        : `Could not read the comparison (${esc(vc.error)}).`} It is written by <code>python -m mpstruc.vercel_compare</code> in the <code>mpstruc/</code> folder.</p></div>`;
+    }
+    const d = vc.data, s = isObj(d.snapshot) ? d.snapshot : {};
+    const weeks = vcWeeks();
+    const wanted = (arg || "").replace(/^vercel\/?/, "");
+    const week = weeks.find((w) => w.week === wanted) || weeks[0] || null;
+    const byStatus = isObj(s.byStatus) ? Object.entries(s.byStatus).sort((a, b) => b[1] - a[1]) : [];
+    const snapLine = `<p class="mp-summary">Vercel's database as ${s.source === "page" ? "read from its web page" : `exported${String(s.source || "").startsWith("export:") ? ` (${esc(String(s.source).slice(7))})` : ""}`}
+      ${s.readAt ? `on ${esc(fmtDate(s.readAt))}` : ""}${Number.isFinite(s.entries) ? `: ${s.entries.toLocaleString()} structures` : ""}${byStatus.length ? ` -
+      ${byStatus.map(([k, n]) => `${esc(vcStatusText(k))} ${Number(n).toLocaleString()}`).join(", ")}` : ""}.
+      Comparison made ${esc(fmtDate(d.generated) || "—")}.</p>`;
+
+    // ---- one release week
+    const listBlock = (key, title, rows, empty) => `<h3 id="vc-${key}-h">${esc(title)} <span class="mp-count">${rows.length}</span></h3>
+      ${rows.length ? `<div class="mp-toolbar"><p class="mp-summary">${rows.length} ${rows.length === 1 ? "structure" : "structures"}</p>
+        <span><button type="button" class="mp-btn secondary" data-vc-csv="${key}">Download (CSV)</button></span></div>
+        <div class="mp-vc-list">${rows.map((r) => vcRow(r, key)).join("")}</div>` : `<p class="mp-empty">${empty}</p>`}`;
+    const opt = (val, label, curv) => `<option value="${esc(val)}"${String(curv) === String(val) ? " selected" : ""}>${label}</option>`;
+    let weekHtml;
+    if (!week) {
+      weekHtml = `<p class="mp-empty">No release week has been compared yet.</p>`;
+    } else {
+      const wm = vcRows(week.missed), wn = vcRows(week.notMembrane);
+      weekHtml = `<form class="mp-filters mp-vc-pick" id="mp-vc-week" aria-label="Choose a release week">
+          <label>Release week<select name="week" id="mp-vc-week-sel">${weeks.map((w) => opt(w.week, `${esc(fmtDate(`${w.week}T12:00:00Z`))}${w === weeks[0] ? " (latest)" : ""}`, week.week)).join("")}</select></label>
+        </form>
+        <div class="mp-stats mp-vc-stats">
+          <div class="mp-stat"><b>${Number.isFinite(Number(week.released)) && week.released !== null && week.released !== "" ? Number(week.released).toLocaleString() : "—"}</b><span>PDB structures released${week.from ? ` ${esc(shortDay(week.from))} to ${esc(shortDay(week.week))}` : ` on ${esc(shortDay(week.week))}`}</span></div>
+          <div class="mp-stat"><b>${Number(week.vercelListed ?? 0).toLocaleString()}</b><span>listed by Vercel</span></div>
+          <div class="mp-stat"><b>${Number(week.agree ?? 0).toLocaleString()}</b><span>listed by Vercel that we also call membrane proteins</span></div>
+          <div class="mp-stat"><b>${wm.length}</b><span>membrane proteins Vercel missed</span></div>
+          <div class="mp-stat"><b>${wn.length}</b><span>listed by Vercel but not membrane proteins (${wn.filter((r) => r.vercelStatus === "no").length} already marked No there)</span></div>
+        </div>
+        ${listBlock("wm", "Membrane proteins Vercel missed", wm, "Vercel lists every membrane protein we know of from this week.")}
+        ${listBlock("wn", "Listed by Vercel but not membrane proteins", wn, "Everything Vercel lists from this week is a membrane protein or uncertain.")}`;
+    }
+
+    // ---- Vercel's whole database
+    const whole = vcWhole();
+    let wholeHtml;
+    if (!whole) {
+      wholeHtml = `<p class="mp-empty">The whole database has not been compared yet.</p>`;
+    } else {
+      const sm = isObj(whole.summary) ? whole.summary : {};
+      const ain = isObj(sm.alreadyInNotInMpstruc) ? sm.alreadyInNotInMpstruc : { count: 0, pdbs: [] };
+      const abs = isObj(sm.mpstrucNotInVercel) ? sm.mpstrucNotInVercel : { count: 0, pdbs: [] };
+      const typoPairs = isObj(sm.possibleMpstrucTypos) && Array.isArray(sm.possibleMpstrucTypos.pairs)
+        ? sm.possibleMpstrucTypos.pairs.filter((x) => isObj(x) && typeof x.mpstruc === "string" && typeof x.vercel === "string") : [];
+      const noPart = isObj(sm.mpstrucWithoutMembranePart) && Array.isArray(sm.mpstrucWithoutMembranePart.pdbs) ? sm.mpstrucWithoutMembranePart.pdbs : [];
+      const nMissed = vcRows(whole.missed).length, nNot = vcRows(whole.notMembrane).length;
+      const num = (v) => (Number.isFinite(Number(v)) ? Number(v).toLocaleString() : "—");
+      const verd = isObj(sm.verdicts) ? sm.verdicts : null, by = isObj(sm.decidedBy) ? sm.decidedBy : null;
+      const { all, shown } = vcWholeFiltered();
+      const page = shown.slice(0, state.limit);
+      const srcCount = (src) => all.filter((r) => Array.isArray(r.evidence) && r.evidence.some((e) => isObj(e) && e.source === src)).length;
+      const stCount = (st) => all.filter((r) => (st === "none" ? r.vercelStatus == null : r.vercelStatus === st)).length;
+      const statuses = [...Object.keys(VC_STATUS), "none"].filter((st) => stCount(st) || vc.status === st);
+      wholeHtml = `<div class="mp-stats mp-vc-stats">
+          <div class="mp-stat"><b>${num(sm.snapshotEntries ?? s.entries)}</b><span>structures in Vercel's database${Array.isArray(sm.span) ? `, released ${esc(sm.span[0])} to ${esc(sm.span[1])}` : ""}</span></div>
+          <div class="mp-stat"><b>${num(sm.missed ?? nMissed)}</b><span>membrane proteins Vercel does not list${sm.missedStrongSources != null ? ` (${num(sm.missedStrongSources)} known to mpstruc, PDBTM, MemProtMD or OPM; ${num(sm.missedModelRecent)} from our model, recent releases)` : ""}</span></div>
+          <div class="mp-stat"><b>${num(sm.notMembrane ?? nNot)}</b><span>listed by Vercel but not membrane proteins${sm.notMembraneVercelSaidNo != null ? ` (${num(sm.notMembraneVercelSaidNo)} already marked No there)` : ""}</span></div>
+          <div class="mp-stat"><b>${num(ain.count)}</b><span>marked 'Already in' at Vercel but not in official mpstruc</span></div>
+          <div class="mp-stat"><b>${num(abs.count)}</b><span>official mpstruc PDB codes missing from Vercel's database${abs.entries != null ? ` (${num(abs.entries)} main entries, ${num(abs.relatedOnly)} only listed as related)` : ""}</span></div>
+        </div>
+        ${verd || by ? `<p class="mp-summary">${verd ? `Our verdicts on Vercel's structures: ${num(verd.membrane)} membrane proteins, ${num(verd.not_membrane)} not, ${num(verd.uncertain)} uncertain.` : ""}
+          ${by ? `Decided by: ${Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(VC_BY_LABEL[k] || k)} ${num(n)}`).join(", ")}.` : ""}
+          ${isObj(sm.missedBySource) ? `Missed structures, by the source that decided them: ${Object.entries(sm.missedBySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(VC_SOURCE_LABEL[k] || k)} ${num(n)}`).join(", ")}.` : ""}</p>` : ""}
+        ${vcCodes("ain", "'Already in' at Vercel but not in official mpstruc", Array.isArray(ain.pdbs) ? ain.pdbs : [],
+          "Vercel says these are already in mpstruc, but the official mpstruc list we use does not have them.")}
+        ${vcCodes("abs", "Official mpstruc PDB codes missing from Vercel", Array.isArray(abs.pdbs) ? abs.pdbs : [],
+          abs.inVercelSpan != null ? `${num(abs.inVercelSpan)} of them were released within the dates Vercel's database covers.` : "")}
+        ${typoPairs.length ? `<details class="mp-why mp-vc-codes-box"><summary>Possible PDB code typos between mpstruc and Vercel (${typoPairs.length.toLocaleString()})</summary>
+          <p class="mp-summary">The same characters with two of them swapped: probably one structure, with the code mistyped on one side. These are left out of the two lists above.</p>
+          <ul class="mp-vc-ev">${typoPairs.map((x) => `<li>mpstruc <a href="#/pdb/${esc(x.mpstruc)}">${esc(x.mpstruc)}</a> / Vercel <a href="${rcsb(x.vercel)}" rel="noopener" target="_blank">${esc(x.vercel)}<span class="mp-visually-hidden"> (opens in a new tab)</span></a>${x.vercelStatus ? ` <span class="mp-of">(${esc(vcStatusText(x.vercelStatus))})</span>` : ""}</li>`).join("")}</ul>
+        </details>` : ""}
+        ${vcCodes("nmp", "Official mpstruc PDB codes whose structure has no membrane part", noPart,
+          "Missing from Vercel, but the structure at the code has no membrane-crossing segment or barrel resolved: a soluble fragment or partner mpstruc lists, a monotopic protein, or a possible typo in mpstruc's code. Left out of the list above.")}
+        <form class="mp-filters mp-vc-filters" id="mp-vc-filters" role="search" aria-label="Filter the whole-database lists">
+          <label>List<select name="list" id="mp-vc-list">${opt("missed", `Membrane proteins Vercel missed (${nMissed.toLocaleString()})`, vc.list)}${opt("notMembrane", `Listed by Vercel but not membrane (${nNot.toLocaleString()})`, vc.list)}</select></label>
+          <label>Evidence from<select name="source" id="mp-vc-source">${opt("", "Any source", vc.source)}${VC_SOURCES.filter(([k]) => srcCount(k) || vc.source === k).map(([k, l]) => opt(k, `${esc(l)} (${srcCount(k).toLocaleString()})`, vc.source)).join("")}</select></label>
+          <label>Vercel status<select name="status" id="mp-vc-status">${opt("", "Any status", vc.status)}${statuses.map((st) => opt(st, `${esc(vcStatusText(st === "none" ? null : st))} (${stCount(st).toLocaleString()})`, vc.status)).join("")}</select></label>
+          <label class="mp-vc-q">Search<input type="search" name="q" id="mp-vc-q" value="${esc(vc.q)}" placeholder="PDB ID, title, evidence" autocomplete="off"></label>
+        </form>
+        <div class="mp-toolbar"><p class="mp-summary" id="mp-vc-count">${shown.length.toLocaleString()} ${shown.length === 1 ? "structure" : "structures"}${shown.length !== all.length ? ` of ${all.length.toLocaleString()} match the filters` : ""}</p>
+          <span><button type="button" class="mp-btn secondary" data-vc-csv="whole">Download ${shown.length !== all.length ? "these" : "this list"} (CSV)</button></span></div>
+        <div class="mp-vc-list">${page.map((r) => vcRow(r, "all")).join("") || `<p class="mp-empty">${all.length ? "Nothing matches these filters." : "This list is empty."}</p>`}</div>
+        ${more(page.length, shown.length)}`;
+    }
+    return `<div class="mp-view mp-vc">${crumbs}${intro}${snapLine}
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
+      <h3>Week by week</h3>${weekHtml}
+      <h3>Whole Vercel database</h3>${wholeHtml}
+    </div>`;
+  }
+
+  function wireVercel(arg) {
+    const sel = document.getElementById("mp-vc-week-sel");
+    if (sel) {
+      sel.form.addEventListener("submit", (ev) => ev.preventDefault());
+      sel.addEventListener("change", () => { location.hash = `#/automation/vercel/${sel.value}`; });
+    }
+    const form = document.getElementById("mp-vc-filters");
+    if (form) {
+      form.addEventListener("submit", (ev) => ev.preventDefault());
+      ["list", "source", "status"].forEach((n) => form.elements[n].addEventListener("change", () => {
+        vc[n] = form.elements[n].value;
+        state.limit = PAGE;
+        rerender();
+      }));
+      form.elements.q.addEventListener("input", () => { vc.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    }
+    const weeks = vcWeeks(), wanted = (arg || "").replace(/^vercel\/?/, "");
+    const week = weeks.find((w) => w.week === wanted) || weeks[0];
+    const sm = vcWhole() && isObj(vcWhole().summary) ? vcWhole().summary : {};
+    app.querySelectorAll("[data-vc-csv]").forEach((btn) => btn.addEventListener("click", () => {
+      const k = btn.dataset.vcCsv;
+      if (k === "wm" || k === "wn") {
+        const rows = vcRows(k === "wm" ? week.missed : week.notMembrane);
+        download(`vercel_${k === "wm" ? "missed" : "not_membrane"}_week_${week.week}.csv`, vcCsv(rows), "text/csv");
+      } else if (k === "whole") {
+        const { all, shown } = vcWholeFiltered();
+        download(`vercel_${vc.list === "notMembrane" ? "not_membrane" : "missed"}_whole_database${shown.length !== all.length ? "_filtered" : ""}.csv`, vcCsv(shown), "text/csv");
+      } else {
+        const box = k === "ain" ? sm.alreadyInNotInMpstruc : k === "nmp" ? sm.mpstrucWithoutMembranePart : sm.mpstrucNotInVercel;
+        const pdbs = isObj(box) && Array.isArray(box.pdbs) ? box.pdbs : [];
+        download(k === "ain" ? "vercel_already_in_not_in_mpstruc.csv" : k === "nmp" ? "mpstruc_without_membrane_part.csv" : "mpstruc_not_in_vercel.csv", vcCodesCsv(pdbs), "text/csv");
+      }
+    }));
+  }
+
+  // ---- the curation steps: automation -> edit -> approve -> push -> upload to mpstruc -> in mpstruc ----
+  // A structure goes through these steps; the strip at the top of the
+  // Automation tab, the Decisions lists and Ready to upload shows how many are
+  // at each one, and each structure in those lists says which step it is at.
+  // The last step needs no curator: each week the site reads the newest
+  // official mpstruc file, and a pushed structure it lists counts as in mpstruc.
+  const PIPE = [["automation", "Automation", "#/automation"], ["edit", "Edit", "#/approved/edited"], ["approve", "Approve", "#/approved"],
+                ["push", "Push to database", "#/approved/pushed"], ["upload", "Upload to mpstruc", "#/notinmpstruc"], ["inmp", "In mpstruc", "#/approved/inmpstruc"]];
+  const snapDate = () => fmtDate(parseSnapshotTime(state.data.meta.timestamp)) || plain(state.data.meta.timestamp);
+
+  function pipeCounts() {
+    const ap = Object.entries(curation.entries).filter(([, d]) => d.status === "approved");
+    return {
+      // What the Automation tab lists with its default filters (To decide, at least the
+      // weekly job's membrane-protein threshold, last 26 weeks), so the number matches the link.
+      automation: auto.cands ? filteredCands({ status: "undecided", min: auto.cands.threshold ?? 0.5, placement: "", q: "", age: "", sort: "" }).length : null,
+      edit: ap.filter(([, d]) => isObj(d.mpEdited)).length,
+      approve: ap.filter(([p, d]) => !isPushed(d) && !inOfficial(p)).length,
+      push: ap.filter(([, d]) => isPushed(d)).length,
+      upload: ap.filter(([p, d]) => isPushed(d) && !inOfficial(p)).length,
+      // Approved structures mpstruc lists, pushed or not (stageOf puts both at step 6).
+      inmp: ap.filter(([p]) => inOfficial(p)).length,
+    };
+  }
+
+  // current: the step this view is about ("" for none).
+  function pipeline(current) {
+    const n = pipeCounts(), num = (v) => (v == null ? "…" : v.toLocaleString());
+    const say = { automation: `${num(n.automation)} to decide`, edit: `${num(n.edit)} edited`, approve: `${num(n.approve)} waiting to push`,
+                  push: `${num(n.push)} pushed`, upload: `${num(n.upload)} to upload`, inmp: `${num(n.inmp)} now in mpstruc` };
+    return `<nav class="mp-pipe" aria-label="Curation steps, with how many structures are at each"><ol>${PIPE.map(([k, label, href], i) =>
+      `<li${k === current ? ' class="current"' : ""}><a href="${href}"${k === current ? ' aria-current="step"' : ""}>`
+      + `<span class="mp-pipe-n" aria-hidden="true">${i + 1}</span><span class="mp-pipe-t">${esc(label)}</span><span class="mp-pipe-c">${esc(say[k])}</span></a></li>`).join("")}</ol></nav>`;
+  }
+
+  // The step an approved structure is at: [index into PIPE, plain sentence].
+  function stageOf(pdb, d) {
+    if (!isObj(d) || d.status !== "approved") return null;
+    if (inOfficial(pdb)) return [5, isPushed(d) ? `done, the official snapshot of ${snapDate()} lists it.` : "already listed there, so there is no need to push it."];
+    if (!isPushed(d)) return [3, "Approved, waiting to be pushed to the database."];
+    if (isObj(d.submitted)) return [4, `Submitted to mpstruc${d.submitted.at ? ` on ${fmtDate(d.submitted.at)}` : ""}, waiting for the official file to list it.`];
+    return [4, "In the database, ready to upload to mpstruc."];
+  }
+  function stageLine(pdb, d) {
+    const s = stageOf(pdb, d);
+    if (!s) return "";
+    const [i, text] = s;
+    const dots = PIPE.map(([, label], j) => `<i class="${j < i || i === 5 ? "done" : j === i ? "now" : ""}" title="${esc(label)}"></i>`).join("");
+    return `<p class="mp-stage"><span class="mp-stage-dots" aria-hidden="true">${dots}</span>
+      <span><span class="mp-stage-step">Step ${i + 1} of ${PIPE.length}, ${esc(PIPE[i][1])}:</span> ${esc(text)}</span></p>`;
+  }
+
+  // A pushed structure the official file lists somewhere else than (or as
+  // another kind of entry than) the team pushed it. null when it matches.
+  function placedDifferently(pdb, d) {
+    const off = officialPlaces(pdb);
+    if (!off.length) return null;
+    const owner = String(d.owner || "").toUpperCase();
+    const same = off.some((o) => o.placement === d.placement && (d.placement === "parent" ? o.subgroup === d.subgroup : o.owner === owner));
+    if (same) return null;
+    const team = placeText({ placement: d.placement, subgroup: d.subgroup, owner });
+    return { team, official: off.map(placeText), text: `the team pushed it as ${team}; mpstruc lists it as ${off.map(placeText).join(" and as ")}` };
+  }
+  function differentNote(pdb, d) {
+    const x = placedDifferently(pdb, d);
+    return x ? `<p class="mp-rej-wait mp-differs"><b>mpstruc placed it differently.</b> The team pushed it as ${esc(x.team)};
+      the official mpstruc lists it as ${esc(x.official.join(" and as "))}.</p>` : "";
+  }
+
+  // Activity log: one line per pushed structure the official file now lists,
+  // worked out here from the pushed structures and the snapshot (not saved).
+  function nowInMpLines(existing) {
+    const m = state.data.meta, snapAt = parseSnapshotTime(m.timestamp) || m.lastEdit;
+    const seen = new Set(existing.filter((l) => l.act === "IN-MPSTRUC").map((l) => l.pdb));
+    const out = [];
+    for (const [pdb, d] of Object.entries(curation.entries)) {
+      if (!isPushed(d) || !inOfficial(pdb) || seen.has(pdb)) continue;
+      seen.add(pdb);
+      const x = placedDifferently(pdb, d);
+      out.push({ at: (Date.parse(d.pushed.at) || 0) > (Date.parse(snapAt) || 0) ? d.pushed.at : snapAt, who: "mpstruc", act: "IN-MPSTRUC", pdb,
+                 msg: `Now in the official mpstruc (snapshot ${snapDate()}): ${pdb}${x ? `. mpstruc placed it differently: ${x.text}` : ""}` });
+    }
+    return out;
+  }
+
+  // ---- Ready to upload to mpstruc (#/notinmpstruc) ---------------------------
+  // Every pushed structure the official mpstruc file does not list yet: where it
+  // goes, the listing as drafted (with the curator's edits), and downloads for
+  // the mpstruc entry form (CSV, in its columns) or as mpstruc XML. Curators can
+  // mark what they sent (entries[PDB].submitted = { by, byName, at }, logged as
+  // 'submit'); a structure leaves this list by itself once the weekly snapshot lists it.
+  const up = { show: "", q: "", selected: new Set() };
+  const readyRows = () => apprRows().filter((r) => r.pushed && !r.official);
+  const FORM_COLS = ["Pdb Code", "Name", "Experimental Method", "Species", "Taxonomic Domain", "Expressed In Species", "Resolution", "Description",
+                     "Family", "Subfamily", "Bibliography", "PDB Link", "mpstruc Link", "PubMed Link", "DOI Link", "Status", "Memo"];
+
+  // The mpstruc entry form's columns, one row per structure (ids: PDB IDs, in order).
+  function formCsv(ids) {
+    const q = (v) => `"${unquote(v ?? "").replace(/\r?\n/g, " ").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    const txt = (v) => decodeEntities(safeMarkup(v == null ? "" : String(v))).trim();
+    const rows = ids.map((pdb) => {
+      const d = curation.entries[pdb];
+      const m = safeMp(effectiveMp(d, candIndex().get(pdb)) || {}), b = m.bibliography || {};
+      const sg = state.sgOf.get(d.subgroup), owner = String(d.owner || "").toUpperCase();
+      const doi = strip(b.doi || "") || plain(d.doi), pmid = strip(b.pubMedId || "") || plain(d.pmid);
+      // The bibliography is one line of plain text (no markup, & as &).
+      const pt = (v) => strip(decodeEntities(v == null ? "" : String(v))).trim();
+      const bib = [b.authors && `${pt(b.authors)}${b.year ? ` (${pt(b.year)})` : ""}`, b.title && pt(b.title).replace(/\.$/, ""),
+                   [pt(b.journal), b.volume && `${pt(b.volume)}${b.issue ? `(${pt(b.issue)})` : ""}${b.pages ? `:${pt(b.pages)}` : ""}`].filter(Boolean).join(" "),
+                   doi && `doi:${doi}`, pmid && `PMID:${pmid}`].filter(Boolean).join(". ");
+      const placed = !state.unplaced.includes(pdb);
+      const related = (m.related || []).filter((r) => r !== pdb);
+      const memo = [d.placement === "parent" ? "New parent" : d.placement === "daughter" ? `Daughter of ${owner}` : `Related entry of ${owner}`,
+                    d.placement === "related" && m.relatedLine ? `line to add to ${owner}'s description: ${txt(m.relatedLine)}` : "",
+                    related.length ? `related PDB entries: ${related.join(", ")}` : "",
+                    isObj(d.mpEdited) ? "entry edited by a curator" : "",
+                    placed ? "" : `${owner} is not in the database yet`,
+                    d.note ? `curator note: ${plain(d.note)}` : ""].filter(Boolean).join("; ");
+      return [pdb, txt(m.name) || plain(d.title), METHOD[String(d.method || "").toUpperCase()] || plain(d.method), txt(m.species), txt(m.taxonomicDomain),
+              txt(m.expressedInSpecies), txt(m.resolution) || (d.res != null ? String(d.res) : ""), txt(m.description),
+              sg ? sg.group.name : "", sg ? strip(sg.name) : plain(d.subgroup), bib, `https://www.rcsb.org/structure/${pdb}`,
+              `https://blanco.biomol.uci.edu/mpstruc/#/${pdb}`, pmid ? `https://www.ncbi.nlm.nih.gov/pubmed/?term=${pmid}` : "",
+              doi ? `https://doi.org/${doi}` : "", placed ? "Ready for yes" : "", memo].map(q).join(",");
+    });
+    return "﻿" + [FORM_COLS.map(q).join(","), ...rows].join("\r\n") + "\r\n";
+  }
+
+  function readyList() {
+    const all = readyRows();
+    const terms = up.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = all.filter((r) => (up.show === "sent" ? isObj(r.d.submitted) : up.show === "waiting" ? !isObj(r.d.submitted) : true))
+      .filter((r) => {
+        const t = `${r.pdb} ${strip(r.name)} ${r.title} ${r.sg} ${groupOf(r.d.subgroup)} ${r.d.owner || ""} ${PLACEMENT_LABEL[r.d.placement] || ""} ${r.who} ${r.pushedBy}`.toLowerCase();
+        return terms.every((x) => t.includes(x));
+      })
+      // Oldest push first, so a structure comes before what goes under it.
+      .sort((a, b) => a.pushedAt.localeCompare(b.pushedAt) || a.pdb.localeCompare(b.pdb));
+    return { all, shown, counts: { all: all.length, sent: all.filter((r) => isObj(r.d.submitted)).length } };
+  }
+
+  function readyRow(r) {
+    const id = esc(r.pdb), d = r.d, saving = optimistic.has(r.pdb), off = saving ? " disabled" : "", sent = isObj(d.submitted);
+    const checked = up.selected.has(r.pdb), c = candOf(r.pdb);
+    const badge = d.placement === "daughter" ? " daughter" : d.placement === "related" ? " related" : "";
+    const listing = listingHash(r.pdb);
+    return `<article class="mp-rej-row mp-appr-row mp-ready-row${checked ? " selected" : ""}${saving ? " saving" : ""}" id="c-${id}" aria-labelledby="up-h-${id}">
+      <input type="checkbox" class="mp-rej-check mp-up-check" id="up-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
+      <div class="mp-rej-main">
+        <div class="mp-rej-head">
+          <a class="mp-pdb" id="up-h-${id}" href="${listing ? esc(listing) : `#/pdb/${id}/about`}">${id}</a>
+          <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
+          ${mpMark(sent ? "sent" : "out")}
+          ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
+          ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
+        </div>
+        <p class="mp-rej-name">${r.name || esc(r.title || r.pdb)}</p>
+        ${stageLine(r.pdb, d)}
+        <p class="mp-appr-where"><span class="mp-of">Goes to:</span> ${apprWhere(d)}</p>
+        ${r.unplaced ? `<p class="mp-rej-wait">Not shown in the database: ${esc(String(d.owner).toUpperCase())}, the entry it goes under, is not listed there. Check where it goes before uploading it (its Status in the form download is left blank).</p>` : ""}
+        ${d.note ? `<p class="mp-rej-note"><span class="mp-of">Curator note:</span> ${esc(plain(d.note))}</p>` : ""}
+        <dl class="mp-rej-facts">
+          <div><dt>Approved by</dt><dd>${esc(r.who || "unknown")}</dd></div>
+          <div><dt>Pushed</dt><dd>${esc(r.pushedBy || "a curator")}, <time datetime="${esc(r.pushedAt)}">${esc(fmtDate(r.pushedAt))}</time></dd></div>
+          <div><dt>Submitted to mpstruc</dt><dd>${sent ? `${esc(plain(d.submitted.byName || d.submitted.by))}, <time datetime="${esc(plain(d.submitted.at))}">${esc(fmtDate(d.submitted.at))}</time>` : "Not yet"}</dd></div>
+          <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
+        </dl>
+        <details class="mp-appr-listing" open><summary>Listing to enter in mpstruc${r.edited ? " (with the curator's edits)" : ""}</summary>
+          <div class="mp-appr-preview"><h3 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h3>
+          ${c ? mpListing(c, effectiveMp(d, r.c) || {}, { placement: d.placement, owner: d.owner }) : ""}</div></details>
+        <div class="mp-actions">
+          ${signedIn() ? (sent
+            ? `<button class="mp-btn secondary" type="button" id="up-unsent-${id}" data-uact="unsubmit" data-pdb="${id}"${off}>Not submitted after all</button>`
+            : `<button class="mp-btn" type="button" id="up-sent-${id}" data-uact="submit" data-pdb="${id}"${off}>Mark as submitted to mpstruc</button>`) : ""}
+          ${listing ? `<a class="mp-btn secondary" href="${esc(listing)}">View in the database</a>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function viewReady() {
+    loadAutomation();
+    const { all, shown, counts } = readyList();
+    const page = shown.slice(0, state.limit);
+    const inList = new Set(all.map((r) => r.pdb));
+    [...up.selected].forEach((p) => { if (!inList.has(p) && !optimistic.has(p)) up.selected.delete(p); });
+    const sel = page.filter((r) => up.selected.has(r.pdb) && !optimistic.has(r.pdb));
+    const nSel = sel.length, nPage = page.filter((r) => !optimistic.has(r.pdb)).length;
+    const selMark = sel.filter((r) => !isObj(r.d.submitted)).length, selUnmark = sel.length - selMark;
+    const opt = (val, label) => `<option value="${val}"${up.show === val ? " selected" : ""}>${label}</option>`;
+    return `<div class="mp-view">
+      <p class="mp-crumbs"><a href="#/">Database</a> › Not in mpstruc yet</p>
+      <h2>Ready to upload to mpstruc</h2>
+      ${pipeline("upload")}
+      <p class="mp-summary">Structures in this site's database that the official mpstruc does not list yet. This is the list to upload from:
+        download them for the mpstruc entry form (one row per structure, in the form's columns) or as mpstruc XML, enter them in mpstruc, then
+        ${signedIn() ? "press <b>Mark as submitted to mpstruc</b>" : "a signed-in curator marks them as submitted"}. Each week the site reads the newest
+        official mpstruc file (now the snapshot of ${esc(snapDate())}); a structure it lists is marked ${mpMark("in")} by itself and leaves this list.</p>
+      <form class="mp-filters mp-rej-filters" id="mp-up-filters" role="search" aria-label="Filter structures to upload">
+        <label>Show<select name="show" id="mp-up-show">${opt("", `All not in mpstruc (${counts.all})`)}${opt("waiting", `Not submitted yet (${counts.all - counts.sent})`)}${opt("sent", `Submitted, waiting for mpstruc (${counts.sent})`)}</select></label>
+        <label class="mp-rej-q">Search<input type="search" name="q" id="mp-up-q" value="${esc(up.q)}" placeholder="PDB ID, name, subfamily, curator" autocomplete="off"></label>
+      </form>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-up-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${up.q ? " match the search" : ""}</p>
+        <span class="mp-dl-btns"><button type="button" class="mp-btn" id="mp-up-csv" aria-describedby="mp-up-hint">Download for the mpstruc form (CSV)</button>
+        <button type="button" class="mp-btn secondary" id="mp-up-xml" aria-describedby="mp-up-hint">Download as mpstruc XML</button></span></div>
+      <p class="mp-summary mp-dl-note" id="mp-up-hint">${nSel ? `The downloads have the ${nSel} selected ${nSel === 1 ? "structure" : "structures"}.` : "The downloads have every structure listed below; select some to download only those."}</p>
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
+      ${page.length ? `<div class="mp-rej-bulk" role="group" aria-label="Act on selected structures">
+        <label class="mp-check"><input type="checkbox" id="mp-up-all"${nSel && nSel === nPage ? " checked" : ""}> Select all ${page.length} listed</label>
+        <span class="mp-rej-selcount" id="mp-up-selcount">${nSel} selected</span>
+        ${signedIn() ? `<span class="mp-rej-bulk-btns">
+          <button class="mp-btn" type="button" id="up-bulk-sent" data-ubulk="submit"${selMark ? "" : " disabled"}>Mark ${selMark || ""} selected as submitted</button>
+          <button class="mp-btn secondary" type="button" id="up-bulk-unsent" data-ubulk="unsubmit"${selUnmark ? "" : " disabled"}>Mark ${selUnmark || ""} selected as not submitted</button>
+        </span>` : ""}
+      </div>` : ""}
+      <div class="mp-rej-list">${page.map(readyRow).join("") || `<p class="mp-empty">${up.q || up.show ? "No structure matches."
+        : `Nothing to upload: every structure pushed to the database is in mpstruc. Push approved structures from ${signedIn() ? '<a href="#/approved">Decisions › Approved</a>' : "Decisions › Approved"}.`}</p>`}</div>
+      ${more(page.length, shown.length)}
+    </div>`;
+  }
+
+  // on: true marks ids as submitted to mpstruc, false takes the mark off.
+  function markSubmitted(ids, on) {
+    if (!signedIn()) { toast("Sign in on the Curators tab to mark structures as submitted.", { kind: "error" }); return; }
+    ids = ids.filter((p) => isPushed(curation.entries[p]) && !inOfficial(p) && !optimistic.has(p) && isObj(curation.entries[p].submitted) !== on);
+    if (!ids.length) return;
+    const st = { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() };
+    const written = new Map();
+    const changes = ids.map((p) => {
+      const { submitted, ...rest } = curation.entries[p];
+      const entry = on ? { ...rest, submitted: st } : rest;
+      written.set(p, JSON.stringify(entry));
+      return { pdb: p, entry, detail: on ? `Marked ${p} as submitted to mpstruc: it shows as 'Submitted, waiting for mpstruc' until the official mpstruc file lists it`
+                                          : `Marked ${p} as not submitted to mpstruc after all` };
+    });
+    mutate({ changes, action: on ? "submit" : "unsubmit", what: on ? `mark ${subject(ids)} as submitted` : `mark ${subject(ids)} as not submitted`,
+             message: `Curator ${cur.user.login}: mark ${listIds(ids)} as ${on ? "" : "not "}submitted to mpstruc`,
+             done: (ok, miss, before) => afterRej(on ? `Marked ${subject(ok)} as submitted to mpstruc. ${ok.length === 1 ? "It is" : "They are"} marked In mpstruc by itself once the weekly check finds ${ok.length === 1 ? "it" : "them"} in the official file.`
+                 : `Marked ${subject(ok)} as not submitted to mpstruc.`, ok, miss, before, written, on ? "marking as submitted" : "marking as not submitted",
+               { undo: { action: on ? "unsubmit" : "submit", detail: (p) => `Undid marking ${p} as ${on ? "" : "not "}submitted to mpstruc` } }) });
+  }
+
+  function wireReady() {
+    const form = document.getElementById("mp-up-filters");
+    if (!form) return;
+    form.addEventListener("submit", (ev) => ev.preventDefault());
+    form.elements.show.addEventListener("change", () => { up.show = form.elements.show.value; state.limit = PAGE; rerender(); });
+    form.elements.q.addEventListener("input", () => { up.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    const visibleSelected = () => [...app.querySelectorAll(".mp-up-check:checked:not([disabled])")].map((b) => b.dataset.pdb);
+    const pick = () => {
+      const ids = visibleSelected();
+      return { ids: ids.length ? readyList().shown.map((r) => r.pdb).filter((p) => ids.includes(p)) : readyList().shown.map((r) => r.pdb), some: ids.length > 0 };
+    };
+    const stampName = () => new Date().toISOString().slice(0, 10);
+    document.getElementById("mp-up-csv").addEventListener("click", () => {
+      const { ids, some } = pick();
+      if (!ids.length) { dlNote("Nothing to download: no structure is listed."); return; }
+      download(`mpstruc_form_upload_${stampName()}${some ? "_selected" : ""}.csv`, formCsv(ids), "text/csv");
+    });
+    document.getElementById("mp-up-xml").addEventListener("click", () => {
+      const { ids, some } = pick();
+      if (!ids.length) { dlNote("Nothing to download: no structure is listed."); return; }
+      download(`mpstruc_upload_${stampName()}${some ? "_selected" : ""}.xml`, approvedXml(new Set(ids)), "application/xml");
+    });
+    app.querySelectorAll(".mp-up-check").forEach((box) => box.addEventListener("change", () => {
+      if (box.checked) up.selected.add(box.dataset.pdb); else up.selected.delete(box.dataset.pdb);
+      rerender();
+    }));
+    const all = document.getElementById("mp-up-all");
+    if (all) {
+      const boxes = [...app.querySelectorAll(".mp-up-check:not([disabled])")];
+      const nOn = boxes.filter((b) => b.checked).length;
+      all.indeterminate = nOn > 0 && nOn < boxes.length;
+      all.addEventListener("change", () => {
+        boxes.forEach((b) => { if (all.checked) up.selected.add(b.dataset.pdb); else up.selected.delete(b.dataset.pdb); });
+        rerender();
+      });
+    }
+    app.querySelectorAll("[data-uact]").forEach((btn) => btn.addEventListener("click", () => markSubmitted([btn.dataset.pdb], btn.dataset.uact === "submit")));
+    app.querySelectorAll("[data-ubulk]").forEach((btn) => btn.addEventListener("click", () => {
+      const ids = visibleSelected();
+      if (ids.length) markSubmitted(ids, btn.dataset.ubulk === "submit");
+    }));
+  }
+
   // ---- the Decisions tab's menu (Approved, Rejected and Deleted lists) (a menu button in the tab bar) ----
   // The menu lives outside the tab bar (which scrolls sideways on phones and
   // would clip it) and is placed under the button while open.
@@ -3710,7 +5180,7 @@ links.addEventListener("click", (event) => {
       const curF = kind === "rejected" ? rejFilterOf(f || "") : null;
       const curA = kind === "approved" ? apprFilterOf(f || "") : null;
       const item = (href, label, count, on) => `<a role="menuitem" tabindex="-1" href="${href}"${on ? ' aria-current="true"' : ""}>
-          <span>${esc(label)}</span> <span class="mp-count">(${count})</span></a>`;
+          <span>${esc(label)}</span>${count == null ? "" : ` <span class="mp-count">(${count})</span>`}</a>`;
       // Groups of menu items, each with a visible heading (the group's accessible name).
       const group = (id, label, html) => `<div role="group" aria-labelledby="${id}"><p class="mp-menu-head" id="${id}" role="presentation">${esc(label)}</p>${html}</div>`;
       menu.innerHTML = group("mp-menu-h-ap", "Approved",
@@ -3718,10 +5188,16 @@ links.addEventListener("click", (event) => {
           + item("#/approved/edited", "Edited by curators", a.edited, curA === "edited")
           + item("#/approved/pushed", "Pushed to database", a.pushed, curA === "pushed"))
         + '<div role="separator" class="mp-menu-sep"></div>'
+        + group("mp-menu-h-mp", "mpstruc",
+          item("#/notinmpstruc", "Ready to upload to mpstruc", readyRows().length, kind === "notinmpstruc")
+          + item("#/approved/inmpstruc", "Now in mpstruc", a.official, curA === "inmpstruc"))
+        + '<div role="separator" class="mp-menu-sep"></div>'
         + group("mp-menu-h-rej", "Rejected", item("#/rejected", "All rejected", n.all, curF === "")
           + REASONS.map((r) => item(`#/rejected/${r.code}`, r.label, n[r.code], curF === r.code)).join(""))
         + '<div role="separator" class="mp-menu-sep"></div>'
-        + item("#/rejected/deleted", "Deleted", n.deleted, curF === "deleted");
+        + item("#/rejected/deleted", "Deleted", n.deleted, curF === "deleted")
+        + '<div role="separator" class="mp-menu-sep"></div>'
+        + item("#/automation/vercel", "Compared with Vercel demo", null, /^automation\/vercel/.test(lastRoute));
     }
     function open(which = "first") {
       build();
@@ -3854,9 +5330,12 @@ links.addEventListener("click", (event) => {
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
     if (h !== lastRoute) state.limit = PAGE;
+    pendingScroll.clear();
     state.focusHeading = lastRoute !== "" || h !== "";
-    if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); }
+    if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); up.selected.clear(); }
     lastRoute = h;
+    // A listing opened for one PDB ID (a search or a PDB link): scroll to it once drawn.
+    state.scrollHit = true;
     rejMenu.close(false);
     logTimer(h.split("/")[0] === "log");
     // Presentation only: the view fade-in runs on navigation, not on every filter or search re-render.
@@ -3890,7 +5369,8 @@ links.addEventListener("click", (event) => {
     if (focusName) {
       let el = focusName.startsWith("[") ? app.querySelector(focusName) : document.getElementById(focusName);
       // A card that had focus while saving: move to its first usable control.
-      if (el && el.matches(".mp-cand, .mp-appr-row")) el = el.querySelector("[data-act]:not([disabled])") || el;
+      // (Not the card opened from a link, which keeps focus while it is pending.)
+      if (el && el.matches(".mp-cand, .mp-relitem, .mp-appr-row") && el.id !== pendingScroll.id) el = el.querySelector("[data-act]:not([disabled])") || el;
       if (el && !el.disabled) ok = focusEl(el);
     } else if (state.focusHeading && head) {
       ok = focusEl(head);
@@ -3907,11 +5387,45 @@ links.addEventListener("click", (event) => {
     // Remember which control had focus, so re-rendering does not drop keyboard users.
     const active = document.activeElement;
     const hadFocus = Boolean(active && app.contains(active));
-    const focusName = hadFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
+    // After #/find sent the reader to another tab, the control that had focus (the
+    // Database search box) is gone: do not move focus to a same-named one there.
+    const focusName = hadFocus && !renderNow.dropFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
+    renderNow.dropFocus = false;
     // A text field being typed in (the Change editor): put the caret back where it was.
     const caret = hadFocus && active.id && /^(TEXTAREA|INPUT)$/.test(active.tagName) && active.type !== "search" && typeof active.selectionStart === "number"
       ? { id: active.id, start: active.selectionStart, end: active.selectionEnd, dir: active.selectionDirection, top: active.scrollTop } : null;
-    const tab = kind === "rejected" || kind === "approved" ? "decisions" : ["automation", "curators", "log"].includes(kind) ? kind : "database";
+    // #/pdb/<not a PDB ID>: search the text of the database for it instead.
+    if (kind === "pdb" && arg && !PDB_RE.test(arg.replace(/\/about$/i, "").toUpperCase())) {
+      const to = `#/search/${encodeURIComponent(arg)}`;
+      history.replaceState(null, "", to);
+      lastRoute = to.slice(2);
+      renderNow();
+      return;
+    }
+    // #/pdb/<ID> of a PDB ID listed in the database opens its listing (#/pdb/<ID>/about keeps the PDB page).
+    if (kind === "pdb" && arg && !/\/about$/i.test(arg)) {
+      const to = listingHash(arg.toUpperCase());
+      if (to) {
+        history.replaceState(null, "", to);
+        lastRoute = to.slice(2);
+        renderNow();
+        return;
+      }
+    }
+    // #/find/<ID>: open the suggestion or decision it is, if any (see findTarget).
+    if (kind === "find" && arg) {
+      const to = findTarget(arg.toUpperCase());
+      if (to) {
+        history.replaceState(null, "", to);
+        lastRoute = to.slice(2);
+        renderNow.dropFocus = /^#\/(automation|rejected|approved)/.test(to);
+        renderNow();
+        return;
+      }
+    }
+    const tab = kind === "rejected" || kind === "approved" || (kind === "notinmpstruc" && signedIn()) ? "decisions"
+      : ["automation", "curators", "log"].includes(kind) ? kind : "database";
+    state.focusPdb = "";
     document.querySelectorAll(".mp-tabs [data-tab]").forEach((a) => {
       a.classList.toggle("active", a.dataset.tab === tab);
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -3924,8 +5438,13 @@ links.addEventListener("click", (event) => {
       if (l < bar.scrollLeft) bar.scrollLeft = l;
       else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth;
     }
-    if (["automation", "curators", "log", "rejected", "approved"].includes(kind)) {
-      if (kind === "automation") { app.innerHTML = viewAutomation(arg); wireAutomation(); }
+    if (["automation", "curators", "log", "rejected", "approved", "notinmpstruc"].includes(kind)) {
+      state.scrollHit = false;
+      if (kind === "automation") {
+        app.innerHTML = viewAutomation(arg);
+        if (/^vercel(\/|$)/.test(arg)) wireVercel(arg); else wireAutomation();
+      }
+      else if (kind === "notinmpstruc") { app.innerHTML = viewReady(); wireReady(); }
       else if (kind === "curators") { app.innerHTML = viewCurators(); wireCurators(); }
       else if (kind === "rejected") { app.innerHTML = viewRejected(arg); wireRejected(arg); }
       else if (kind === "approved") { app.innerHTML = viewApproved(arg); wireApproved(arg); }
@@ -3948,14 +5467,16 @@ links.addEventListener("click", (event) => {
         if (t) t.focus({ preventScroll: true });
       }
       const moreA = document.getElementById("mp-more");
+      // What a page counts: studies on the Automation tab, rows (or groups of rows) on the Decisions lists.
+      const TOPSEL = ".mp-study, .mp-inmp-row, .mp-rej-list > .mp-rej-row, .mp-rej-list > .mp-appr-group, .mp-vc-row";
       if (moreA) moreA.addEventListener("click", () => {
-        const before = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row").length;
+        const before = app.querySelectorAll(TOPSEL).length;
         state.limit += PAGE;
         const y = window.scrollY;
         setTimeout(() => {
           render();
           window.scrollTo(0, y);
-          const next = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row")[before];
+          const next = app.querySelectorAll(TOPSEL)[before];
           if (next) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
         }, 0);
       });
@@ -3966,11 +5487,16 @@ links.addEventListener("click", (event) => {
     if (kind === "sg" && state.sgOf.has(arg)) {
       const v = viewSubgroup(state.sgOf.get(arg));
       main = v.html; currentSg = v.sg; csv = [v.pool.filter(matches), v.filename];
-    } else if (kind === "entry" && state.byKey.has(arg)) {
-      const e = state.byKey.get(arg);
-      main = viewEntry(e); currentSg = e.sg;
+    } else if (kind === "entry" && state.byKey.has(arg.split("/")[0])) {
+      // #/entry/<key>/<PDB ID>: the listing opened for that PDB ID (highlighted, with where it is placed).
+      const [key, want = ""] = arg.split("/");
+      const e = state.byKey.get(key), focus = PDB_RE.test(want.toUpperCase()) ? want.toUpperCase() : "";
+      state.focusPdb = focus;
+      main = viewEntry(e, focus); currentSg = e.sg;
     } else if (kind === "pdb" && arg) {
-      main = viewPdb(arg.toUpperCase());
+      main = viewPdb(arg.replace(/\/about$/i, "").toUpperCase());
+    } else if (kind === "find" && arg) {
+      main = viewFind(arg.toUpperCase());
     } else if (kind === "search" && arg) {
       const v = viewSearch(arg);
       main = v.html; csv = [v.pool.filter(matches), v.filename];
@@ -3980,7 +5506,7 @@ links.addEventListener("click", (event) => {
     } else {
       main = viewHome();
     }
-    const q = kind === "search" && !arg.startsWith("*") ? arg : "";
+    const q = kind === "search" && !arg.startsWith("*") ? arg : kind === "find" ? arg.toUpperCase() : "";
     app.innerHTML = `<div class="mp-layout">${sidebar(currentSg)}<div>${searchBox(q)}${main}</div></div>`;
     mountPreviews();
     wireSearch();
@@ -4008,6 +5534,10 @@ links.addEventListener("click", (event) => {
     const curLink = app.querySelector(".mp-side a.current");
     const sideBox = app.querySelector(".mp-side");
     if (curLink && sideBox) sideBox.scrollTop = curLink.offsetTop - sideBox.clientHeight / 2;
+    // A daughter or related line asked for: bring it into view (after route() has scrolled to the top).
+    const hit = state.scrollHit && app.querySelector(".mp-hit");
+    state.scrollHit = false;
+    if (hit) requestAnimationFrame(() => hit.scrollIntoView({ block: "center" }));
   }
 })();
 
