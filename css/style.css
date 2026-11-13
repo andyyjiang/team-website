@@ -922,8 +922,18 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-form-note { flex-basis: 100%; margin: 0; color: var(--color-error-text); font-weight: 600; font-family: var(--font-ui); text-transform: none; letter-spacing: 0; }
 .mp-form-note:empty { display: none; }
 .mp-edit input:disabled { opacity: 0.5; }
+/* Choose placement (Automation cards): where a suggestion with no placement goes, then Approve. */
+.mp-place-what { flex-basis: 100%; margin: 0; overflow-wrap: anywhere; }
+.mp-place label { flex: 1 1 150px; }
+.mp-place label.mp-place-sg { flex: 3 1 260px; }
+.mp-place .mp-actions { flex-basis: 100%; margin-top: 0; }
+.mp-place .mp-form-note.ok { color: var(--color-text); font-weight: 500; }
+.mp-place [aria-invalid="true"] { border-color: var(--color-error-text); }
+.mp-place-hint { flex-basis: 100%; margin: 0; font-size: 0.85rem; color: var(--color-muted); overflow-wrap: anywhere; }
+.mp-edit-where { color: var(--color-muted); }
+.mp-appr-editline { margin: 0 0 6px; font-family: var(--font-ui); font-size: 0.98rem; font-weight: 600; }
 
-/* ---- Change editor (Automation cards) ----------------------------------
+/* ---- Entry editor (Decisions › Approved rows) ----------------------------------
    One column of stacked fields on phones; fields beside a sticky preview on
    wide screens. Save/Cancel stay in view at the bottom of the screen. */
 .mp-relline { font-size: 0.9rem; margin: 8px 0; padding: 8px 10px; border-left: 2px solid var(--color-related); background: var(--color-bg-alt); border-radius: 0 6px 6px 0; overflow-wrap: anywhere; }
@@ -933,6 +943,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-ed {
   clear: both; margin-top: 14px; padding: 16px; font-size: 0.9rem;
   background: var(--color-bg); border: 1px solid var(--color-border-strong); border-radius: 10px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
 }
 .mp-ed-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 1rem; font-weight: 600; }
 .mp-ed-intro { margin: 0 0 12px; color: var(--color-muted); font-size: 0.85rem; max-width: 75ch; }
@@ -1525,10 +1536,10 @@ a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mp-table tr { scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px); }
 .mp-chip.mp-hit-chip { border-color: var(--color-daughter); color: var(--color-daughter); font-weight: 600; }
 
-/* The curation steps strip: Automation > Edit > Approve > Push > Upload > In mpstruc. */
+/* The curation steps strip: Automation > Approve > Push > Upload > In mpstruc. */
 .mp-pipe { margin: 4px 0 16px; }
 .mp-pipe ol {
-  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+  list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); overflow: hidden;
 }
 .mp-pipe li { position: relative; min-width: 0; }
@@ -1561,7 +1572,10 @@ a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mp-term-line.act-in-mpstruc .act, .mp-term-line.act-submit .act { color: var(--term-accent); }
 
 @media (max-width: 720px) {
-  .mp-pipe ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Five steps on a phone: three on the first row, two on the second, both rows full width. */
+  .mp-pipe ol { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .mp-pipe li { grid-column: span 2; }
+  .mp-pipe li:nth-child(n + 4) { grid-column: span 3; }
   .mp-pipe li:nth-child(4) { border-left: 0; }
   .mp-pipe li:nth-child(n + 4) { border-top: 1px solid var(--color-border); }
   .mp-pipe a { padding: 7px 8px 8px; column-gap: 5px; }

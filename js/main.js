@@ -682,7 +682,7 @@ links.addEventListener("click", (event) => {
     if (auto.cands && candIndex().has(id) && !(d && d.status === "deleted")) return `#/automation/card/${id}`;
     if (d && signedIn()) {
       if (d.status === "rejected" || d.status === "deleted") { rej.q = id; return `#/rejected/${d.status === "deleted" ? "deleted" : reasonCode(d)}`; }
-      if (d.status === "approved") { appr.q = id; return `#/approved${inOfficial(id) ? "/inmpstruc" : isPushed(d) ? "/pushed" : ""}`; }
+      if (d.status === "approved") { appr.q = id; appr.qLink = true; appr.edited = false; return `#/approved${inOfficial(id) ? "/inmpstruc" : isPushed(d) ? "/pushed" : ""}`; }
     }
     return null;
   }
@@ -814,10 +814,14 @@ links.addEventListener("click", (event) => {
   // "curators" below). Decisions made before sign-in existed were kept in
   // this browser (localStorage); curators are offered to upload them.
   const auto = { cands: null, backtest: null, error: null, loading: false,
-                 view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null,
+                 view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, rejecting: null,
+                 // editing: the approved structure whose editor is open in Decisions › Approved.
+                 // placing: the suggestion whose 'Choose placement' form is open on its Automation card;
+                 // place: what is typed in it ({ pdb, placement, subgroup, owner }), kept across re-renders.
+                 editing: null, placing: null, place: null,
                  // open: PDB IDs whose full card is shown inside their study (related entries, or a lead the filters hide);
                  // groupRejecting: the study whose 'Reject all' form is open.
-                 // formOpened: the related entries whose card was opened only for a Change or Reject form.
+                 // formOpened: the related entries whose card was opened only for a Choose placement or Reject form.
                  open: new Set(), formOpened: new Set(), groupRejecting: null };
   // Why a structure was rejected: the code is saved as reasonCode, the label
   // (plus the curator's note, if any) as reason. Rejections saved before codes
@@ -918,7 +922,7 @@ links.addEventListener("click", (event) => {
              suggested: c.placement, suggestedSubgroup: c.subgroup, suggestedOwner: c.ownerPdb || "", membrane: c.membrane };
   }
 
-  // A structure as the Change editor and the exports see it: this week's
+  // A structure as the editor and the exports see it: this week's
   // suggestion, or (once it has dropped out of the weekly list) the snapshot its
   // decision saved, in the same shape.
   function candOf(pdb) {
@@ -983,10 +987,12 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
-  // ---- the Change editor ----------------------------------------------------
-  // Change (or Decide) opens a form for everything in the drafted mpstruc
+  // ---- the entry editor (Decisions › Approved) --------------------------------
+  // Edit on an approved structure opens a form for everything in its mpstruc
   // entry: where it goes, every listing field, the paper, related PDB entries
   // and a note for other curators, with a live preview drawn by mpListing().
+  // Suggestions are not edited on the Automation tab: they are approved as
+  // suggested (or after Choose placement, see placeForm) and edited here.
   // What the curator types is kept per PDB in `drafts` (memory only), so a
   // re-render (another save, a toast, a filter) never loses it; Cancel or a
   // successful save drops it. Saved edits go in entries[PDB].mpEdited (a full
@@ -1064,10 +1070,11 @@ links.addEventListener("click", (event) => {
   const effectiveMp = (d, c) => (d && d.status === "approved" && isObj(d.mpEdited) ? d.mpEdited : (c && c.mp) || (d && d.mp) || null);
 
   function seedDraft(c) {
+    // The editor is only drawn for approved entries (Decisions › Approved); should the
+    // approval be gone by the time a form is rebuilt, it starts from the suggestion.
     const d = decisionOf(c), ap = d && d.status === "approved" ? d : null;
-    const seed = () => ({ placement: ap ? ap.placement : (c.placement === "review" ? "daughter" : c.placement),
-                          subgroup: ap ? ap.subgroup : c.subgroup || "", owner: ap ? ap.owner || "" : c.ownerPdb || "",
-                          mp: fullMp(effectiveMp(ap, c)), note: ap ? plain(ap.note) : "" });
+    const seed = () => (ap ? { placement: ap.placement, subgroup: ap.subgroup, owner: ap.owner || "", mp: fullMp(effectiveMp(ap, c)), note: plain(ap.note) }
+      : suggestionDraft(c, ""));
     // base: the saved version the form started from, and its time stamp, so a
     // save can tell what this curator changed from what someone else saved since.
     return { ...seed(), base: { ...seed(), at: d ? d.at || null : null, status: d ? d.status : null } };
@@ -1136,6 +1143,7 @@ links.addEventListener("click", (event) => {
     if (b.pubMedId.trim() && !/^\d{1,9}$/.test(b.pubMedId.trim())) err["bibliography.pubMedId"] = "A PubMed ID is digits only, for example 39012345.";
     const doi = cleanField("bibliography.doi", b.doi);
     if (doi && !/^10\.\d{4,9}\/\S+$/.test(strip(doi))) err["bibliography.doi"] = "A DOI starts with 10. and has a slash, for example 10.1038/s41586-026-01234-5.";
+    if (!dr.subgroup) err.subgroup = "Choose the subfamily this entry goes in.";
     if (dr.placement !== "parent") {
       const o = dr.owner.trim().toUpperCase();
       if (!PDB_RE.test(o)) err.owner = "Enter the 4-character PDB ID of the parent (for a daughter) or of the entry it is listed under (for a related entry).";
@@ -1178,12 +1186,11 @@ links.addEventListener("click", (event) => {
           ${hint ? `<p class="mp-ed-hint" id="${id(path)}-hint">${hint}</p>` : ""}
           <p class="mp-field-err" id="${id(path)}-err"></p></div>`;
     };
-    const ap = d && d.status === "approved";
     const rels = dr.mp.related.map((r) => `<li><a class="mp-chip" href="#/pdb/${r}">${r}</a><button type="button" class="mp-ed-rm" data-ed="rm" data-id="${r}"
         aria-label="Remove ${r} from the related PDB entries">×</button></li>`).join("");
     return `<form class="mp-ed" id="${id("form")}" data-pdb="${P}" novalidate aria-labelledby="${id("title")}">
-      <h4 class="mp-ed-title" id="${id("title")}">${ap ? "Edit" : "Change"} the mpstruc entry for ${P}</h4>
-      <p class="mp-ed-intro">Every field below is saved with ${ap ? "the approval" : "your approval"}. The text fields use mpstruc's own markup:
+      <h4 class="mp-ed-title" id="${id("title")}">Edit the mpstruc entry for ${P}</h4>
+      <p class="mp-ed-intro">Every field below is saved with the approval${isPushed(d) ? ", and the database shows the change straight away" : ""}. The text fields use mpstruc's own markup:
         select text and use the buttons to make it subscript or superscript, or type tags such as <code>&lt;sub&gt;2&lt;/sub&gt;</code>
         and entities such as <code>&amp;Aring;</code>. A new line in the description becomes a line break.</p>
       ${dr.notice ? `<p class="mp-ed-restored" id="${id("notice")}" tabindex="-1" role="status">${esc(dr.notice)}</p>`
@@ -1196,7 +1203,9 @@ links.addEventListener("click", (event) => {
                 <select id="${id("placement")}" data-path="placement">${["parent", "daughter", "related"].map((p) =>
                   `<option value="${p}"${p === dr.placement ? " selected" : ""}>${PLACEMENT_LABEL[p]}</option>`).join("")}</select></div>
               <div class="mp-ed-field wide"><label for="${id("subgroup")}">Group and subfamily</label>
-                <select id="${id("subgroup")}" data-path="subgroup">${sgOptions}</select></div>
+                <select id="${id("subgroup")}" data-path="subgroup" aria-describedby="${id("subgroup")}-err">${
+                  state.sgOf.has(dr.subgroup) ? "" : '<option value="" selected>Choose a subfamily</option>'}${sgOptions}</select>
+                <p class="mp-field-err" id="${id("subgroup")}-err"></p></div>
               <div class="mp-ed-field"><label for="${id("owner")}">Parent or owner PDB ID</label>
                 <input id="${id("owner")}" data-path="owner" value="${esc(dr.owner)}" maxlength="4" autocomplete="off" spellcheck="false"
                   aria-describedby="${id("owner")}-hint ${id("owner")}-err"${dr.placement === "parent" ? " disabled" : ""}>
@@ -1261,7 +1270,7 @@ links.addEventListener("click", (event) => {
       </div>
       <p class="mp-form-note" id="${id("note-msg")}" aria-live="polite"></p>
       <div class="mp-ed-bar">
-        <button class="mp-btn" type="submit">${ap ? "Save changes" : "Approve with these details"}</button>
+        <button class="mp-btn" type="submit">Save changes</button>
         <button class="mp-btn secondary" type="button" data-ed="cancel">Cancel</button>
         <button class="mp-btn secondary" type="button" data-ed="reset">Reset to suggestion</button>
       </div>
@@ -1372,10 +1381,18 @@ links.addEventListener("click", (event) => {
         afterAction(pdb, "[data-act=edit]");
       } else if (act === "reset") {
         const old = readEditor(f);
-        drafts.set(pdb, { ...suggestionDraft(c, old.note), base: old.base });
+        // A suggestion that left the placement to a curator has no 'Where it goes' to go
+        // back to: keep what the curator chose (as saved), reset only the listing.
+        const keep = needsPlacement(c) && old.base;
+        drafts.set(pdb, { ...suggestionDraft(c, old.note),
+                          ...(keep ? { placement: old.base.placement, subgroup: old.base.subgroup, owner: old.base.owner } : {}), base: old.base });
         afterAction(pdb, `#${edId(pdb, "name")}`);
         const msg = document.getElementById(edId(pdb, "note-msg"));
-        if (msg) { msg.textContent = "Every field is back to the weekly suggestion (your note is kept). Nothing is saved until you press Save."; msg.classList.add("ok"); }
+        if (msg) {
+          msg.textContent = (keep ? "The listing fields are back to the weekly suggestion. Where it goes is unchanged: the suggestion left that for a curator to choose. Your note is kept."
+            : "Every field is back to the weekly suggestion (your note is kept).") + " Nothing is saved until you press Save.";
+          msg.classList.add("ok");
+        }
       }
     });
     const addInput = document.getElementById(edId(pdb, "relnew"));
@@ -1408,7 +1425,7 @@ links.addEventListener("click", (event) => {
       dr.restored = true;
       auto.editing = null;
       afterAction(pdb, "[data-act=edit]");
-      toast(`Closed the form for ${pdb} without saving. Your changes are kept on this page: press ${decisionOf(c) && decisionOf(c).status === "approved" ? "Edit entry" : "Change"} to carry on, or Cancel in the form to throw them away.`);
+      toast(`Closed the form for ${pdb} without saving. Your changes are kept on this page: press Edit to carry on, or Cancel in the form to throw them away.`);
     });
     f.addEventListener("submit", (ev) => {
       ev.preventDefault();
@@ -1427,7 +1444,7 @@ links.addEventListener("click", (event) => {
       const shown = [...f.querySelectorAll("[data-path]")].filter((el) => !el.closest(".is-hidden"));
       const bad = [...new Set(shown.map((el) => el.dataset.path).filter((p) => errs[p]))];
       if (bad.length) {
-        msg.textContent = `${bad.length === 1 ? "One field needs" : `${bad.length} fields need`} fixing before saving: ${bad.map((p) => ED_LABEL[p] || (p === "owner" ? "Parent or owner PDB ID" : p)).join(", ")}.`;
+        msg.textContent = `${bad.length === 1 ? "One field needs" : `${bad.length} fields need`} fixing before saving: ${changeLabels(bad)}.`;
         const first = shown.find((el) => errs[el.dataset.path]);
         if (first) first.focus();
         return;
@@ -1468,7 +1485,6 @@ links.addEventListener("click", (event) => {
   // studyActs: the study's own buttons (Approve all, Reject all) when c leads one.
   function candidateCard(c, studyActs = "") {
     const d = decisionOf(c);
-    const editing = auto.editing === c.pdb;
     const saving = optimistic.has(c.pdb);
     const status = (d ? (d.status === "approved" ? `<span class="mp-badge daughter">Approved</span>`
       : `<span class="mp-badge related">${d.status === "deleted" ? "Deleted" : "Rejected"}</span>`) : "")
@@ -1479,14 +1495,17 @@ links.addEventListener("click", (event) => {
           ${saving ? "" : isPushed(d) ? (d.placement !== "related" && state.byKey.has(`NEW-${c.pdb}`) ? ` · <a href="#/entry/NEW-${esc(c.pdb)}">View in the database</a>`
             : d.placement === "related" && !state.unplaced.includes(c.pdb) ? ` · <a href="#/pdb/${esc(c.pdb)}">In the database</a>` : "")
             : ` · <span class="mp-badge staged">Not yet pushed</span> <a href="#/approved">Push it from Decisions › Approved</a>`}</p>
+        ${saving ? "" : `<p class="mp-final mp-edit-where">Editing is done in Decisions › Approved${signedIn() ? `: <a href="#/approved/edit/${esc(c.pdb)}">edit ${esc(c.pdb)} there</a>` : ""}.</p>`}
         ${d.note ? `<p class="mp-final mp-ed-savednote"><b>Curator note:</b> ${esc(plain(d.note))}</p>` : ""}`
       : d && d.status === "rejected" ? `<p class="mp-final"><b>Rejected:</b> ${esc(d.reason || REASON_LABEL[reasonCode(d)])}${who}
           · <a href="#/rejected/${reasonCode(d)}">See it in Rejected</a></p>` : "";
     const can = signedIn() && !saving;
     const off = can ? "" : " disabled";
-    const editForm = editing && can ? editorForm(c, d) : "";
     // An approved card shows the entry as approved (the curator's edited copy, and its placement).
     const ap = d && d.status === "approved" ? d : null;
+    // A suggestion with no placement (or no subfamily) yet: Choose placement stands in for Approve.
+    const needsPlace = !ap && needsPlacement(c);
+    const placing = needsPlace && can && auto.placing === c.pdb ? placeForm(c) : "";
     const shownMp = effectiveMp(ap, c);
     const shownRel = ap ? { placement: ap.placement, owner: ap.owner } : { placement: c.placement, owner: c.ownerPdb };
     const rejectForm = auto.rejecting === c.pdb ? `<form class="mp-edit mp-reject" data-pdb="${esc(c.pdb)}" novalidate>
@@ -1527,17 +1546,91 @@ links.addEventListener("click", (event) => {
         ${alts ? `<p class="mp-summary">Subfamily candidates:</p><ol>${alts}</ol>` : ""}
       </details>
       ${finalText}
-      ${editForm}${rejectForm}
-      ${editForm || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
-        ${ap ? "" : `<button class="mp-btn${c.awaiting && !d ? " secondary" : ""}" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.placement === "review" || !c.subgroup ? " disabled title='Choose a placement first with Decide'" : c.awaiting && !d ? " title='The paper is not out yet: approve only if you know it is published'" : ""}>${c.awaiting && !d ? "Approve anyway" : "Approve"}</button>`}
-        <button class="mp-btn secondary" type="button" id="act-edit-${esc(c.pdb)}" data-act="edit" data-pdb="${esc(c.pdb)}"${off}>${ap ? "Edit entry" : c.placement === "review" && !d ? "Decide" : "Change"}</button>
+      ${placing}${rejectForm}
+      ${placing || auto.rejecting === c.pdb ? "" : `<div class="mp-actions">
+        ${ap ? "" : needsPlace
+          ? `<button class="mp-btn${c.awaiting && !d ? " secondary" : ""}" type="button" id="act-place-${esc(c.pdb)}" data-act="place" data-pdb="${esc(c.pdb)}"${can ? ' title="Choose where it goes (placement, subfamily, parent or owner), then approve it"' : off}>Choose placement</button>`
+          : `<button class="mp-btn${c.awaiting && !d ? " secondary" : ""}" type="button" id="act-approve-${esc(c.pdb)}" data-act="approve" data-pdb="${esc(c.pdb)}"${!can ? off : c.awaiting && !d ? " title='The paper is not out yet: approve only if you know it is published'" : " title='Approve it as suggested. It can be edited afterwards in Decisions › Approved'"}>${c.awaiting && !d ? "Approve anyway" : "Approve"}</button>`}
         <button class="mp-btn secondary" type="button" id="act-reject-${esc(c.pdb)}" data-act="reject" data-pdb="${esc(c.pdb)}"${off}>Reject</button>
         ${c.awaiting && !d ? `<button class="mp-btn secondary" type="button" id="act-unpub-${esc(c.pdb)}" data-act="reject-unpublished" data-pdb="${esc(c.pdb)}"${off}>Reject: not published yet</button>` : ""}
         ${d ? `<button class="mp-btn secondary" type="button" id="act-undo-${esc(c.pdb)}" data-act="undo" data-pdb="${esc(c.pdb)}"${off}>Undo</button>` : ""}
         ${studyActs}
         ${signedIn() ? "" : '<p class="mp-signin-note">Sign in on the <a href="#/curators">Curators tab</a> to decide</p>'}
+        ${needsPlace && can ? `<p class="mp-place-hint">${esc(c.pdb)} has no ${c.placement === "review" ? "placement" : "subfamily"} yet: choose where it goes to approve it. Everything else is edited after approval, in Decisions › Approved.</p>` : ""}
       </div>`}
     </article>`;
+  }
+
+  // ---- Choose placement (Automation) -------------------------------------------
+  // A suggestion the weekly job could not place ('Needs a decision', or no
+  // subfamily found) cannot be approved as suggested. Its card has a short form
+  // for where it goes only: placement, subfamily, parent or owner. Submitting
+  // approves it there; the name, listing and paper are edited afterwards in
+  // Decisions › Approved, like every other approved entry.
+  const needsPlacement = (c) => c.placement === "review" || !c.subgroup;
+  function placeForm(c) {
+    const P = esc(c.pdb);
+    if (!auto.place || auto.place.pdb !== c.pdb) {
+      auto.place = { pdb: c.pdb, placement: c.placement === "review" ? "daughter" : c.placement, subgroup: c.subgroup || "", owner: c.ownerPdb || "" };
+    }
+    const p = auto.place;
+    const sgOptions = state.data.groups.map((g) => `<optgroup label="${esc(g.topology)}">${g.subgroups.map((sg) =>
+      `<option value="${sg.k}"${sg.k === p.subgroup ? " selected" : ""}>${asText(sg.name)}</option>`).join("")}</optgroup>`).join("");
+    return `<form class="mp-edit mp-place" id="place-${P}" data-pdb="${P}" novalidate aria-labelledby="place-h-${P}">
+        <p class="mp-place-what" id="place-h-${P}"><b>Choose where ${P} goes, then approve it.</b>
+          The name, listing and paper can be edited after approval, in Decisions › Approved.</p>
+        <label>Placement<select name="placement" id="place-placement-${P}">${["parent", "daughter", "related"].map((x) =>
+          `<option value="${x}"${x === p.placement ? " selected" : ""}>${PLACEMENT_LABEL[x]}</option>`).join("")}</select></label>
+        <label class="mp-place-sg">Group and subfamily<select name="subgroup" id="place-subgroup-${P}" aria-describedby="place-err-${P}">
+          ${p.subgroup ? "" : '<option value="" selected>Choose a subfamily</option>'}${sgOptions}</select></label>
+        <label>Parent or owner PDB ID<input name="owner" id="place-owner-${P}" value="${esc(p.owner)}" maxlength="4" autocomplete="off" spellcheck="false"
+          placeholder="e.g. 9ABC" aria-describedby="place-err-${P}"${p.placement === "parent" ? " disabled" : ""}></label>
+        <p class="mp-form-note" id="place-err-${P}" aria-live="polite"></p>
+        <div class="mp-actions"><button class="mp-btn" type="submit">${c.awaiting && !decisionOf(c) ? "Approve anyway" : "Approve"}</button>
+          <button class="mp-btn secondary" type="button" data-act="cancel">Cancel</button></div>
+      </form>`;
+  }
+  function wirePlaceForm(f) {
+    const pdb = f.dataset.pdb, c = auto.cands.candidates.find((x) => x.pdb === pdb), msg = f.querySelector(".mp-form-note");
+    const p = auto.place;
+    if (!c || !p || p.pdb !== pdb) return;
+    const read = () => { p.placement = f.elements.placement.value; p.subgroup = f.elements.subgroup.value; p.owner = f.elements.owner.value; };
+    const clear = () => { msg.textContent = ""; msg.classList.remove("ok"); [...f.elements].forEach((el) => el.removeAttribute("aria-invalid")); };
+    f.addEventListener("input", () => { read(); clear(); });
+    f.addEventListener("change", () => { read(); clear(); f.elements.owner.disabled = p.placement === "parent"; });
+    f.addEventListener("keydown", (ev) => {
+      if (ev.key !== "Escape") return;
+      ev.preventDefault();
+      f.querySelector('[data-act="cancel"]').click();
+    });
+    f.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      read();
+      clear();
+      const bad = (el, text) => { el.setAttribute("aria-invalid", "true"); msg.textContent = text; el.focus(); };
+      const owner = p.owner.trim().toUpperCase();
+      let sg = p.subgroup;
+      if (p.placement !== "parent") {
+        if (owner === pdb) { bad(f.elements.owner, `${pdb} cannot be listed under itself.`); return; }
+        const check = checkOwner(owner, p.placement, sg);
+        if (check.error) { bad(f.elements.owner, check.error); return; }
+        if (check.subgroup && check.moved) {
+          // The entry must share its owner's subfamily: show where it will go; a second Approve confirms.
+          p.subgroup = check.subgroup;
+          f.elements.subgroup.value = check.subgroup;
+          msg.classList.add("ok");
+          msg.textContent = `${owner} is in ${sgName(check.subgroup)} (${groupOf(check.subgroup)}), so ${pdb} will go there. The subfamily has been set to match: press Approve again to confirm.`;
+          return;
+        }
+        sg = check.subgroup || sg;
+      }
+      if (!sg) { bad(f.elements.subgroup, "Choose the group and subfamily it goes in."); return; }
+      if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
+      if (optimistic.has(pdb) || (curation.entries[pdb] && curation.entries[pdb].status === "approved")) return;
+      auto.placing = null;
+      auto.place = null;
+      approve(c, { placement: p.placement, subgroup: sg, owner: p.placement === "parent" ? "" : owner });
+    });
   }
 
   // Why a suggestion is not listed with these filters (a short phrase), or ""
@@ -1587,7 +1680,7 @@ links.addEventListener("click", (event) => {
   // the weekly job chained them), the way mpstruc will show them. Related
   // entries of a structure already in mpstruc are grouped under a header for
   // that entry. The grouping follows where each structure goes now: the
-  // curator's approved placement when there is one (Change can move a related
+  // curator's approved placement when there is one (Edit can move a related
   // entry to another owner, or make it a daughter or parent), else the weekly
   // suggestion. It is rebuilt when that changes; the filters then pick studies
   // (see filteredStudies).
@@ -1722,7 +1815,7 @@ links.addEventListener("click", (event) => {
     const kids = und.filter((c) => c !== s.lead);
     const lead = s.lead, ld = lead && decisionOf(lead);
     let block = "";
-    if (lead && !ld && (lead.placement === "review" || !lead.subgroup)) block = `Choose where ${lead.pdb} goes first (Decide on its card); then approve it with its related entries.`;
+    if (lead && !ld && (lead.placement === "review" || !lead.subgroup)) block = `Choose where ${lead.pdb} goes first (Choose placement on its card, which approves it); its related entries can then be approved together.`;
     else if (lead && ld && ld.status !== "approved") block = `${lead.pdb} was ${ld.status}: the related entries go under it, so approve them one by one if they should stay.`;
     const noPlace = kids.filter((c) => !c.subgroup);
     const approve = [], held = [];
@@ -1749,7 +1842,7 @@ links.addEventListener("click", (event) => {
     const rel = (k) => `${k} related ${k === 1 ? "entry" : "entries"}`;
     const label = plan.leadIn ? (n ? `Approve ${s.lead.pdb} and its ${rel(n)}` : `Approve ${s.lead.pdb}`) : `Approve the ${rel(n)}`;
     const notes = [];
-    if (plan.noPlace.length) notes.push(`${listIds(plan.noPlace.map((c) => c.pdb))} ${plan.noPlace.length === 1 ? "has" : "have"} no subfamily yet: use Change on ${plan.noPlace.length === 1 ? "it" : "each"}.`);
+    if (plan.noPlace.length) notes.push(`${listIds(plan.noPlace.map((c) => c.pdb))} ${plan.noPlace.length === 1 ? "has" : "have"} no subfamily yet: use Choose placement on ${plan.noPlace.length === 1 ? "it" : "each"}.`);
     if (plan.held.length) notes.push(`${listIds(plan.held.map((c) => c.pdb))} ${plan.held.length === 1 ? "is" : "are"} left out: the entry ${plan.held.length === 1 ? "it goes" : "they go"} under is not approved.`);
     const title = plan.block || notes.join(" ");
     const k = esc(s.key), who = s.lead ? s.lead.pdb : s.ext.pdb;
@@ -1777,7 +1870,7 @@ links.addEventListener("click", (event) => {
   function relRow(node, hit, depth) {
     const c = node.c, d = decisionOf(c);
     if (d && d.status === "deleted") return "";
-    const id = esc(c.pdb), open = auto.open.has(c.pdb) || auto.editing === c.pdb || auto.rejecting === c.pdb;
+    const id = esc(c.pdb), open = auto.open.has(c.pdb) || auto.placing === c.pdb || auto.rejecting === c.pdb;
     const saving = optimistic.has(c.pdb), can = signedIn() && !saving, off = can ? "" : " disabled";
     const ap = d && d.status === "approved" ? d : null;
     const m = safeMp(effectiveMp(ap, c) || {});
@@ -1799,11 +1892,13 @@ links.addEventListener("click", (event) => {
         <p class="mp-relitem-line">${m.relatedLine ? relLineHtml(m.relatedLine) : `<span class="mp-of">No related line drafted:</span> ${esc(c.title || "")}`}</p>
         <p class="mp-relitem-title"><span class="mp-of">PDB title:</span> ${esc(c.title || "")}</p>
         <p class="mp-relitem-facts"><span class="mp-relitem-mem${c.membrane < Number(auto.view.min || 0) ? " low" : ""}">${pct(c.membrane)} membrane protein</span>
-          <span>released ${esc(c.released || "")}</span>${why ? `<span class="mp-relitem-why">${esc(why)}</span>` : ""}</p>
+          <span>released ${esc(c.released || "")}</span>${why ? `<span class="mp-relitem-why">${esc(why)}</span>` : ""}
+          ${ap && !saving ? `<span>Editing is done in Decisions › Approved${signedIn() ? `: <a href="#/approved/edit/${id}">edit ${id} there</a>` : ""}</span>` : ""}</p>
         <div class="mp-relitem-acts">
-          ${open ? "" : `${ap ? "" : `<button class="mp-btn" type="button" id="rel-approve-${id}" data-act="approve" data-pdb="${id}"${!can ? off : !c.subgroup ? " disabled title='Choose a subfamily first with Change'" : ""}>Approve</button>`}
+          ${open ? "" : `${ap ? "" : needsPlacement(c)
+            ? `<button class="mp-btn" type="button" id="rel-place-${id}" data-act="place" data-pdb="${id}"${can ? ' title="Choose where it goes (placement, subfamily, parent or owner), then approve it"' : off}>Choose placement</button>`
+            : `<button class="mp-btn" type="button" id="rel-approve-${id}" data-act="approve" data-pdb="${id}"${off}>Approve</button>`}
           ${d?.status === "rejected" ? "" : `<button class="mp-btn secondary" type="button" id="rel-reject-${id}" data-act="reject" data-pdb="${id}"${off}>Reject</button>`}
-          <button class="mp-btn secondary" type="button" id="rel-edit-${id}" data-act="edit" data-pdb="${id}"${off}>${ap ? "Edit entry" : "Change"}</button>
           ${d ? `<button class="mp-btn secondary" type="button" id="rel-undo-${id}" data-act="undo" data-pdb="${id}"${off}>Undo</button>` : ""}`}
           <button class="mp-btn secondary mp-relitem-more" type="button" id="rel-open-${id}" data-act="details" data-pdb="${id}" aria-expanded="${open}"${open ? ` aria-controls="rc-${id}"` : ""}>${open ? "Hide details" : "Details"}</button>
         </div>
@@ -2057,7 +2152,7 @@ links.addEventListener("click", (event) => {
     if (auto.error) return `<div class="mp-view"><h2>Automation</h2><p class="mp-empty">Could not load this week's suggestions (${esc(auto.error)}).</p></div>`;
     if (!auto.cands) { loadAutomation(); return '<div class="mp-view"><h2>Automation</h2><p class="mp-loading">Loading suggestions…</p></div>'; }
     if (sub === "accuracy") return viewAccuracy();
-    // #/automation/edit/<PDB> (from an approved entry's page): open its editor, then tidy the address.
+    // (#/automation/edit/<PDB>, an old link to the editor that used to be here, is sent on by renderNow.)
     // #/automation/card/<PDB> (from the Vercel comparison): show that card, then tidy the address.
     const cardMatch = /^card\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
     if (cardMatch) {
@@ -2072,20 +2167,10 @@ links.addEventListener("click", (event) => {
     // Vercel badges on the cards: the comparison (and its snapshot) load in the background.
     loadVercel();
     loadVercelSnapshot();
-    const editMatch = /^edit\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
-    if (editMatch) {
-      const id = editMatch[1].toUpperCase();
-      history.replaceState(null, "", "#/automation");
-      lastRoute = "automation";
-      if (auto.cands.candidates.some((x) => x.pdb === id)) {
-        Object.assign(auto.view, { status: "all", placement: "", age: "", q: id, min: 0.1 });
-        if (signedIn()) { auto.editing = id; auto.rejecting = null; auto.focusEditor = id; }
-      }
-    }
     const c = auto.cands, v = auto.view;
-    // Cards opened only to show a Change or Reject form close with the form.
+    // Cards opened only to show a Choose placement or Reject form close with the form.
     for (const pdb of auto.formOpened) {
-      if (auto.editing !== pdb && auto.rejecting !== pdb) { auto.open.delete(pdb); auto.formOpened.delete(pdb); }
+      if (auto.placing !== pdb && auto.rejecting !== pdb) { auto.open.delete(pdb); auto.formOpened.delete(pdb); }
     }
     // Show: Already in mpstruc lists new releases mpstruc has (not suggestions).
     const nAlready = alreadyRows().length, inMode = v.status === "inmpstruc";
@@ -2136,13 +2221,14 @@ links.addEventListener("click", (event) => {
       ${uploadOffer()}
       ${nStaged ? `<p class="mp-flags mp-staged-banner"><b>${nStaged} approved ${nStaged === 1 ? "structure is" : "structures are"} waiting to be pushed</b> to the database -
         review ${nStaged === 1 ? "it" : "them"} in ${signedIn() ? '<a href="#/approved">Decisions › Approved</a>' : "Decisions › Approved (once signed in)"}.</p>` : ""}
-      <p class="mp-summary">Decisions are shared: each one is saved to the repository by the curator who made it. Approved structures wait in
-        Decisions › Approved until a curator presses <b>Push to database</b>; then they appear in the <a href="#/">Database</a> tab.
+      <p class="mp-summary">Decisions are shared: each one is saved to the repository by the curator who made it. <b>Approve</b> takes a suggestion
+        as it is; approved structures wait in Decisions › Approved, where curators <b>edit</b> them (name, listing, paper, where they go) and then
+        press <b>Push to database</b>; then they appear in the <a href="#/">Database</a> tab.
         Download them to send to the mpstruc maintainers.
         ${older ? `${older} earlier ${older === 1 ? "decision is" : "decisions are"} no longer in this week's list but still included in the downloads.` : ""}
         ${state.unplaced.length ? `<br><b>${state.unplaced.length} pushed ${state.unplaced.length === 1 ? "structure is" : "structures are"} not shown in the
           database</b> because the entry ${state.unplaced.length === 1 ? "it is" : "they are"} placed under is not listed: ${state.unplaced.map(esc).join(", ")}.` : ""}</p>
-      ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve, change or reject them,
+      ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve or reject them,
         <a href="#/curators">sign in on the Curators tab</a>.</p>`}
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
       ${inMode ? `<p class="mp-summary mp-study-intro">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} that the official mpstruc already
@@ -2384,7 +2470,7 @@ links.addEventListener("click", (event) => {
         // New filters: cards shown on request close again.
         if (changed) {
           state.limit = PAGE;
-          for (const p of [...auto.open]) if (p !== auto.editing && p !== auto.rejecting) { auto.open.delete(p); auto.formOpened.delete(p); }
+          for (const p of [...auto.open]) if (p !== auto.placing && p !== auto.rejecting) { auto.open.delete(p); auto.formOpened.delete(p); }
           render();
         }
       };
@@ -2393,7 +2479,7 @@ links.addEventListener("click", (event) => {
     }
     const csvBtn = document.getElementById("mp-dl-csv");
     if (csvBtn) csvBtn.addEventListener("click", () => {
-      if (!Object.keys(decisions).length) { dlNote("Nothing to download yet: approve, change or reject a suggestion first."); return; }
+      if (!Object.keys(decisions).length) { dlNote("Nothing to download yet: approve or reject a suggestion first."); return; }
       download("mpstruc_decisions.csv", decisionsCsv(), "text/csv");
     });
     const xmlBtn = document.getElementById("mp-dl-xml");
@@ -2409,12 +2495,12 @@ links.addEventListener("click", (event) => {
       const pdb = btn.dataset.pdb || btn.closest("form")?.dataset.pdb;
       const c = auto.cands.candidates.find((x) => x.pdb === pdb);
       const act = btn.dataset.act;
-      // A related entry's row: Details shows (or hides) its full card; Change and Reject open their form there.
+      // A related entry's row: Details shows (or hides) its full card; Choose placement and Reject open their form there.
       if (act === "details") {
-        if (auto.open.has(pdb) || auto.editing === pdb || auto.rejecting === pdb) {
+        if (auto.open.has(pdb) || auto.placing === pdb || auto.rejecting === pdb) {
           auto.open.delete(pdb);
           auto.formOpened.delete(pdb);
-          if (auto.editing === pdb) auto.editing = null;
+          if (auto.placing === pdb) auto.placing = null;
           if (auto.rejecting === pdb) auto.rejecting = null;
         } else { auto.open.add(pdb); auto.formOpened.delete(pdb); }
         rerender();
@@ -2422,20 +2508,20 @@ links.addEventListener("click", (event) => {
         if (t) focusEl(t);
         return;
       }
-      if (btn.closest(".mp-relitem") && (act === "edit" || act === "reject") && !auto.open.has(pdb)) { auto.open.add(pdb); auto.formOpened.add(pdb); }
+      if (btn.closest(".mp-relitem") && (act === "place" || act === "reject") && !auto.open.has(pdb)) { auto.open.add(pdb); auto.formOpened.add(pdb); }
       if (act === "cancel") {
-        auto.editing = null;
+        const wasPlacing = auto.placing === pdb;
+        auto.placing = null;
+        auto.place = null;
         auto.rejecting = null;
-        afterAction(pdb);
+        afterAction(pdb, wasPlacing ? "[data-act=place]" : "[data-act=reject]");
         return;
       }
       if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
       if (!c) return;
       // Opening a form closes any other one; approving or undoing another card leaves an open form alone.
-      if (act === "edit" || act === "reject" || auto.editing === pdb) auto.editing = act === "edit" ? pdb : null;
-      if (act === "edit" || act === "reject" || auto.rejecting === pdb) auto.rejecting = act === "reject" ? pdb : null;
-      // Reopening a form whose changes were not saved: say they are back.
-      if (act === "edit" && drafts.has(pdb)) drafts.get(pdb).restored = true;
+      if (act === "place" || act === "reject" || auto.placing === pdb) auto.placing = act === "place" ? pdb : null;
+      if (act === "place" || act === "reject" || auto.rejecting === pdb) auto.rejecting = act === "reject" ? pdb : null;
       if (act === "approve") {
         approveOne(c, btn);
       } else if (act === "reject-unpublished") {
@@ -2471,7 +2557,7 @@ links.addEventListener("click", (event) => {
       if (act === "lead") {
         auto.open.add(s.lead.pdb);
         rerender();
-        const t = document.getElementById(`act-edit-${s.lead.pdb}`) || document.getElementById(`c-${s.lead.pdb}`);
+        const t = document.getElementById(`act-approve-${s.lead.pdb}`) || document.getElementById(`act-place-${s.lead.pdb}`) || document.getElementById(`c-${s.lead.pdb}`);
         if (t) focusEl(t);
         return;
       }
@@ -2494,7 +2580,7 @@ links.addEventListener("click", (event) => {
         approveStudy(s, studyPlan(s).approve);
       } else if (act === "reject") {
         auto.groupRejecting = s.key;
-        auto.editing = null;
+        auto.placing = null;
         auto.rejecting = null;
         rerender();
         const sel = document.getElementById(`grej-reason-${s.key}`);
@@ -2519,7 +2605,7 @@ links.addEventListener("click", (event) => {
         if (s && signedIn()) rejectStudy(s, sel.value, f.elements.note.value.trim().replace(/\s+/g, " "));
       });
     });
-    app.querySelectorAll("form.mp-ed").forEach(wireEditor);
+    app.querySelectorAll("form.mp-place").forEach(wirePlaceForm);
     if (auto.focusCard) {
       const card = document.getElementById(`c-${auto.focusCard}`);
       auto.focusCard = null;
@@ -2530,21 +2616,12 @@ links.addEventListener("click", (event) => {
         pendingScroll.set(card.id);
       }
     }
-    if (auto.focusEditor) {
-      const el = document.getElementById(edId(auto.focusEditor, "placement"));
-      auto.focusEditor = null;
-      if (el) {
-        state.focusHeading = false;
-        el.focus({ preventScroll: true });
-        pendingScroll.set(el.id);
-      }
-    }
     // A card opened from a link stays at the top while background loads re-render the list.
     if (pendingScroll.id) requestAnimationFrame(() => pendingScroll.apply());
   }
 
   // A card (or editor) opened from a link (#/automation/card/<ID>, an exact
-  // search, #/automation/edit/<ID>) is scrolled to the top of the view. The
+  // search, #/approved/edit/<ID>) is scrolled to the top of the view. The
   // suggestions, the Vercel comparison and its snapshot can finish loading just
   // after, and each re-renders the list; while the target is pending, those
   // re-renders scroll back to it instead of restoring the old position. It is
@@ -3241,7 +3318,7 @@ links.addEventListener("click", (event) => {
   function stamp() { return { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() }; }
 
   // Approve a suggestion, or save changes to an approved one. choice: where it
-  // goes; edit (from the Change editor): { mp, note, failed } where mp is the
+  // goes; edit (from the editor in Decisions › Approved): { mp, note, failed } where mp is the
   // full entry as typed (saved as mpEdited when it differs from the suggestion).
   // Returns false, saving nothing, when an approved entry would not change.
   function approve(c, choice, edit) {
@@ -3289,12 +3366,12 @@ links.addEventListener("click", (event) => {
           noteDecision(c.pdb, entry, t, () => undoEdit(c.pdb, prevAp));
           return;
         }
-        const review = lastRoute.startsWith("approved") ? [] : [{ label: "Review", run: () => { location.hash = "#/approved"; } }];
+        // Editing happens in Decisions › Approved: the toast opens this structure's editor there.
+        const editIt = [{ label: "Edit in Approved", run: () => { location.hash = `#/approved/edit/${c.pdb}`; } }];
         noteDecision(c.pdb, entry, toast(`Approved ${c.pdb} ${role(entry)} in ${sgName(entry.subgroup)}.`
-                     + (fields ? ` Your changes (${fields}) are saved with it.` : "")
-                     + " It waits in Decisions › Approved until a curator pushes it to the database. Alt+Z undoes the approval.", {
-          kind: "success", timeout: 8000,
-          actions: [{ label: "Push to database", run: () => pushToDatabase([c.pdb]) }, ...review,
+                     + " It waits in Decisions › Approved, where it can be edited, until a curator pushes it to the database. Alt+Z undoes the approval.", {
+          kind: "success", timeout: 10000,
+          actions: [...editIt, { label: "Push to database", run: () => pushToDatabase([c.pdb]) },
                     { label: "Undo", keys: "Alt+Z", run: () => undoDecision(c.pdb) }],
         }));
       },
@@ -3364,10 +3441,10 @@ links.addEventListener("click", (event) => {
                const okLead = lead && ok.includes(lead);
                const text = `Approved ${subject(ok)}${okLead ? `: ${lead} and ${ok.length - 1} related ${ok.length - 1 === 1 ? "entry" : "entries"}` : nRel ? " as related entries" : ""}.`
                  + (held.length ? ` ${listIds(held)} ${held.length === 1 ? "was" : "were"} not saved because the entry ${held.length === 1 ? "it goes" : "they go"} under could not be.` : "")
-                 + ` ${ok.length === 1 ? "It waits" : "They wait"} in Decisions › Approved until a curator pushes ${ok.length === 1 ? "it" : "them"} to the database.`;
+                 + ` ${ok.length === 1 ? "It waits" : "They wait"} in Decisions › Approved, where ${ok.length === 1 ? "it" : "they"} can be edited, until a curator pushes ${ok.length === 1 ? "it" : "them"} to the database.`;
                afterRej(text, ok, miss, before, written, "the approval", {
-                 actions: [{ label: "Push to database", run: () => pushToDatabase(ok.filter((p) => isStaged(curation.entries[p]))) },
-                           { label: "Review", run: () => { location.hash = "#/approved"; } }] });
+                 actions: [{ label: "Edit in Approved", run: () => { appr.q = ""; appr.qLink = false; location.hash = ok.length === 1 ? `#/approved/edit/${ok[0]}` : "#/approved"; } },
+                           { label: "Push to database", run: () => pushToDatabase(ok.filter((p) => isStaged(curation.entries[p]))) }] });
              } });
   }
 
@@ -3409,7 +3486,7 @@ links.addEventListener("click", (event) => {
     const stuck = chain.find((x) => curation.entries[x.pdb] || x.placement === "review" || !x.subgroup);
     const sd = stuck && curation.entries[stuck.pdb];
     const stuckWhy = !stuck ? "" : sd ? `was ${sd.status === "deleted" ? "deleted" : "rejected"}`
-      : `still needs a decision on where it goes (Decide on its card)`;
+      : `still needs a decision on where it goes (Choose placement on its card)`;
     const canAll = !stuck;
     const ups = chain.slice().reverse(); // owners first
     const upText = chain.length > 1
@@ -3458,7 +3535,7 @@ links.addEventListener("click", (event) => {
       done: (removed) => toast(`Undid the decision on ${pdb}: it is back in ${backTo}${isPushed(prev) ? " and out of the database" : ""}.`
         + (removed.length ? ` ${listIds(removed)} ${removed.length === 1 ? "was" : "were"} removed from the database with it and ${removed.length === 1 ? "stays" : "stay"} approved, in Decisions › Approved › Ready to push.` : "")
         + (also.length > removed.length ? ` ${listIds(also.filter((a) => !removed.includes(a.pdb)).map((a) => a.pdb))} changed meanwhile, so ${also.length - removed.length === 1 ? "it was" : "they were"} left alone and may now not be shown in the database.` : "")
-        + (stranded ? ` ${stranded[0].toUpperCase()}${stranded.slice(1)}: approve ${pdb} again, or change ${orphans.length === 1 ? "it" : "them"}.` : ""),
+        + (stranded ? ` ${stranded[0].toUpperCase()}${stranded.slice(1)}: approve ${pdb} again, or edit ${orphans.length === 1 ? "it" : "them"} in Decisions › Approved.` : ""),
         { timeout: stranded ? 12000 : undefined }),
     });
   }
@@ -4344,12 +4421,18 @@ links.addEventListener("click", (event) => {
   // Remove from database deletes .pushed again ('unpush'); the approval stays.
   // Pushed structures keep their own copy of the listing (mp / mpEdited, title,
   // released...), so they stay in the database after they leave the weekly
-  // suggestions. Three lists: ready to push (staged), edited by curators
-  // (approved with mpEdited, pushed or not) and pushed.
-  const appr = { sort: "newest", q: "", selected: new Set() };
+  // suggestions. This is also where approved entries are edited (Edit on a row
+  // opens the full editor), pushed or not. Lists: ready to push (staged),
+  // pushed, now in mpstruc, and 'Edited only' (approved with mpEdited, pushed
+  // or not): a choice in the Show menu at #/approved, not an address of its
+  // own (appr.edited; the old #/approved/edited is sent there by renderNow).
+  // focusEditor: the structure whose editor #/approved/edit/<ID> just opened.
+  // qLink: the search was filled in by a link to one structure (findTarget), not
+  // typed; it is emptied again on leaving the Approved lists.
+  const appr = { sort: "newest", q: "", qLink: false, selected: new Set(), edited: false, focusEditor: null };
   const APPR_SORTS = [["newest", "Newest approved first"], ["pdb", "PDB ID"], ["subfamily", "Subfamily"], ["curator", "Curator who approved it"]];
-  const apprFilterOf = (arg) => (arg === "edited" || arg === "pushed" || arg === "inmpstruc" ? arg : "");
-  const APPR_NAME = { "": "Approved – ready to push", edited: "Edited by curators", pushed: "Pushed to database", inmpstruc: "Now in mpstruc" };
+  const apprFilterOf = (arg) => (arg === "pushed" || arg === "inmpstruc" ? arg : appr.edited ? "edited" : "");
+  const APPR_NAME = { "": "Approved – ready to push", edited: "Approved – edited only", pushed: "Pushed to database", inmpstruc: "Now in mpstruc" };
   // The one-time notice about the new push step, for approvals saved before it existed.
   const PUSH_NOTICE_KEY = "mpstruc-push-step-notice-v1", PUSH_STEP_FROM = "2026-11-07T00:00:00.000Z";
   const inOfficial = (pdb) => base.listed.has(pdb) || base.related.has(pdb);
@@ -4442,11 +4525,13 @@ links.addEventListener("click", (event) => {
     const dbLink = r.pushed && !r.unplaced && !r.official
       ? `<a class="mp-btn secondary" href="${d.placement === "related" ? `#/pdb/${id}` : `#/entry/NEW-${id}`}">View in the database</a>`
       : r.pushed && r.official ? `<a class="mp-btn secondary" href="#/pdb/${id}">View the official entry</a>` : "";
+    // Edit comes first: this list is where approved entries are edited, before or after the push.
     const actions = `<div class="mp-actions">
+        <button class="mp-btn" type="button" id="ap-edit-${id}" data-act="edit" data-pdb="${id}"${off}
+          title="Edit the name, listing, paper and where it goes${r.pushed ? "; the database shows the change straight away" : ""}">Edit</button>
         ${r.pushed
           ? `<button class="mp-btn secondary" type="button" id="ap-unpush-${id}" data-act="unpush" data-pdb="${id}"${off}>Remove from database</button>`
           : `<button class="mp-btn" type="button" id="ap-push-${id}" data-act="push" data-pdb="${id}"${off}>Push to database</button>`}
-        <button class="mp-btn secondary" type="button" id="ap-edit-${id}" data-act="edit" data-pdb="${id}"${off}>Edit</button>
         ${dbLink}
         <button class="mp-btn secondary danger" type="button" id="ap-undo-${id}" data-act="undo" data-pdb="${id}"${off}>Undo approval</button>
       </div>`;
@@ -4534,8 +4619,11 @@ links.addEventListener("click", (event) => {
     const { rows, shown, counts } = apprList(filter);
     // Related entries listed in this list under their approved owner, as in mpstruc; a page counts groups.
     const groups = apprGroups(shown);
-    const pageGroups = groups.slice(0, state.limit);
     const flatG = (gs) => gs.flatMap((g) => [g.r, ...flatG(g.kids)]);
+    // The structure being edited is always on the page, however far down the list it is.
+    const editAt = auto.editing ? groups.findIndex((g) => flatG([g]).some((r) => r.pdb === auto.editing)) : -1;
+    if (editAt >= state.limit) state.limit = Math.ceil((editAt + 1) / PAGE) * PAGE;
+    const pageGroups = groups.slice(0, state.limit);
     const page = flatG(pageGroups);
     // As on the Rejected tab: a selection survives a search, and is dropped only
     // for structures that left this list; buttons act on selected rows listed now.
@@ -4563,9 +4651,12 @@ links.addEventListener("click", (event) => {
            to do for them, pushed or not. If mpstruc placed one differently from what the team pushed, it says so.`
       : filter === "edited"
         ? `Approved structures whose listing a curator changed from the weekly suggestion, pushed or not. Open <i>Changed</i> on a structure to see
-           each change, before and after.`
+           each change, before and after; press <b>Edit</b> to change it again.`
         : `Structures curators approved on the <a href="#/automation">Automation</a> tab. They are <b>not in the Database tab yet</b>: check each one,
-           then press <b>Push to database</b>. Pushed ones move to <a href="#/approved/pushed">Pushed to database</a>.`;
+           press <b>Edit</b> to change its name, listing, paper or where it goes, then press <b>Push to database</b>.
+           Pushed ones move to <a href="#/approved/pushed">Pushed to database</a>.`;
+    const editLine = filter === "" || filter === "edited" ? "Edit approved entries here before pushing them to the database."
+      : filter === "pushed" ? "Pushed entries can still be edited here: the database shows the change straight away." : "";
     const empty = appr.q ? "No structure matches the search."
       : filter === "pushed" ? "No structure has been pushed to the database yet."
       : filter === "inmpstruc" ? `No approved structure is in the official mpstruc yet. <a href="#/notinmpstruc">See what is ready to upload</a>.`
@@ -4574,11 +4665,12 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs">Decisions › Approved${filter ? ` › ${esc(APPR_NAME[filter])}` : ""}</p>
       <h2>${esc(title)}</h2>
-      ${pipeline({ "": "approve", edited: "edit", pushed: "push", inmpstruc: "inmp" }[filter])}
+      ${pipeline({ "": "approve", edited: "approve", pushed: "push", inmpstruc: "inmp" }[filter])}
+      ${editLine ? `<p class="mp-appr-editline">${editLine}</p>` : ""}
       <p class="mp-summary">${intro}</p>
       ${notice}
       <form class="mp-filters mp-rej-filters" id="mp-appr-filters" role="search" aria-label="Filter approved structures">
-        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("edited", `Edited by curators (${counts.edited})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}${opt("inmpstruc", `Now in mpstruc (${counts.official})`, filter)}</select></label>
+        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}${opt("inmpstruc", `Now in mpstruc (${counts.official})`, filter)}${opt("edited", `Edited only (${counts.edited})`, filter)}</select></label>
         <label>Sort<select name="sort" id="mp-appr-sort">${APPR_SORTS.map(([v, l]) => opt(v, l, appr.sort)).join("")}</select></label>
         <label class="mp-rej-q">Search<input type="search" name="q" id="mp-appr-q" value="${esc(appr.q)}" placeholder="PDB ID, name, subfamily, curator" autocomplete="off"></label>
       </form>
@@ -4767,11 +4859,13 @@ links.addEventListener("click", (event) => {
     if (!form) return;
     form.addEventListener("submit", (ev) => ev.preventDefault());
     form.elements.filter.addEventListener("change", () => {
-      const v = form.elements.filter.value;
-      location.hash = v ? `#/approved/${v}` : "#/approved";
+      // 'Edited only' is a choice at #/approved, not an address of its own.
+      const v = form.elements.filter.value, to = v && v !== "edited" ? `#/approved/${v}` : "#/approved";
+      appr.edited = v === "edited";
+      if (location.hash === to) { state.limit = PAGE; appr.selected.clear(); rerender(); } else location.hash = to;
     });
     form.elements.sort.addEventListener("change", () => { appr.sort = form.elements.sort.value; state.limit = PAGE; rerender(); });
-    form.elements.q.addEventListener("input", () => { appr.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    form.elements.q.addEventListener("input", () => { appr.q = form.elements.q.value; appr.qLink = false; state.limit = PAGE; rerender(); });
     const head = () => { const h = app.querySelector(".mp-view h2"); if (h) focusEl(h); };
     const notice = document.getElementById("mp-push-notice-ok");
     if (notice) notice.addEventListener("click", () => {
@@ -4846,6 +4940,18 @@ links.addEventListener("click", (event) => {
       p.then(() => { if (!document.activeElement || !app.contains(document.activeElement) || document.activeElement.disabled) head(); });
     }));
     app.querySelectorAll("form.mp-ed").forEach(wireEditor);
+    // #/approved/edit/<ID> (the toast after an approval, an Automation card): its editor is open; go to it.
+    if (appr.focusEditor) {
+      const el = document.getElementById(edId(appr.focusEditor, "name"));
+      appr.focusEditor = null;
+      if (el) {
+        state.focusHeading = false;
+        el.focus({ preventScroll: true });
+        // Scroll to the top of the form (its title says which structure it is), not to the focused field.
+        pendingScroll.set(el.form.id);
+      }
+    }
+    if (pendingScroll.id) requestAnimationFrame(() => pendingScroll.apply());
   }
 
   // ---- Automation › Compared with the Vercel demo ------------------------------
@@ -5148,13 +5254,14 @@ links.addEventListener("click", (event) => {
     }));
   }
 
-  // ---- the curation steps: automation -> edit -> approve -> push -> upload to mpstruc -> in mpstruc ----
+  // ---- the curation steps: automation -> approve -> push -> upload to mpstruc -> in mpstruc ----
+  // (There is no separate edit step: approved entries are edited in Decisions › Approved.)
   // A structure goes through these steps; the strip at the top of the
   // Automation tab, the Decisions lists and Ready to upload shows how many are
   // at each one, and each structure in those lists says which step it is at.
   // The last step needs no curator: each week the site reads the newest
   // official mpstruc file, and a pushed structure it lists counts as in mpstruc.
-  const PIPE = [["automation", "Automation", "#/automation"], ["edit", "Edit", "#/approved/edited"], ["approve", "Approve", "#/approved"],
+  const PIPE = [["automation", "Automation", "#/automation"], ["approve", "Approve", "#/approved"],
                 ["push", "Push to database", "#/approved/pushed"], ["upload", "Upload to mpstruc", "#/notinmpstruc"], ["inmp", "In mpstruc", "#/approved/inmpstruc"]];
   const snapDate = () => fmtDate(parseSnapshotTime(state.data.meta.timestamp)) || plain(state.data.meta.timestamp);
 
@@ -5164,11 +5271,10 @@ links.addEventListener("click", (event) => {
       // What the Automation tab lists with its default filters (To decide, at least the
       // weekly job's membrane-protein threshold, last 26 weeks), so the number matches the link.
       automation: auto.cands ? filteredCands({ status: "undecided", min: auto.cands.threshold ?? 0.5, placement: "", q: "", age: "", sort: "" }).length : null,
-      edit: ap.filter(([, d]) => isObj(d.mpEdited)).length,
       approve: ap.filter(([p, d]) => !isPushed(d) && !inOfficial(p)).length,
       push: ap.filter(([, d]) => isPushed(d)).length,
       upload: ap.filter(([p, d]) => isPushed(d) && !inOfficial(p)).length,
-      // Approved structures mpstruc lists, pushed or not (stageOf puts both at step 6).
+      // Approved structures mpstruc lists, pushed or not (stageOf puts both at the last step).
       inmp: ap.filter(([p]) => inOfficial(p)).length,
     };
   }
@@ -5176,7 +5282,7 @@ links.addEventListener("click", (event) => {
   // current: the step this view is about ("" for none).
   function pipeline(current) {
     const n = pipeCounts(), num = (v) => (v == null ? "…" : v.toLocaleString());
-    const say = { automation: `${num(n.automation)} to decide`, edit: `${num(n.edit)} edited`, approve: `${num(n.approve)} waiting to push`,
+    const say = { automation: `${num(n.automation)} to decide`, approve: `${num(n.approve)} waiting to push`,
                   push: `${num(n.push)} pushed`, upload: `${num(n.upload)} to upload`, inmp: `${num(n.inmp)} now in mpstruc` };
     return `<nav class="mp-pipe" aria-label="Curation steps, with how many structures are at each"><ol>${PIPE.map(([k, label, href], i) =>
       `<li${k === current ? ' class="current"' : ""}><a href="${href}"${k === current ? ' aria-current="step"' : ""}>`
@@ -5186,16 +5292,16 @@ links.addEventListener("click", (event) => {
   // The step an approved structure is at: [index into PIPE, plain sentence].
   function stageOf(pdb, d) {
     if (!isObj(d) || d.status !== "approved") return null;
-    if (inOfficial(pdb)) return [5, isPushed(d) ? `done, the official snapshot of ${snapDate()} lists it.` : "already listed there, so there is no need to push it."];
-    if (!isPushed(d)) return [3, "Approved, waiting to be pushed to the database."];
-    if (isObj(d.submitted)) return [4, `Submitted to mpstruc${d.submitted.at ? ` on ${fmtDate(d.submitted.at)}` : ""}, waiting for the official file to list it.`];
-    return [4, "In the database, ready to upload to mpstruc."];
+    if (inOfficial(pdb)) return [PIPE.length - 1, isPushed(d) ? `done, the official snapshot of ${snapDate()} lists it.` : "already listed there, so there is no need to push it."];
+    if (!isPushed(d)) return [2, "Approved, waiting to be pushed to the database."];
+    if (isObj(d.submitted)) return [3, `Submitted to mpstruc${d.submitted.at ? ` on ${fmtDate(d.submitted.at)}` : ""}, waiting for the official file to list it.`];
+    return [3, "In the database, ready to upload to mpstruc."];
   }
   function stageLine(pdb, d) {
     const s = stageOf(pdb, d);
     if (!s) return "";
     const [i, text] = s;
-    const dots = PIPE.map(([, label], j) => `<i class="${j < i || i === 5 ? "done" : j === i ? "now" : ""}" title="${esc(label)}"></i>`).join("");
+    const dots = PIPE.map(([, label], j) => `<i class="${j < i || i === PIPE.length - 1 ? "done" : j === i ? "now" : ""}" title="${esc(label)}"></i>`).join("");
     return `<p class="mp-stage"><span class="mp-stage-dots" aria-hidden="true">${dots}</span>
       <span><span class="mp-stage-step">Step ${i + 1} of ${PIPE.length}, ${esc(PIPE[i][1])}:</span> ${esc(text)}</span></p>`;
   }
@@ -5459,7 +5565,6 @@ links.addEventListener("click", (event) => {
       const group = (id, label, html) => `<div role="group" aria-labelledby="${id}"><p class="mp-menu-head" id="${id}" role="presentation">${esc(label)}</p>${html}</div>`;
       menu.innerHTML = group("mp-menu-h-ap", "Approved",
           item("#/approved", "Approved – ready to push", a.ready, curA === "")
-          + item("#/approved/edited", "Edited by curators", a.edited, curA === "edited")
           + item("#/approved/pushed", "Pushed to database", a.pushed, curA === "pushed"))
         + '<div role="separator" class="mp-menu-sep"></div>'
         + group("mp-menu-h-mp", "mpstruc",
@@ -5514,6 +5619,21 @@ links.addEventListener("click", (event) => {
         if (h) focusEl(h);
       }
     });
+    // Any link to #/approved (this menu, the step strip, a banner) while Show: Edited only
+    // is on: the address does not change, so go back to the ready list by hand.
+    document.addEventListener("click", (ev) => {
+      const a = ev.target.closest && ev.target.closest('a[href="#/approved"]');
+      if (!a || !appr.edited || lastRoute !== "approved") return;
+      appr.edited = false;
+      state.limit = PAGE;
+      appr.selected.clear();
+      render();
+      if (menu.contains(a)) return;
+      ev.preventDefault();
+      window.scrollTo(0, 0);
+      const h = app.querySelector(".mp-view h2");
+      if (h) focusEl(h);
+    }, true);
     document.addEventListener("pointerdown", (ev) => { if (isOpen() && !menu.contains(ev.target) && !btn.contains(ev.target)) close(false); });
     window.addEventListener("resize", () => { if (isOpen()) place(); });
     window.addEventListener("scroll", () => { if (isOpen()) place(); }, { passive: true });
@@ -5607,6 +5727,12 @@ links.addEventListener("click", (event) => {
     pendingScroll.clear();
     state.focusHeading = lastRoute !== "" || h !== "";
     if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); up.selected.clear(); }
+    // 'Edited only' and an open editor belong to the Approved lists: leaving them drops both (what was typed is kept).
+    // 'Edited only' is a choice at #/approved alone: any other address (Pushed, Now in mpstruc too) drops it.
+    if (h !== "approved") appr.edited = false;
+    // An open editor belongs to the Approved lists: leaving them closes it (what was typed is
+    // kept), and empties a search that a link filled in.
+    if (h.split("/")[0] !== "approved") { auto.editing = null; if (appr.qLink) { appr.q = ""; appr.qLink = false; } }
     lastRoute = h;
     // A listing opened for one PDB ID (a search or a PDB link): scroll to it once drawn.
     state.scrollHit = true;
@@ -5665,7 +5791,7 @@ links.addEventListener("click", (event) => {
     // Database search box) is gone: do not move focus to a same-named one there.
     const focusName = hadFocus && !renderNow.dropFocus ? (active.id || (active.name && `[name="${active.name}"]`)) : null;
     renderNow.dropFocus = false;
-    // A text field being typed in (the Change editor): put the caret back where it was.
+    // A text field being typed in (the entry editor): put the caret back where it was.
     const caret = hadFocus && active.id && /^(TEXTAREA|INPUT)$/.test(active.tagName) && active.type !== "search" && typeof active.selectionStart === "number"
       ? { id: active.id, start: active.selectionStart, end: active.selectionEnd, dir: active.selectionDirection, top: active.scrollTop } : null;
     // #/pdb/<not a PDB ID>: search the text of the database for it instead.
@@ -5685,6 +5811,41 @@ links.addEventListener("click", (event) => {
         renderNow();
         return;
       }
+    }
+    // #/approved/edited (the old 'Edited by curators' list): Approved, with Show: Edited only.
+    if (kind === "approved" && arg === "edited") {
+      appr.edited = true;
+      history.replaceState(null, "", "#/approved");
+      lastRoute = "approved";
+      renderNow();
+      return;
+    }
+    // #/approved/edit/<ID>: the Approved list that structure is in, with its editor open.
+    // #/automation/edit/<ID> (old links: the editor used to be on the Automation tab) goes
+    // there too when the structure is approved, else to its Automation card.
+    // (Waits while a saved sign-in is still being checked.)
+    const editLink = kind === "approved" || kind === "automation" ? /^edit\/([0-9][A-Za-z0-9]{3})$/.exec(arg) : null;
+    if (editLink && !(cur.token && !cur.user)) {
+      const id = editLink[1].toUpperCase();
+      const d = Object.hasOwn(curation.entries, id) && isObj(curation.entries[id]) ? curation.entries[id] : null;
+      let to = kind === "automation" ? `#/automation/card/${id}` : "#/approved";
+      if (d && d.status === "approved" && signedIn()) {
+        to = `#/approved${inOfficial(id) ? "/inmpstruc" : isPushed(d) ? "/pushed" : ""}`;
+        appr.edited = false;
+        // No search for the ID: it would stay in the box and hide every other structure
+        // later. The list is shown whole, long enough to hold this row (see viewApproved).
+        appr.q = "";
+        appr.qLink = false;
+        if (!optimistic.has(id)) {
+          auto.editing = id;
+          appr.focusEditor = id;
+          if (drafts.has(id)) drafts.get(id).restored = true;
+        }
+      }
+      history.replaceState(null, "", to);
+      lastRoute = to.slice(2);
+      renderNow();
+      return;
     }
     // #/find/<ID>: open the suggestion or decision it is, if any (see findTarget).
     if (kind === "find" && arg) {
