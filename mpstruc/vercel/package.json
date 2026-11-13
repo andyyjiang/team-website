@@ -1,0 +1,15 @@
+{
+  "name": "mpstruc-vercel-reader",
+  "private": true,
+  "description": "Reads the rendered mpstruc-viewer-demo page in a headless browser (see read_page.js).",
+  "scripts": {
+    "read": "node read_page.js --weeks 8 --out groups.jsonl",
+    "read-all": "node read_page.js --all --wait 2500 --out groups_all.jsonl"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

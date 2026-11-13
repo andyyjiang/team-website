@@ -22,6 +22,7 @@ import argparse
 import datetime as dt
 import json
 import math
+import re
 import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
@@ -88,6 +89,42 @@ class Known:
     owner_key: str  # entry the related ID is listed under (== key for parents/daughters)
     released: str
     s: dict | None
+
+
+_PDB_IN_TEXT = re.compile(r"(?<![A-Za-z0-9])([0-9](?=[A-Z0-9]{0,2}[A-Z])[A-Z0-9]{3})(?![A-Za-z0-9])")
+
+
+def mentioned_in_descriptions(db: Database) -> dict[str, str]:
+    """PDB codes that mpstruc names inside an entry's description text (codes
+    with at least one letter, so years and numbers are not taken), mapped to
+    the record key of the entry whose description names them."""
+    out: dict[str, str] = {}
+    for e in db.entries():
+        for code in _PDB_IN_TEXT.findall(e.description or ""):
+            if code != e.pdbCode.strip().upper():
+                out.setdefault(code, e.key)
+    return out
+
+
+def in_mpstruc(kb: KB, mentioned: dict[str, str], ids: list[str]) -> list[dict]:
+    """Where each of these PDB releases already is in mpstruc: as an entry
+    (parent/daughter), a related code, or only named in a description."""
+    out = []
+    for pdb in ids:
+        known = kb.by_pdb.get(pdb)
+        if known:
+            k = known[0]
+            owner = kb.by_key.get(k.owner_key)
+            out.append({"pdb": pdb, "as": k.kind, "key": k.owner_key if k.kind == "related" else k.key,
+                        "ownerPdb": owner.pdb if owner and k.kind == "related" else None,
+                        "subgroup": k.sg, "subgroupName": kb.sg_names.get(k.sg)})
+        elif pdb in mentioned:
+            owner = kb.by_key.get(mentioned[pdb])
+            out.append({"pdb": pdb, "as": "description", "key": mentioned[pdb],
+                        "ownerPdb": owner.pdb if owner else None,
+                        "subgroup": owner.sg if owner else None,
+                        "subgroupName": kb.sg_names.get(owner.sg) if owner else None})
+    return out
 
 
 @dataclass
@@ -867,12 +904,23 @@ def main() -> None:
     # Score every new structure for how likely it is to be a membrane protein
     # (mpstruc/membrane.py), and place those at 10% or more.
     from . import membrane
+    # mpstruc curators sometimes list a structure only in another entry's
+    # description ('alternative conformation, 2.90 Å: 32FD', fragment-screen
+    # series), not as an entry or related code; those are already in mpstruc.
+    mentioned = mentioned_in_descriptions(db)
+    in_text = [p for p in ids if p in mentioned and p not in kb.by_pdb]
+    # Every new release that mpstruc already has, with where it is, for the
+    # site's 'Already in mpstruc' list and labels.
+    already = in_mpstruc(kb, mentioned, ids)
+    ids = [p for p in ids if p not in mentioned or p in kb.by_pdb]
     fresh = [p for p in ids if p not in kb.by_pdb and p.upper() not in decided]
     mem = membrane.score_structures(fresh, db)
     floor = 0.1
     keep = {p for p, v in mem.items() if v["p"] >= floor}
     props, stats = propose(kb, ids, conf, model, keep=keep)
     stats["scored"] = len(mem)
+    stats["already listed"] += len(in_text)
+    stats["mentioned only in an mpstruc description"] = len(in_text)
     stats["below 10% membrane protein (not shown)"] = sum(v["p"] < floor for v in mem.values())
     for p in props:
         p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
@@ -901,7 +949,7 @@ def main() -> None:
     out = {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
            "window": [since, until], "snapshot": db.meta.get("timeStamp"), "snapshotAgeDays": age, "stats": stats,
            "threshold": 0.5, "confidence": conf, "runDate": run_day,
-           "awaiting": wait_stats, "candidates": props}
+           "awaiting": wait_stats, "candidates": props, "inMpstruc": already}
     mem_report = ROOT / "reports" / "membrane.json"
     if mem_report.exists():
         mr = json.loads(mem_report.read_text())

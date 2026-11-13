@@ -56,7 +56,10 @@ LABEL = "Not published yet"
 CURATION = "data/curation.json"
 # Data files the weekly job writes and commits (paths from the repository root).
 DATA_FILES = ["data/candidates.json", "data/mpstruc.json", "data/import_log.json",
-              "data/awaiting.json", CURATION]
+              "data/awaiting.json", CURATION,
+              # The comparison with the other group's Vercel demo (mpstruc.vercel_import /
+              # mpstruc.vercel_compare); skipped when a run did not write them.
+              "data/vercel_snapshot.json", "data/vercel_compare.json"]
 
 
 def now_iso() -> str:

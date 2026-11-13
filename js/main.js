@@ -1289,6 +1289,7 @@ links.addEventListener("click", (event) => {
         ${status}
         ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
         ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
+        ${vercelBadge(c.pdb)}
         <span class="mp-of">released ${esc(c.released || "")}</span>
         <h3>${shownMp && shownMp.name ? safeMarkup(shownMp.name) : esc(c.title || c.pdb)}</h3>
       </div>
@@ -1381,10 +1382,25 @@ links.addEventListener("click", (event) => {
   }
 
   function viewAutomation(sub) {
+    if (/^vercel(\/|$)/.test(sub || "")) return viewVercel(sub);
     if (auto.error) return `<div class="mp-view"><h2>Automation</h2><p class="mp-empty">Could not load this week's suggestions (${esc(auto.error)}).</p></div>`;
     if (!auto.cands) { loadAutomation(); return '<div class="mp-view"><h2>Automation</h2><p class="mp-loading">Loading suggestions…</p></div>'; }
     if (sub === "accuracy") return viewAccuracy();
     // #/automation/edit/<PDB> (from an approved entry's page): open its editor, then tidy the address.
+    // #/automation/card/<PDB> (from the Vercel comparison): show that card, then tidy the address.
+    const cardMatch = /^card\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
+    if (cardMatch) {
+      const id = cardMatch[1].toUpperCase();
+      history.replaceState(null, "", "#/automation");
+      lastRoute = "automation";
+      if (auto.cands.candidates.some((x) => x.pdb === id)) {
+        Object.assign(auto.view, { status: "all", placement: "", age: "", q: id, min: 0.1 });
+        auto.focusCard = id;
+      }
+    }
+    // Vercel badges on the cards: the comparison (and its snapshot) load in the background.
+    loadVercel();
+    loadVercelSnapshot();
     const editMatch = /^edit\/([0-9][A-Za-z0-9]{3})$/.exec(sub || "");
     if (editMatch) {
       const id = editMatch[1].toUpperCase();
@@ -1412,6 +1428,8 @@ links.addEventListener("click", (event) => {
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
+      <p class="mp-summary mp-auto-links"><a href="#/automation/vercel">Compared with the Vercel demo</a>: membrane proteins another group's demo site
+        missed, and structures it lists that are not membrane proteins.</p>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
       ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} in 'To decide' matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
@@ -1739,6 +1757,16 @@ links.addEventListener("click", (event) => {
       f.querySelector(".mp-form-note").textContent = "";
     }));
     app.querySelectorAll("form.mp-ed").forEach(wireEditor);
+    if (auto.focusCard) {
+      const card = document.getElementById(`c-${auto.focusCard}`);
+      auto.focusCard = null;
+      if (card) {
+        state.focusHeading = false;
+        card.setAttribute("tabindex", "-1");
+        card.focus({ preventScroll: true });
+        requestAnimationFrame(() => card.scrollIntoView({ block: "start" }));
+      }
+    }
     if (auto.focusEditor) {
       const el = document.getElementById(edId(auto.focusEditor, "placement"));
       auto.focusEditor = null;
@@ -3690,6 +3718,303 @@ links.addEventListener("click", (event) => {
     app.querySelectorAll("form.mp-ed").forEach(wireEditor);
   }
 
+  // ---- Automation › Compared with the Vercel demo ------------------------------
+  // data/vercel_compare.json (written by `python -m mpstruc.vercel_compare` in
+  // mpstruc/) compares the structures the Vercel demo of another group lists
+  // as potential membrane matches with our own evidence: per release week, and
+  // for Vercel's whole database. It is optional and loaded only when needed;
+  // the Automation cards also read Vercel's snapshot (data/vercel_snapshot.json)
+  // to say which suggestions Vercel does not list at all.
+  const vc = { data: null, loading: false, missing: false, error: null, snap: null, snapLoading: false, idx: null,
+               list: "missed", q: "", source: "", status: "" };
+  const VC_SOURCES = [["curators", "Our curators"], ["mpstruc", "mpstruc"], ["pdbtm", "PDBTM"], ["opm", "OPM"],
+                      ["memprotmd", "MemProtMD"], ["model", "Our model"], ["uniprot", "UniProt"]];
+  const VC_SOURCE_LABEL = Object.fromEntries(VC_SOURCES);
+  const VC_BY_LABEL = { ...VC_SOURCE_LABEL, databases: "PDBTM, MemProtMD or OPM", none: "no source (uncertain)" };
+  const VC_STATUS = { already_in: "Already in", yes: "Yes", maybe: "Maybe", ready_for_yes: "Ready for yes", pubmed_ready: "PubMed ready",
+                      no: "No", pending: "Pending (no verdict yet)" };
+  const VC_VERDICT = { membrane: "Membrane protein", not_membrane: "Not a membrane protein", uncertain: "Uncertain" };
+  const vcStatusText = (s) => (s == null ? "Not listed" : VC_STATUS[s] || String(s));
+  const vcRows = (v) => (Array.isArray(v) ? v.filter((r) => isObj(r) && typeof r.pdb === "string") : []);
+  const vcWeeks = () => (vc.data && Array.isArray(vc.data.weeks) ? vc.data.weeks.filter((w) => isObj(w) && /^\d{4}-\d\d-\d\d$/.test(w.week || ""))
+    .slice().sort((a, b) => b.week.localeCompare(a.week)) : []);
+  const vcWhole = () => (vc.data && isObj(vc.data.wholeDatabase) ? vc.data.wholeDatabase : null);
+
+  function loadVercel() {
+    if (vc.data || vc.loading || vc.missing || vc.error) return;
+    vc.loading = true;
+    fetch("data/vercel_compare.json", { cache: "no-cache" })
+      .then((r) => {
+        if (r.status === 404) { vc.missing = true; return null; }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (d == null) return;
+        if (!isObj(d)) throw new Error("not a comparison file");
+        vc.data = d;
+        vc.idx = null;
+      })
+      .catch((err) => { vc.error = err.message || "could not read it"; })
+      .finally(() => { vc.loading = false; if (/^automation/.test(lastRoute)) rerender(); });
+  }
+  // Vercel's snapshot, only to know which suggestions it does not list at all.
+  function loadVercelSnapshot() {
+    if (vc.snap !== null || vc.snapLoading || !vc.data) return;
+    vc.snapLoading = true;
+    fetch("data/vercel_snapshot.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { vc.snap = d && isObj(d.entries) ? new Set(Object.keys(d.entries).map((k) => k.toUpperCase())) : false; })
+      .catch(() => { vc.snap = false; })
+      .finally(() => { vc.snapLoading = false; if (vc.snap && lastRoute.split("/")[0] === "automation" && !/^automation\/vercel/.test(lastRoute)) rerender(); });
+  }
+  // What the comparison itself says about a PDB ID (without the snapshot).
+  function vercelIndex() {
+    if (vc.idx) return vc.idx;
+    const latest = vcWeeks()[0];
+    const missedLatest = new Set(latest ? vcRows(latest.missed).map((r) => r.pdb) : []);
+    const status = new Map();
+    const rows = [...vcWeeks().flatMap((w) => [...vcRows(w.missed), ...vcRows(w.notMembrane)]),
+                  ...(vcWhole() ? [...vcRows(vcWhole().missed), ...vcRows(vcWhole().notMembrane)] : [])];
+    rows.forEach((r) => { if (!status.has(r.pdb)) status.set(r.pdb, r.vercelStatus ?? null); });
+    vc.idx = { latest, missedLatest, status };
+    return vc.idx;
+  }
+  function vercelBadge(pdb) {
+    if (!vc.data) return "";
+    const ix = vercelIndex();
+    if (ix.missedLatest.has(pdb)) {
+      return `<a class="mp-badge vc-flag vc-flag-missed" href="#/automation/vercel" title="A membrane protein released in the week of ${esc(shortDay(ix.latest.week))} that the Vercel demo does not list">Vercel missed this</a>`;
+    }
+    const absent = vc.snap instanceof Set ? !vc.snap.has(pdb) : ix.status.has(pdb) && ix.status.get(pdb) === null;
+    return absent ? `<span class="mp-badge vc-flag" title="The Vercel demo's database does not list this structure">Not in Vercel</span>` : "";
+  }
+
+  // Where a structure stands with us: official mpstruc, this week's Automation list, a curator's decision.
+  function vcWhere(r) {
+    const out = [];
+    const d = decisions[r.pdb];
+    if (r.inMpstruc || state.byPdb.has(r.pdb)) out.push(`<a href="#/pdb/${esc(r.pdb)}">In official mpstruc</a>`);
+    const live = auto.cands && auto.cands.candidates.find((c) => c.pdb === r.pdb);
+    if (isObj(d) && d.status === "approved") out.push(`<a href="${isPushed(d) ? "#/approved/pushed" : "#/approved"}">Approved${isPushed(d) ? " and pushed" : ""} - Decisions</a>`);
+    else if (isObj(d) && d.status === "rejected") out.push(`<a href="#/rejected/${reasonCode(d)}">Rejected: ${esc(REASON_LABEL[reasonCode(d)])} - Decisions</a>`);
+    else if (isObj(d) && d.status === "deleted") out.push(`<a href="#/rejected/deleted">Deleted - Decisions</a>`);
+    if (live && !(isObj(d) && d.status === "deleted")) out.push(`<a href="#/automation/card/${esc(r.pdb)}">Card in our Automation list</a>`);
+    else if (r.inOurList && !d) out.push("In our Automation list");
+    return out.length ? out.join(" · ") : "Not in our lists";
+  }
+
+  function vcRow(r, key) {
+    const id = esc(r.pdb);
+    const verdict = VC_VERDICT[r.verdict] ? r.verdict : "uncertain";
+    const ev = Array.isArray(r.evidence) ? r.evidence.filter(isObj) : [];
+    const score = r.ourScore != null && Number.isFinite(Number(r.ourScore)) ? `${pct(Number(r.ourScore))} likely` : "not scored";
+    return `<article class="mp-vc-row" id="vc-${key}-${id}" aria-labelledby="vc-h-${key}-${id}">
+      <div class="mp-rej-head">
+        <a class="mp-pdb" id="vc-h-${key}-${id}" href="#/pdb/${id}">${id}</a>
+        <span class="mp-badge vc-verdict vc-v-${verdict}">${esc(VC_VERDICT[verdict])}</span>
+        <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener" target="_blank">RCSB ↗<span class="mp-visually-hidden"> (opens in a new tab)</span></a>
+      </div>
+      <p class="mp-rej-title">${esc(r.title || "Title not known")}</p>
+      ${ev.length ? `<ul class="mp-vc-ev">${ev.map((e) => `<li><span class="mp-vc-src">${esc(VC_SOURCE_LABEL[e.source] || e.source || "Other")}</span> ${esc(e.text)}</li>`).join("")}</ul>` : ""}
+      <dl class="mp-rej-facts">
+        <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
+        <div><dt>Our score</dt><dd>${esc(score)}</dd></div>
+        <div><dt>Vercel says</dt><dd>${esc(vcStatusText(r.vercelStatus))}${r.vercelFamily ? ` <span class="mp-of">(${esc(r.vercelFamily)})</span>` : ""}</dd></div>
+        <div><dt>With us</dt><dd>${vcWhere(r)}</dd></div>
+      </dl>
+    </article>`;
+  }
+
+  function vcCsv(list) {
+    const q = (v) => `"${String(v ?? "").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    const cols = ["PDB ID", "Title", "Released", "Our verdict", "Evidence", "Our score (%)", "Vercel status", "Vercel family",
+                  "In official mpstruc", "In our Automation list or decisions", "RCSB PDB page"];
+    const rows = list.map((r) => [r.pdb, r.title, r.released, VC_VERDICT[r.verdict] || r.verdict,
+      (Array.isArray(r.evidence) ? r.evidence.filter(isObj) : []).map((e) => `${VC_SOURCE_LABEL[e.source] || e.source}: ${e.text}`).join(" | "),
+      r.ourScore != null && Number.isFinite(Number(r.ourScore)) ? Math.round(100 * Number(r.ourScore)) : "",
+      vcStatusText(r.vercelStatus), r.vercelFamily, r.inMpstruc ? "yes" : "no", r.inOurList ? "yes" : "no", rcsb(r.pdb)].map(q).join(","));
+    return "﻿" + [cols.map(q).join(","), ...rows].join("\r\n");
+  }
+  const vcCodesCsv = (pdbs) => "﻿" + ["\"PDB ID\",\"RCSB PDB page\"", ...pdbs.map((p) => `"${String(p).replace(/"/g, '""')}","${rcsb(p)}"`)].join("\r\n");
+
+  function vcWholeFiltered() {
+    const w = vcWhole();
+    if (!w) return { all: [], shown: [] };
+    const all = vcRows(vc.list === "notMembrane" ? w.notMembrane : w.missed);
+    const q = vc.q.trim().toLowerCase();
+    const shown = all.filter((r) => {
+      if (vc.source && !(Array.isArray(r.evidence) && r.evidence.some((e) => isObj(e) && e.source === vc.source))) return false;
+      if (vc.status && (vc.status === "none" ? r.vercelStatus != null : r.vercelStatus !== vc.status)) return false;
+      if (q && !`${r.pdb} ${r.title || ""} ${(r.evidence || []).map((e) => (isObj(e) ? e.text : "")).join(" ")} ${r.vercelFamily || ""}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    return { all, shown };
+  }
+
+  function vcCodes(name, label, pdbs, note) {
+    const CAP = 300;
+    if (!pdbs.length) return "";
+    return `<details class="mp-why mp-vc-codes-box"><summary>${esc(label)} (${pdbs.length.toLocaleString()})</summary>
+      ${note ? `<p class="mp-summary">${note}</p>` : ""}
+      <p class="mp-vc-codes">${pdbs.slice(0, CAP).map((p) => `<a href="#/pdb/${esc(p)}">${esc(p)}</a>`).join(" ")}${pdbs.length > CAP ? ` <span class="mp-of">and ${(pdbs.length - CAP).toLocaleString()} more (in the download)</span>` : ""}</p>
+      <button type="button" class="mp-btn secondary" data-vc-csv="${name}">Download all ${pdbs.length.toLocaleString()} (CSV)</button>
+    </details>`;
+  }
+
+  function viewVercel(arg) {
+    loadAutomation();
+    const crumbs = `<p class="mp-crumbs"><a href="#/automation">Automation</a> › Compared with the Vercel demo</p>`;
+    const intro = `<h2>Compared with the Vercel demo</h2>
+      <p class="mp-summary mp-vc-intro">Another group runs a demo website, <a href="https://mpstruc-viewer-demo.vercel.app/" rel="noopener" target="_blank">mpstruc-viewer-demo.vercel.app<span class="mp-visually-hidden"> (opens in a new tab)</span></a>,
+        that lists new PDB structures as potential membrane proteins, with its own curators' verdicts. This page compares that list with our evidence,
+        to find membrane proteins it has missed and structures it lists that are not membrane proteins.</p>
+      <div class="mp-vc-rule">
+        <p><b>The rule we use</b> (mpstruc curators'): a structure is a membrane protein only when a significant membrane-crossing segment, or a
+          membrane-spanning beta-barrel, is present in the structure itself - not just somewhere in the full-length protein.</p>
+        <p>Each structure's verdict comes from the first of these that applies: <b>our curators' decision</b> (approved means membrane protein; rejected as
+          'not a membrane protein' means not), then being <b>listed in official mpstruc</b> (unless the structure at that code has no membrane-crossing part resolved: a
+          soluble fragment or partner, or a possible typo in mpstruc's PDB code), then <b>PDBTM, MemProtMD or OPM</b> finding it crosses the
+          membrane (OPM only when it finds a membrane-crossing segment in the structure itself), then <b>our model's score</b> (50% or more: membrane protein; under 10%: not, with the segments it found as reasons; in between: uncertain).</p>
+        <p><b>Missed</b> means our verdict is 'membrane protein', it was released in the period compared, and Vercel's database does not list it at all.
+          <b>Not membrane proteins</b> are structures Vercel lists that our verdict says are not, with Vercel's own status, so you can see whether it already said No.</p>
+      </div>`;
+    if (vc.loading || (!vc.data && !vc.missing && !vc.error)) {
+      loadVercel();
+      return `<div class="mp-view mp-vc">${crumbs}${intro}<p class="mp-loading">Loading the comparison…</p></div>`;
+    }
+    if (vc.missing || vc.error) {
+      return `<div class="mp-view mp-vc">${crumbs}${intro}<p class="mp-empty">${vc.missing ? "No comparison has been made yet: data/vercel_compare.json is not on the site."
+        : `Could not read the comparison (${esc(vc.error)}).`} It is written by <code>python -m mpstruc.vercel_compare</code> in the <code>mpstruc/</code> folder.</p></div>`;
+    }
+    const d = vc.data, s = isObj(d.snapshot) ? d.snapshot : {};
+    const weeks = vcWeeks();
+    const wanted = (arg || "").replace(/^vercel\/?/, "");
+    const week = weeks.find((w) => w.week === wanted) || weeks[0] || null;
+    const byStatus = isObj(s.byStatus) ? Object.entries(s.byStatus).sort((a, b) => b[1] - a[1]) : [];
+    const snapLine = `<p class="mp-summary">Vercel's database as ${s.source === "page" ? "read from its web page" : `exported${String(s.source || "").startsWith("export:") ? ` (${esc(String(s.source).slice(7))})` : ""}`}
+      ${s.readAt ? `on ${esc(fmtDate(s.readAt))}` : ""}${Number.isFinite(s.entries) ? `: ${s.entries.toLocaleString()} structures` : ""}${byStatus.length ? ` -
+      ${byStatus.map(([k, n]) => `${esc(vcStatusText(k))} ${Number(n).toLocaleString()}`).join(", ")}` : ""}.
+      Comparison made ${esc(fmtDate(d.generated) || "—")}.</p>`;
+
+    // ---- one release week
+    const listBlock = (key, title, rows, empty) => `<h3 id="vc-${key}-h">${esc(title)} <span class="mp-count">${rows.length}</span></h3>
+      ${rows.length ? `<div class="mp-toolbar"><p class="mp-summary">${rows.length} ${rows.length === 1 ? "structure" : "structures"}</p>
+        <span><button type="button" class="mp-btn secondary" data-vc-csv="${key}">Download (CSV)</button></span></div>
+        <div class="mp-vc-list">${rows.map((r) => vcRow(r, key)).join("")}</div>` : `<p class="mp-empty">${empty}</p>`}`;
+    const opt = (val, label, curv) => `<option value="${esc(val)}"${String(curv) === String(val) ? " selected" : ""}>${label}</option>`;
+    let weekHtml;
+    if (!week) {
+      weekHtml = `<p class="mp-empty">No release week has been compared yet.</p>`;
+    } else {
+      const wm = vcRows(week.missed), wn = vcRows(week.notMembrane);
+      weekHtml = `<form class="mp-filters mp-vc-pick" id="mp-vc-week" aria-label="Choose a release week">
+          <label>Release week<select name="week" id="mp-vc-week-sel">${weeks.map((w) => opt(w.week, `${esc(fmtDate(`${w.week}T12:00:00Z`))}${w === weeks[0] ? " (latest)" : ""}`, week.week)).join("")}</select></label>
+        </form>
+        <div class="mp-stats mp-vc-stats">
+          <div class="mp-stat"><b>${Number.isFinite(Number(week.released)) && week.released !== null && week.released !== "" ? Number(week.released).toLocaleString() : "—"}</b><span>PDB structures released${week.from ? ` ${esc(shortDay(week.from))} to ${esc(shortDay(week.week))}` : ` on ${esc(shortDay(week.week))}`}</span></div>
+          <div class="mp-stat"><b>${Number(week.vercelListed ?? 0).toLocaleString()}</b><span>listed by Vercel</span></div>
+          <div class="mp-stat"><b>${Number(week.agree ?? 0).toLocaleString()}</b><span>listed by Vercel that we also call membrane proteins</span></div>
+          <div class="mp-stat"><b>${wm.length}</b><span>membrane proteins Vercel missed</span></div>
+          <div class="mp-stat"><b>${wn.length}</b><span>listed by Vercel but not membrane proteins (${wn.filter((r) => r.vercelStatus === "no").length} already marked No there)</span></div>
+        </div>
+        ${listBlock("wm", "Membrane proteins Vercel missed", wm, "Vercel lists every membrane protein we know of from this week.")}
+        ${listBlock("wn", "Listed by Vercel but not membrane proteins", wn, "Everything Vercel lists from this week is a membrane protein or uncertain.")}`;
+    }
+
+    // ---- Vercel's whole database
+    const whole = vcWhole();
+    let wholeHtml;
+    if (!whole) {
+      wholeHtml = `<p class="mp-empty">The whole database has not been compared yet.</p>`;
+    } else {
+      const sm = isObj(whole.summary) ? whole.summary : {};
+      const ain = isObj(sm.alreadyInNotInMpstruc) ? sm.alreadyInNotInMpstruc : { count: 0, pdbs: [] };
+      const abs = isObj(sm.mpstrucNotInVercel) ? sm.mpstrucNotInVercel : { count: 0, pdbs: [] };
+      const typoPairs = isObj(sm.possibleMpstrucTypos) && Array.isArray(sm.possibleMpstrucTypos.pairs)
+        ? sm.possibleMpstrucTypos.pairs.filter((x) => isObj(x) && typeof x.mpstruc === "string" && typeof x.vercel === "string") : [];
+      const noPart = isObj(sm.mpstrucWithoutMembranePart) && Array.isArray(sm.mpstrucWithoutMembranePart.pdbs) ? sm.mpstrucWithoutMembranePart.pdbs : [];
+      const nMissed = vcRows(whole.missed).length, nNot = vcRows(whole.notMembrane).length;
+      const num = (v) => (Number.isFinite(Number(v)) ? Number(v).toLocaleString() : "—");
+      const verd = isObj(sm.verdicts) ? sm.verdicts : null, by = isObj(sm.decidedBy) ? sm.decidedBy : null;
+      const { all, shown } = vcWholeFiltered();
+      const page = shown.slice(0, state.limit);
+      const srcCount = (src) => all.filter((r) => Array.isArray(r.evidence) && r.evidence.some((e) => isObj(e) && e.source === src)).length;
+      const stCount = (st) => all.filter((r) => (st === "none" ? r.vercelStatus == null : r.vercelStatus === st)).length;
+      const statuses = [...Object.keys(VC_STATUS), "none"].filter((st) => stCount(st) || vc.status === st);
+      wholeHtml = `<div class="mp-stats mp-vc-stats">
+          <div class="mp-stat"><b>${num(sm.snapshotEntries ?? s.entries)}</b><span>structures in Vercel's database${Array.isArray(sm.span) ? `, released ${esc(sm.span[0])} to ${esc(sm.span[1])}` : ""}</span></div>
+          <div class="mp-stat"><b>${num(sm.missed ?? nMissed)}</b><span>membrane proteins Vercel does not list${sm.missedStrongSources != null ? ` (${num(sm.missedStrongSources)} known to mpstruc, PDBTM, MemProtMD or OPM; ${num(sm.missedModelRecent)} from our model, recent releases)` : ""}</span></div>
+          <div class="mp-stat"><b>${num(sm.notMembrane ?? nNot)}</b><span>listed by Vercel but not membrane proteins${sm.notMembraneVercelSaidNo != null ? ` (${num(sm.notMembraneVercelSaidNo)} already marked No there)` : ""}</span></div>
+          <div class="mp-stat"><b>${num(ain.count)}</b><span>marked 'Already in' at Vercel but not in official mpstruc</span></div>
+          <div class="mp-stat"><b>${num(abs.count)}</b><span>official mpstruc PDB codes missing from Vercel's database${abs.entries != null ? ` (${num(abs.entries)} main entries, ${num(abs.relatedOnly)} only listed as related)` : ""}</span></div>
+        </div>
+        ${verd || by ? `<p class="mp-summary">${verd ? `Our verdicts on Vercel's structures: ${num(verd.membrane)} membrane proteins, ${num(verd.not_membrane)} not, ${num(verd.uncertain)} uncertain.` : ""}
+          ${by ? `Decided by: ${Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(VC_BY_LABEL[k] || k)} ${num(n)}`).join(", ")}.` : ""}
+          ${isObj(sm.missedBySource) ? `Missed structures, by the source that decided them: ${Object.entries(sm.missedBySource).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(VC_SOURCE_LABEL[k] || k)} ${num(n)}`).join(", ")}.` : ""}</p>` : ""}
+        ${vcCodes("ain", "'Already in' at Vercel but not in official mpstruc", Array.isArray(ain.pdbs) ? ain.pdbs : [],
+          "Vercel says these are already in mpstruc, but the official mpstruc list we use does not have them.")}
+        ${vcCodes("abs", "Official mpstruc PDB codes missing from Vercel", Array.isArray(abs.pdbs) ? abs.pdbs : [],
+          abs.inVercelSpan != null ? `${num(abs.inVercelSpan)} of them were released within the dates Vercel's database covers.` : "")}
+        ${typoPairs.length ? `<details class="mp-why mp-vc-codes-box"><summary>Possible PDB code typos between mpstruc and Vercel (${typoPairs.length.toLocaleString()})</summary>
+          <p class="mp-summary">The same characters with two of them swapped: probably one structure, with the code mistyped on one side. These are left out of the two lists above.</p>
+          <ul class="mp-vc-ev">${typoPairs.map((x) => `<li>mpstruc <a href="#/pdb/${esc(x.mpstruc)}">${esc(x.mpstruc)}</a> / Vercel <a href="${rcsb(x.vercel)}" rel="noopener" target="_blank">${esc(x.vercel)}<span class="mp-visually-hidden"> (opens in a new tab)</span></a>${x.vercelStatus ? ` <span class="mp-of">(${esc(vcStatusText(x.vercelStatus))})</span>` : ""}</li>`).join("")}</ul>
+        </details>` : ""}
+        ${vcCodes("nmp", "Official mpstruc PDB codes whose structure has no membrane part", noPart,
+          "Missing from Vercel, but the structure at the code has no membrane-crossing segment or barrel resolved: a soluble fragment or partner mpstruc lists, a monotopic protein, or a possible typo in mpstruc's code. Left out of the list above.")}
+        <form class="mp-filters mp-vc-filters" id="mp-vc-filters" role="search" aria-label="Filter the whole-database lists">
+          <label>List<select name="list" id="mp-vc-list">${opt("missed", `Membrane proteins Vercel missed (${nMissed.toLocaleString()})`, vc.list)}${opt("notMembrane", `Listed by Vercel but not membrane (${nNot.toLocaleString()})`, vc.list)}</select></label>
+          <label>Evidence from<select name="source" id="mp-vc-source">${opt("", "Any source", vc.source)}${VC_SOURCES.filter(([k]) => srcCount(k) || vc.source === k).map(([k, l]) => opt(k, `${esc(l)} (${srcCount(k).toLocaleString()})`, vc.source)).join("")}</select></label>
+          <label>Vercel status<select name="status" id="mp-vc-status">${opt("", "Any status", vc.status)}${statuses.map((st) => opt(st, `${esc(vcStatusText(st === "none" ? null : st))} (${stCount(st).toLocaleString()})`, vc.status)).join("")}</select></label>
+          <label class="mp-vc-q">Search<input type="search" name="q" id="mp-vc-q" value="${esc(vc.q)}" placeholder="PDB ID, title, evidence" autocomplete="off"></label>
+        </form>
+        <div class="mp-toolbar"><p class="mp-summary" id="mp-vc-count">${shown.length.toLocaleString()} ${shown.length === 1 ? "structure" : "structures"}${shown.length !== all.length ? ` of ${all.length.toLocaleString()} match the filters` : ""}</p>
+          <span><button type="button" class="mp-btn secondary" data-vc-csv="whole">Download ${shown.length !== all.length ? "these" : "this list"} (CSV)</button></span></div>
+        <div class="mp-vc-list">${page.map((r) => vcRow(r, "all")).join("") || `<p class="mp-empty">${all.length ? "Nothing matches these filters." : "This list is empty."}</p>`}</div>
+        ${more(page.length, shown.length)}`;
+    }
+    return `<div class="mp-view mp-vc">${crumbs}${intro}${snapLine}
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
+      <h3>Week by week</h3>${weekHtml}
+      <h3>Whole Vercel database</h3>${wholeHtml}
+    </div>`;
+  }
+
+  function wireVercel(arg) {
+    const sel = document.getElementById("mp-vc-week-sel");
+    if (sel) {
+      sel.form.addEventListener("submit", (ev) => ev.preventDefault());
+      sel.addEventListener("change", () => { location.hash = `#/automation/vercel/${sel.value}`; });
+    }
+    const form = document.getElementById("mp-vc-filters");
+    if (form) {
+      form.addEventListener("submit", (ev) => ev.preventDefault());
+      ["list", "source", "status"].forEach((n) => form.elements[n].addEventListener("change", () => {
+        vc[n] = form.elements[n].value;
+        state.limit = PAGE;
+        rerender();
+      }));
+      form.elements.q.addEventListener("input", () => { vc.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    }
+    const weeks = vcWeeks(), wanted = (arg || "").replace(/^vercel\/?/, "");
+    const week = weeks.find((w) => w.week === wanted) || weeks[0];
+    const sm = vcWhole() && isObj(vcWhole().summary) ? vcWhole().summary : {};
+    app.querySelectorAll("[data-vc-csv]").forEach((btn) => btn.addEventListener("click", () => {
+      const k = btn.dataset.vcCsv;
+      if (k === "wm" || k === "wn") {
+        const rows = vcRows(k === "wm" ? week.missed : week.notMembrane);
+        download(`vercel_${k === "wm" ? "missed" : "not_membrane"}_week_${week.week}.csv`, vcCsv(rows), "text/csv");
+      } else if (k === "whole") {
+        const { all, shown } = vcWholeFiltered();
+        download(`vercel_${vc.list === "notMembrane" ? "not_membrane" : "missed"}_whole_database${shown.length !== all.length ? "_filtered" : ""}.csv`, vcCsv(shown), "text/csv");
+      } else {
+        const box = k === "ain" ? sm.alreadyInNotInMpstruc : k === "nmp" ? sm.mpstrucWithoutMembranePart : sm.mpstrucNotInVercel;
+        const pdbs = isObj(box) && Array.isArray(box.pdbs) ? box.pdbs : [];
+        download(k === "ain" ? "vercel_already_in_not_in_mpstruc.csv" : k === "nmp" ? "mpstruc_without_membrane_part.csv" : "mpstruc_not_in_vercel.csv", vcCodesCsv(pdbs), "text/csv");
+      }
+    }));
+  }
+
   // ---- the Decisions tab's menu (Approved, Rejected and Deleted lists) (a menu button in the tab bar) ----
   // The menu lives outside the tab bar (which scrolls sideways on phones and
   // would clip it) and is placed under the button while open.
@@ -3710,7 +4035,7 @@ links.addEventListener("click", (event) => {
       const curF = kind === "rejected" ? rejFilterOf(f || "") : null;
       const curA = kind === "approved" ? apprFilterOf(f || "") : null;
       const item = (href, label, count, on) => `<a role="menuitem" tabindex="-1" href="${href}"${on ? ' aria-current="true"' : ""}>
-          <span>${esc(label)}</span> <span class="mp-count">(${count})</span></a>`;
+          <span>${esc(label)}</span>${count == null ? "" : ` <span class="mp-count">(${count})</span>`}</a>`;
       // Groups of menu items, each with a visible heading (the group's accessible name).
       const group = (id, label, html) => `<div role="group" aria-labelledby="${id}"><p class="mp-menu-head" id="${id}" role="presentation">${esc(label)}</p>${html}</div>`;
       menu.innerHTML = group("mp-menu-h-ap", "Approved",
@@ -3721,7 +4046,9 @@ links.addEventListener("click", (event) => {
         + group("mp-menu-h-rej", "Rejected", item("#/rejected", "All rejected", n.all, curF === "")
           + REASONS.map((r) => item(`#/rejected/${r.code}`, r.label, n[r.code], curF === r.code)).join(""))
         + '<div role="separator" class="mp-menu-sep"></div>'
-        + item("#/rejected/deleted", "Deleted", n.deleted, curF === "deleted");
+        + item("#/rejected/deleted", "Deleted", n.deleted, curF === "deleted")
+        + '<div role="separator" class="mp-menu-sep"></div>'
+        + item("#/automation/vercel", "Compared with Vercel demo", null, /^automation\/vercel/.test(lastRoute));
     }
     function open(which = "first") {
       build();
@@ -3925,7 +4252,10 @@ links.addEventListener("click", (event) => {
       else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth;
     }
     if (["automation", "curators", "log", "rejected", "approved"].includes(kind)) {
-      if (kind === "automation") { app.innerHTML = viewAutomation(arg); wireAutomation(); }
+      if (kind === "automation") {
+        app.innerHTML = viewAutomation(arg);
+        if (/^vercel(\/|$)/.test(arg)) wireVercel(arg); else wireAutomation();
+      }
       else if (kind === "curators") { app.innerHTML = viewCurators(); wireCurators(); }
       else if (kind === "rejected") { app.innerHTML = viewRejected(arg); wireRejected(arg); }
       else if (kind === "approved") { app.innerHTML = viewApproved(arg); wireApproved(arg); }
@@ -3949,13 +4279,13 @@ links.addEventListener("click", (event) => {
       }
       const moreA = document.getElementById("mp-more");
       if (moreA) moreA.addEventListener("click", () => {
-        const before = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row").length;
+        const before = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row, .mp-vc-row").length;
         state.limit += PAGE;
         const y = window.scrollY;
         setTimeout(() => {
           render();
           window.scrollTo(0, y);
-          const next = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row")[before];
+          const next = app.querySelectorAll(".mp-cand, .mp-rej-row, .mp-appr-row, .mp-vc-row")[before];
           if (next) { next.setAttribute("tabindex", "-1"); next.focus({ preventScroll: true }); }
         }, 0);
       });

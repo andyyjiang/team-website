@@ -1167,6 +1167,56 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
     animation: mp-scan 1.2s linear infinite; }
 }
 @keyframes mp-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+/* ---- Automation › Compared with the Vercel demo ------------------------- */
+.mp-vc-intro { max-width: 78ch; }
+.mp-vc-rule {
+  max-width: 78ch; margin: 0 0 16px; padding: 12px 16px; font-size: 0.9rem; line-height: 1.55;
+  background: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: var(--radius);
+}
+.mp-vc-rule p { margin: 0 0 8px; }
+.mp-vc-rule p:last-child { margin-bottom: 0; }
+.mp-vc-pick { grid-template-columns: minmax(0, 260px); }
+.mp-vc-stats { margin-bottom: 16px; }
+.mp-vc-stats .mp-stat b { font-size: clamp(1.4rem, 2.2vw, 1.8rem); }
+.mp-vc-filters .mp-vc-q { grid-column: span 2; }
+.mp-vc-row {
+  padding: 14px 16px; margin-bottom: 10px; min-width: 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px;
+  scroll-margin-top: calc(var(--header-h) + var(--tabbar-h) + 12px);
+}
+.mp-vc-row:hover { border-color: var(--color-border-strong); }
+.mp-vc-row:focus { outline: none; }
+.mp-vc-row:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.mp-vc-ev { margin: 8px 0 0; padding-left: 1.1em; font-size: 0.86rem; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-vc-ev li { margin: 2px 0; }
+.mp-vc-src {
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-muted); margin-right: 4px;
+}
+.mp-badge.vc-verdict { text-transform: none; letter-spacing: 0.02em; }
+.mp-badge.vc-v-membrane { color: var(--color-daughter); background: color-mix(in srgb, var(--color-daughter) 9%, transparent); border-color: color-mix(in srgb, var(--color-daughter) 40%, transparent); }
+.mp-badge.vc-v-not_membrane { color: var(--color-error-text); background: var(--color-error-bg); border-color: color-mix(in srgb, var(--color-error-text) 30%, transparent); }
+.mp-badge.vc-v-uncertain { color: var(--color-warn-text); background: var(--color-warn-bg); border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+.mp-badge.vc-flag { text-transform: none; letter-spacing: 0.02em; color: var(--color-related); border-style: dashed;
+  background: transparent; border-color: color-mix(in srgb, var(--color-related) 45%, transparent); text-decoration: none; }
+.mp-badge.vc-flag-missed { color: var(--color-warn-text); background: var(--color-warn-bg); border-style: solid;
+  border-color: color-mix(in srgb, var(--color-warn-text) 30%, transparent); }
+a.mp-badge.vc-flag-missed:hover { text-decoration: underline; }
+.mp-vc-codes-box { margin: 0 0 10px; }
+.mp-vc-codes { display: flex; flex-wrap: wrap; gap: 4px 10px; font-family: var(--font-mono); font-size: 0.8rem; margin: 6px 0 10px; }
+.mp-vc .mp-rej-facts { grid-template-columns: repeat(4, minmax(0, auto)); }
+@media (max-width: 640px) {
+  .mp-vc .mp-rej-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mp-vc-row { padding: 12px; }
+  .mp-vc-pick { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .mp-vc-filters .mp-vc-q { grid-column: 1 / -1; }
+}
+@media (forced-colors: active) {
+  .mp-badge.vc-verdict, .mp-badge.vc-flag { border: 1px solid CanvasText; }
+}
+
 @keyframes mp-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes mp-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes mp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }

@@ -1,6 +1,9 @@
 # Weekly mpstruc update: refresh the database page and this week's suggestions.
-# Runs every Thursday (the PDB releases on Wednesdays) and can be started by hand
-# from the Actions tab. It commits only data/*.json (data/awaiting.json remembers
+# Runs every Wednesday at 22:17 UTC (the PDB releases at 00:00 UTC on Wednesdays;
+# 22:17 UTC is the afternoon in California) and can be started by hand from the
+# Actions tab. After the update it reads the other group's Vercel demo page (in a
+# headless browser, like a visitor) and compares this week's releases with it.
+# It commits only data/*.json (data/awaiting.json remembers
 # structures waiting for their paper, so they are re-checked until it is out;
 # they are recorded as rejected "Not published yet" in data/curation.json and
 # come back to "To decide" automatically when the paper is published).
@@ -8,8 +11,13 @@ name: mpstruc weekly update
 
 on:
   schedule:
-    - cron: "17 6 * * 4"
+    - cron: "17 22 * * 3"
   workflow_dispatch:
+    inputs:
+      whole:
+        description: "Also compare Vercel's whole database (python -m mpstruc.vercel_compare --whole; slow)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -17,7 +25,10 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The mpstruc update needs up to ~60 minutes; the Vercel steps have their own limits
+    # (browser 10 + page 25 + merge 10 + weekly comparison 20 minutes, and 120 for the
+    # whole database), so the job limit leaves room for the commit step after them.
+    timeout-minutes: ${{ inputs.whole && 270 || 150 }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,8 +58,118 @@ jobs:
         working-directory: mpstruc
         run: python -m mpstruc.web
 
+      # ---- Comparison with the Vercel demo (https://mpstruc-viewer-demo.vercel.app/).
+      # None of these steps can fail the job (each has continue-on-error and a time
+      # limit): if the page cannot be read, the comparison uses the saved
+      # data/vercel_snapshot.json and a warning is recorded. The Vercel CSV export is
+      # not re-imported here: it is the other group's data and is kept out of this
+      # public repository (mpstruc/vercel/.gitignore); re-import it locally with
+      # python -m mpstruc.vercel_import and commit the resulting snapshot.
+      - uses: actions/setup-node@v4
+        id: node
+        continue-on-error: true
+        timeout-minutes: 5
+        with:
+          node-version: "20"
+
+      - name: Install the headless browser for reading the Vercel page
+        id: browser
+        if: ${{ steps.node.outcome == 'success' }}
+        continue-on-error: true
+        timeout-minutes: 10
+        working-directory: mpstruc/vercel
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Read the Vercel page (keeps the saved snapshot if this fails)
+        timeout-minutes: 25
+        continue-on-error: true
+        run: |
+          echo "VERCEL_PAGE=failed" >> "$GITHUB_ENV"
+          page="$RUNNER_TEMP/page.json"
+          if [ "${{ steps.browser.outcome }}" != "success" ]; then
+            echo "::warning::Could not install the headless browser; comparing with the saved Vercel snapshot"
+            exit 0
+          fi
+          # read_page.js exits non-zero when it reads no group (or many cards it cannot
+          # parse); the file must also hold at least one group besides the _meta line.
+          if node mpstruc/vercel/read_page.js --weeks 8 > "$page" && grep -qv '"_meta"' "$page"; then
+            echo "VERCEL_PAGE=$page" >> "$GITHUB_ENV"
+            echo "Read $(grep -vc '_meta' "$page") groups from the Vercel page"
+          else
+            echo "::warning::Could not read the Vercel page; comparing with the saved Vercel snapshot"
+          fi
+
+      - name: Merge the page into the Vercel snapshot
+        if: ${{ env.VERCEL_PAGE != 'failed' && env.VERCEL_PAGE != '' }}
+        timeout-minutes: 10
+        continue-on-error: true
+        working-directory: mpstruc
+        run: |
+          if ! python -m mpstruc.vercel_import page "$VERCEL_PAGE"; then
+            echo "VERCEL_PAGE=failed" >> "$GITHUB_ENV"
+            echo "::warning::Could not merge the Vercel page; comparing with the saved Vercel snapshot"
+          fi
+
+      - name: Compare this week with the Vercel demo
+        timeout-minutes: 20
+        continue-on-error: true
+        working-directory: mpstruc
+        run: |
+          echo "VERCEL_COMPARE=failed" >> "$GITHUB_ENV"
+          if python -m mpstruc.vercel_compare; then
+            echo "VERCEL_COMPARE=ok" >> "$GITHUB_ENV"
+          else
+            echo "::warning::The weekly Vercel comparison failed; data/vercel_compare.json is unchanged"
+          fi
+
+      - name: Compare Vercel's whole database
+        if: ${{ inputs.whole }}
+        timeout-minutes: 120
+        continue-on-error: true
+        working-directory: mpstruc
+        run: |
+          if ! python -m mpstruc.vercel_compare --whole; then
+            echo "::warning::The whole-database Vercel comparison failed"
+          fi
+
+      - name: Note the Vercel counts in the Activity log
+        timeout-minutes: 2
+        continue-on-error: true
+        # Adds "vercel" to this run's line in data/import_log.json (written by
+        # python -m mpstruc.automation run above). Never fails the job.
+        run: |
+          python - <<'PY' || echo "::warning::Could not note the Vercel counts in data/import_log.json"
+          import json, os
+          from pathlib import Path
+          log, cmp = Path("data/import_log.json"), Path("data/vercel_compare.json")
+          if not log.exists():
+              raise SystemExit(0)
+          doc = json.loads(log.read_text())
+          runs = doc.get("runs") or []
+          if not runs:
+              raise SystemExit(0)
+          note = {"pageRead": os.environ.get("VERCEL_PAGE", "failed") != "failed",
+                  "compared": os.environ.get("VERCEL_COMPARE") == "ok"}
+          if not note["pageRead"]:
+              note["warning"] = "Could not read the Vercel page; compared with the saved snapshot"
+          if note["compared"] and cmp.exists():
+              c = json.loads(cmp.read_text())
+              note["snapshotEntries"] = (c.get("snapshot") or {}).get("entries")
+              wk = (c.get("weeks") or [None])[0]  # newest week first
+              if wk:
+                  note.update(week=wk.get("week"), vercelListed=wk.get("vercelListed"),
+                              missed=len(wk.get("missed") or []), notMembrane=len(wk.get("notMembrane") or []),
+                              agree=wk.get("agree"))
+          runs[-1]["vercel"] = note
+          log.write_text(json.dumps({**doc, "runs": runs}, indent=1))
+          print("Activity log:", json.dumps(note))
+          PY
+
       - name: Commit updated data
-        # Commits data/*.json, including the automatic "Not published yet"
+        # Commits data/*.json (also data/vercel_snapshot.json and
+        # data/vercel_compare.json), including the automatic "Not published yet"
         # rejections in data/curation.json. Curators may save decisions to that
         # file while the job runs: the commit is rebased onto them, and if that
         # conflicts on data/curation.json the job takes the newer file, re-applies
