@@ -1489,6 +1489,7 @@ links.addEventListener("click", (event) => {
       <div class="mp-entry-head">
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
         <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
+        ${copyBtn(c.pdb, placeOf(c).placement === "related")}
         ${status}
         ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
         ${c.publishedOn && !c.awaiting ? `<span class="mp-badge new">Paper now published · ${esc(shortDay(c.publishedOn))}</span>` : ""}
@@ -1776,6 +1777,7 @@ links.addEventListener("click", (event) => {
       <div class="mp-relitem${miss ? " dim" : ""}${d ? ` decided ${d.status}` : ""}" id="${open ? "rr" : "c"}-${id}">
         <div class="mp-relitem-head">
           <h5 class="mp-relitem-id"><a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a></h5>
+          ${copyBtn(c.pdb, true)}
           ${status}${who}${saving ? '<span class="mp-saving">Saving…</span>' : ""}
           ${c.awaiting ? '<span class="mp-badge related">Awaiting paper</span>' : ""}
           ${candMark(c.pdb)}
@@ -2587,6 +2589,152 @@ links.addEventListener("click", (event) => {
     return out;
   }
   const plain = (v) => (v == null ? "" : String(v));
+
+  // ---- copy a suggestion as an mpstruc entry --------------------------------
+  // The clipboard button on a card or row copies the entry the way mpstruc
+  // prints it:
+  //   <name> : <species> <E|B|A|V> (expressed in <host>), 3.10 Å
+  //   cryo-EM structure
+  //   <what differs>, 3.10 Å: 9ABC        (one line per related structure)
+  // in two flavours: plain text, and HTML in a document font (Arial 11pt, name
+  // bold, species italic, real sub/superscripts) for Word, Google Docs and email.
+  // The fields are untrusted mpstruc markup: everything goes through safeMarkup().
+  const COPY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+  const COPY_DONE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  const COPY_FONT = "font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.35; color: #000";
+  // related: the entry is listed under another one, so Shift-click copies just its related line.
+  function copyBtn(pdb, related = false) {
+    const id = esc(pdb), label = `Copy ${id} as an mpstruc entry`;
+    return `<button class="mp-copy" type="button" data-copy="${id}"${related ? ' data-copy-related="1"' : ""} aria-label="${label}" title="${label}${related ? " (Shift-click: only the line for its owner's entry)" : ""}">${COPY_ICON}</button>`;
+  }
+  const SUB_CHARS = { 0: "₀", 1: "₁", 2: "₂", 3: "₃", 4: "₄", 5: "₅", 6: "₆", 7: "₇", 8: "₈", 9: "₉", "+": "₊", "-": "₋", "−": "₋" };
+  const SUP_CHARS = { 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹", "+": "⁺", "-": "⁻", "−": "⁻" };
+  const copyTidy = (t) => t.replace(/ /g, " ").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).join("\n");
+  // mpstruc markup as plain text: entities as characters, <br> as newlines,
+  // sub/superscripts as Unicode ones where every character has one (Ca²⁺), else flat (5-HT2A).
+  function copyPlain(markup) {
+    const t = safeMarkup(markup).replace(/<br \/>/g, "\n")
+      .replace(/<(sub|sup)>([^<]*)<\/\1>/g, (all, tag, inner) => {
+        const txt = decodeEntities(inner), map = tag === "sub" ? SUB_CHARS : SUP_CHARS;
+        return [...txt].every((ch) => ch in map) ? [...txt].map((ch) => map[ch]).join("") : inner;
+      }).replace(/<\/?(?:sub|sup|em|i|b)>/g, "");
+    return copyTidy(decodeEntities(t).replace(/&(?:lt|#0*60|#x0*3c);/gi, "<").replace(/&(?:gt|#0*62|#x0*3e);/gi, ">").replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));
+  }
+  // The same markup for the HTML flavour: still sanitised, entities as characters (Å), on one line.
+  const copyHtml = (markup) => decodeEntities(safeMarkup(safeMarkup(markup).replace(/<br \/>/g, " "))).replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  const copyLines = (markup) => safeMarkup(markup).split("<br />").map((l) => l.trim()).filter(Boolean);
+  const COPY_METHOD = [[/NMR/i, "NMR structure"], [/ELECTRON MICROSCOPY/i, "cryo-EM structure"], [/X-RAY/i, "x-ray structure"], [/ELECTRON CRYSTALLOGRAPHY/i, "electron crystallography structure"]];
+  const isRelLine = (line) => /:\s*[0-9][A-Za-z0-9]{3}(?:\s*[,;/]\s*[0-9][A-Za-z0-9]{3})*\s*$/.test(copyPlain(line));
+  // What the button copies for one structure: { plain, html } or { error }.
+  // relatedOnly: just the line the structure adds to its owner's entry.
+  function copyEntry(pdb, relatedOnly = false) {
+    const c = candOf(pdb), d = curation.entries[pdb] || (c && decisionOf(c)) || null;
+    const raw = effectiveMp(d, c);
+    if (!c || !isObj(raw)) return { error: `${pdb} has no drafted mpstruc entry to copy.` };
+    const wrap = (rows) => `<div style="${COPY_FONT}">${rows.map((r) => `<div>${r}</div>`).join("")}</div>`;
+    if (relatedOnly) {
+      if (!plain(raw.relatedLine).trim()) return { error: `${pdb} has no related line drafted.` };
+      return { plain: copyPlain(raw.relatedLine), html: wrap([copyHtml(raw.relatedLine)]) };
+    }
+    // Line 2 is the method (the description's first line); the rest are related structures.
+    const lines = copyLines(raw.description);
+    let method = lines.length && !isRelLine(lines[0]) ? lines.shift() : "";
+    if (!method) method = (COPY_METHOD.find(([re]) => re.test(plain(c.method))) || [])[1] || "";
+    const related = placeOf(c).placement === "related";
+    if (related) lines.length = 0; // a related entry is copied in its own entry form
+    else if (auto.cands) {
+      // A lead: every related suggestion nested under it, in the Automation tab's order.
+      const study = studies().find((s) => s.lead && s.lead.pdb === pdb);
+      for (const k of study ? study.members.slice(1) : []) {
+        const kd = decisionOf(k);
+        if (kd && kd.status !== "approved") continue; // rejected or deleted
+        if (lines.some((l) => new RegExp(`\\b${k.pdb}\\b`).test(copyPlain(l)))) continue;
+        const km = effectiveMp(kd, k) || {}, kres = copyRes(km.resolution);
+        lines.push(safeMarkup(plain(km.relatedLine).trim()
+          || `${plain(km.name || k.title).replace(/<br\s*\/?>/gi, " ")}${kres ? `, ${kres} &Aring;` : ""}: ${k.pdb}`));
+      }
+    }
+    const nmr = /NMR/i.test(copyPlain(method)) || /NMR/i.test(plain(c.method));
+    const res = nmr ? "" : copyRes(raw.resolution);
+    const dom = { eukaryota: "E", bacteria: "B", archaea: "A", viruses: "V" }[copyPlain(raw.taxonomicDomain).toLowerCase()] || "";
+    const name = plain(raw.name).trim() ? raw.name : esc(c.title || pdb);
+    const first = (f, b, i) => {
+      const sp = f(raw.species), host = f(raw.expressedInSpecies);
+      const src = [sp && i(sp), dom].filter(Boolean).join(" ") + (host ? `${sp || dom ? " " : ""}(expressed in ${i(host)})` : "");
+      return `${b(f(name))}${src ? ` : ${src}` : ""}${res ? `, ${res} Å` : ""}`;
+    };
+    const same = (x) => x;
+    const seen = new Set();
+    const rest = [method, ...lines].filter((l) => l && !seen.has(copyPlain(l)) && seen.add(copyPlain(l)));
+    return {
+      plain: [first(copyPlain, same, same), ...rest.map(copyPlain)].join("\n"),
+      html: wrap([first(copyHtml, (x) => `<b>${x}</b>`, (x) => `<i>${x}</i>`), ...rest.map(copyHtml)]),
+    };
+  }
+  // Resolution with two decimals, as mpstruc lists it ("3.1" is 3.10).
+  function copyRes(v) {
+    const t = copyPlain(v == null ? "" : v).replace(/\s*Å$/, "");
+    return /^\d+(\.\d+)?$/.test(t) ? Number(t).toFixed(2) : t;
+  }
+  // Both flavours on the clipboard; falls back to a copy event on a hidden
+  // rich-text selection, then to plain text only. False when the browser refuses.
+  async function copyRich(text, html) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }), "text/plain": new Blob([text], { type: "text/plain" }) })]);
+        return true;
+      }
+    } catch { /* blocked or unsupported: try the older ways */ }
+    const box = document.createElement("div"), sel = window.getSelection();
+    const back = document.activeElement;
+    let done = false;
+    try {
+      box.contentEditable = "true";
+      box.setAttribute("aria-hidden", "true");
+      box.style.cssText = "position: fixed; left: -9999px; top: 0; opacity: 0; white-space: pre-wrap";
+      box.innerHTML = html; // sanitised by copyEntry (safeMarkup)
+      document.body.appendChild(box);
+      const range = document.createRange();
+      range.selectNodeContents(box);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const put = (ev) => {
+        ev.clipboardData.setData("text/html", html);
+        ev.clipboardData.setData("text/plain", text);
+        ev.preventDefault();
+      };
+      box.addEventListener("copy", put);
+      done = document.execCommand("copy");
+    } catch { done = false; }
+    sel.removeAllRanges();
+    box.remove();
+    if (back && back.focus) back.focus({ preventScroll: true });
+    if (done) return true;
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch { return false; }
+  }
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest && ev.target.closest(".mp-copy");
+    if (!btn || !app.contains(btn)) return;
+    const pdb = btn.dataset.copy, relatedOnly = Boolean(btn.dataset.copyRelated) && ev.shiftKey;
+    const out = copyEntry(pdb, relatedOnly);
+    if (out.error) { toast(out.error, { kind: "error" }); return; }
+    if (!(await copyRich(out.plain, out.html))) {
+      toast(`Could not copy ${pdb}: the browser blocked access to the clipboard. Allow clipboard access for this site and try again.`, { kind: "error" });
+      return;
+    }
+    toast(relatedOnly ? `Copied the related line of ${pdb}` : `Copied ${pdb} in mpstruc format`, { timeout: 3500 });
+    // The page may have been redrawn while copying: mark the button that is there now.
+    const now = btn.isConnected ? btn : [...app.querySelectorAll(".mp-copy")].find((b) => b.dataset.copy === pdb);
+    if (!now) return;
+    now.classList.add("done");
+    now.innerHTML = COPY_DONE_ICON;
+    setTimeout(() => { now.classList.remove("done"); now.innerHTML = COPY_ICON; }, 1600);
+  });
+
 
   // ---- token storage ----
   // Only a token the curator chose to keep is read back (older versions of this
@@ -4184,6 +4332,7 @@ links.addEventListener("click", (event) => {
         <div class="mp-rej-head">
           <a class="mp-pdb" id="ap-h-${id}" href="#/pdb/${id}">${id}</a>
           <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          ${copyBtn(r.pdb, d.placement === "related")}
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${r.pushed ? '<span class="mp-badge in-db">In the database</span>' : '<span class="mp-badge staged">Not yet pushed</span>'}
           ${r.official ? mpMark("in") : r.pushed ? mpMark(isObj(d.submitted) ? "sent" : "out") : ""}
@@ -5026,6 +5175,7 @@ links.addEventListener("click", (event) => {
         <div class="mp-rej-head">
           <a class="mp-pdb" id="up-h-${id}" href="${listing ? esc(listing) : `#/pdb/${id}/about`}">${id}</a>
           <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          ${copyBtn(r.pdb, d.placement === "related")}
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${mpMark(sent ? "sent" : "out")}
           ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
