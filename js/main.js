@@ -35,8 +35,8 @@ links.addEventListener("click", (event) => {
   const heroMode = (kind) => { document.body.dataset.mpView = kind || "home"; };
   heroMode(location.hash.replace(/^#\/?/, "").split("/")[0]);
   const state = { data: null, byKey: new Map(), byPdb: new Map(), all: [], sgOf: new Map(),
-                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "" },
-                  newRel: new Map(), nNew: 0, unplaced: [], merged: [] };
+                  filters: { domain: "", method: "", host: "", resMax: "", yearFrom: "", yearTo: "", issues: "", mpstruc: "" },
+                  newRel: new Map(), nNew: 0, unplaced: [], merged: [], focusPdb: "", scrollHit: false };
 
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -203,8 +203,31 @@ links.addEventListener("click", (event) => {
     if (f.yearTo && !(e.year <= Number(f.yearTo))) return false;
     if (f.issues === "any" && !e.issues) return false;
     if (f.issues === "error" && e.issues !== "error") return false;
+    if (f.mpstruc === "in" && notInMp(e)) return false;
+    if (f.mpstruc === "out" && !notInMp(e)) return false;
     return true;
   }
+
+  // ---- in the official mpstruc or not -----------------------------------
+  // "In mpstruc" means listed in the official mpstruc file this database was
+  // built from (data/mpstruc.json, refreshed each week from mpstruc's own XML).
+  // Structures curators pushed from the Automation tab are in this database but
+  // not in mpstruc until a later snapshot lists them; then the official entry is
+  // shown instead of the pushed copy (applyCuration) and they count as in mpstruc.
+  // A related line is in mpstruc when its entry is and the official file lists it there.
+  const relInMp = (e, id) => !e.isNew && (e.rel0 || []).some((r) => r.toUpperCase() === String(id).toUpperCase());
+  // An entry with something on it that is not in mpstruc yet: itself, or a related line.
+  const notInMp = (e) => e.isNew || (e.rel || []).some((id) => !relInMp(e, id));
+  // Submitted to mpstruc by a curator (Ready to upload), but not in the official file yet.
+  const isSubmitted = (pdb) => { const d = curation.entries[String(pdb).toUpperCase()]; return isPushed(d) && isObj(d.submitted); };
+  const MP_MARK = { in: ["in", "In mpstruc", "Listed in the official mpstruc database"],
+                    out: ["out", "Not in mpstruc yet", "In this site's database, added by curators; not yet in the official mpstruc"],
+                    sent: ["sent", "Submitted, waiting for mpstruc", "Sent to the mpstruc maintainers; marked In mpstruc once the official file lists it"] };
+  function mpMark(kind) {
+    const [cls, label, tip] = MP_MARK[kind];
+    return `<span class="mp-mark ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
+  }
+  const markOf = (e) => (!e.isNew ? "in" : isSubmitted(e.pdb) ? "sent" : "out");
   const filtersActive = () => Object.values(state.filters).some(Boolean);
 
   function options(values, current, allLabel) {
@@ -228,8 +251,25 @@ links.addEventListener("click", (event) => {
         <option value="">Any</option>
         <option value="any"${f.issues === "any" ? " selected" : ""}>Has issues</option>
         <option value="error"${f.issues === "error" ? " selected" : ""}>Has errors</option></select></label>
+      ${mpstrucSelect(pool)}
       ${filtersActive() ? '<button type="button" class="mp-btn secondary" id="mp-clear">Clear filters</button>' : ""}
+      ${f.mpstruc === "out" ? uploadLink() : ""}
     </form>`;
+  }
+
+  // The "In mpstruc" filter (lists, search and the overview). pool: the
+  // entries to count, or null on the overview (no counts there). The two
+  // options split every structure in two, so their counts add up to All: "not
+  // in mpstruc yet" also takes an official entry with a curator-added related line.
+  function mpstrucSelect(pool) {
+    const f = state.filters, n = (k) => (pool ? ` (${pool.filter((e) => notInMp(e) === (k === "out")).length})` : "");
+    return `<label>In mpstruc<select name="mpstruc">
+        <option value="">All</option>
+        <option value="in"${f.mpstruc === "in" ? " selected" : ""}>In mpstruc${n("in")}</option>
+        <option value="out"${f.mpstruc === "out" ? " selected" : ""}>Not in mpstruc yet, or a related line${n("out")}</option></select></label>`;
+  }
+  function uploadLink() {
+    return `<a class="mp-upload-link" href="#/notinmpstruc">Ready to upload to mpstruc (${readyRows().length})</a>`;
   }
 
   function wireFilters() {
@@ -275,10 +315,37 @@ links.addEventListener("click", (event) => {
       ev.preventDefault();
       const q = form.elements.q.value.trim();
       const id = q.toUpperCase();
-      if (/^[0-9][A-Z0-9]{3}$/.test(id) && (state.byPdb.has(id) || state.data.relPdb[id])) location.hash = `#/pdb/${id}`;
-      else if (q) location.hash = `#/search/${encodeURIComponent(q)}`;
+      // An exact PDB ID goes straight to its listing in the database; one that is
+      // only mentioned (or known from the PDB) to its PDB page; anything else to the results.
+      const to = !PDB_RE.test(id) ? null : listingHash(id)
+        || (state.byPdb.has(id) || state.data.relPdb[id] ? `#/pdb/${id}/about` : null);
+      const target = to || (q ? `#/search/${encodeURIComponent(q)}` : "");
+      if (!target) return;
+      if (location.hash === target) route(); else location.hash = target;
     });
   }
+
+  // The address of a PDB ID's listing in the database: a parent's own page; a
+  // daughter on its parent's page (scrolled to and highlighted); a related entry
+  // on the page of the entry it is listed under (its line highlighted). The ID
+  // after the key marks what to highlight. null when it is not listed.
+  function listingHash(id) {
+    const refs = (state.byPdb.get(id) || []).filter((r) => r.type !== "mentioned");
+    const r = refs.find((x) => x.type === "parent") || refs.find((x) => x.type === "daughter") || refs[0];
+    if (!r) return null;
+    return `#/entry/${r.type === "daughter" ? r.entry.parent.k : r.entry.k}/${id}`;
+  }
+
+  // Where the official mpstruc file lists a PDB ID (curators' additions left out):
+  // [{ placement, subgroup, owner }].
+  function officialPlaces(id) {
+    return (state.byPdb.get(id) || [])
+      .filter((r) => r.type !== "mentioned" && !r.entry.isNew && (r.type !== "related" || relInMp(r.entry, id)))
+      .map((r) => ({ placement: r.type, subgroup: r.entry.sg.k,
+                     owner: r.type === "parent" ? "" : r.type === "daughter" ? r.entry.parent.pdb.toUpperCase() : r.entry.pdb.toUpperCase() }));
+  }
+  const placeText = (p) => (p.placement === "parent" ? `a parent in ${sgName(p.subgroup)}`
+    : `${p.placement === "daughter" ? "a daughter" : "a related entry"} of ${p.owner} in ${sgName(p.subgroup)}`);
 
   function citation(b, full) {
     if (!b) return "";
@@ -302,14 +369,28 @@ links.addEventListener("click", (event) => {
 
   function relatedChips(e) {
     if (!e.rel || !e.rel.length) return "";
-    const chips = e.rel.map((id) => {
+    const chip = (id) => {
       const x = state.data.relPdb[id.toUpperCase()];
       const tip = x ? `From PDB: ${x.method || ""}${x.res ? `, ${fmtRes(x.res)}` : ""}. ${x.title || ""}` : "Not found in the PDB";
       const fresh = state.newRel.get(id.toUpperCase());
-      return `<a class="mp-chip${fresh ? " new" : ""}" href="#/pdb/${esc(id.toUpperCase())}" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
-    }).join("");
-    return `<div class="mp-chips"><span class="mp-badge related">Related</span>${chips}</div>`;
+      const hit = state.focusPdb === id.toUpperCase() ? " mp-hit-chip" : "";
+      return `<a class="mp-chip${fresh ? " new" : ""}${hit}" href="#/pdb/${esc(id.toUpperCase())}/about" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
+    };
+    // Grouped by whether the line is in the official mpstruc, each group with its marker.
+    const groups = { in: [], out: [], sent: [] };
+    e.rel.forEach((id) => groups[relMark(e, id)].push(id));
+    const html = ["in", "out", "sent"].filter((k) => groups[k].length)
+      .map((k) => `<span class="mp-chipgroup">${mpMark(k)}${groups[k].map(chip).join("")}</span>`).join("");
+    return `<div class="mp-chips"><span class="mp-badge related">Related</span>${html}</div>`;
   }
+  // A related line: in mpstruc, or (added by curators) not yet / submitted. A
+  // related ID with its own pushed record has its own submitted mark; one only
+  // written in a curator-added entry's related list goes to mpstruc with that entry.
+  const relMark = (e, id) => {
+    if (relInMp(e, id)) return "in";
+    const own = isPushed(curation.entries[String(id).toUpperCase()]);
+    return isSubmitted(e.isNew && !own ? e.pdb : id) ? "sent" : "out";
+  };
 
   function resolutionCell(e) {
     const curated = e.res ? esc(e.res.match(/^[\d.]+$/) ? `${e.res} Å` : e.res) : "—";
@@ -324,6 +405,7 @@ links.addEventListener("click", (event) => {
       <div class="mp-entry-head">
         <span class="mp-badge${isD ? " daughter" : ""}">${isD ? "Daughter" : "Parent"}</span>
         ${newBadge(e)}
+        ${mpMark(markOf(e))}
         <a class="mp-pdb" href="#/entry/${e.k}">${esc(e.pdb)}</a>
         <a href="${rcsb(e.pdb)}" rel="noopener" class="mp-of">RCSB ↗</a>
         ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a></span>` : ""}
@@ -353,7 +435,9 @@ links.addEventListener("click", (event) => {
       }
     }
     const pic = opts.noThumb ? "" : thumb(e.pdb);
-    return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
+    // The daughter a search or PDB link asked for, on its parent's page.
+    const hit = isD && !opts.noThumb && state.focusPdb && state.focusPdb === e.pdb.toUpperCase() ? " mp-hit" : "";
+    return `<article class="mp-entry${isD ? " daughter" : ""}${pic ? " has-thumb" : ""}${hit}" id="e-${e.k}">${pic}${body}${daughters}</article>`;
   }
 
   // Entries curators approved on the Automation tab (built by applyCuration).
@@ -424,19 +508,31 @@ links.addEventListener("click", (event) => {
 
   function viewHome() {
     const m = state.data.meta, c = m.counts;
+    // The In mpstruc filter counts structures (parents and daughters) the way the
+    // subfamily page's filter does: all in mpstruc, or with something not in it yet.
+    const mf = state.filters.mpstruc;
+    const nOf = (sg) => (!mf ? sg.n
+      : sg.parents.reduce((s, p) => s + [p, ...(p.d || [])].filter((e) => notInMp(e) === (mf === "out")).length, 0));
     const groups = state.data.groups.map((g) => {
-      const n = g.subgroups.reduce((s, sg) => s + sg.n, 0);
-      const sorted = [...g.subgroups].sort((a, b) => b.n - a.n), maxN = (sorted[0] && sorted[0].n) || 1;
+      const n = g.subgroups.reduce((s, sg) => s + nOf(sg), 0);
+      const sorted = g.subgroups.filter((sg) => nOf(sg) > 0).sort((a, b) => nOf(b) - nOf(a)), maxN = (sorted[0] && nOf(sorted[0])) || 1;
       const top = sorted.slice(0, 5)
-        .map((sg) => `<li style="--w:${((sg.n / maxN) * 100).toFixed(1)}%"><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${sg.n}</span></li>`).join("");
-      return `<article class="card mp-family"><h3>${esc(g.topology)}</h3><p class="mp-summary">${g.subgroups.length} subfamilies, ${n.toLocaleString()} listings</p>
-        <p class="mp-summary">Largest subfamilies:</p><ul class="mp-ranked">${top}</ul></article>`;
+        .map((sg) => `<li style="--w:${((nOf(sg) / maxN) * 100).toFixed(1)}%"><a href="#/sg/${sg.k}">${sg.name}</a> <span class="mp-count">${nOf(sg)}</span></li>`).join("");
+      return `<article class="card mp-family"><h3>${esc(g.topology)}</h3><p class="mp-summary">${mf ? `${sorted.length} of ${g.subgroups.length}` : g.subgroups.length} subfamilies,
+        ${n.toLocaleString()} ${mf === "out" ? `${n === 1 ? "structure" : "structures"} not in mpstruc yet, or with a related line that is not`
+          : mf === "in" ? `${n === 1 ? "structure" : "structures"} in mpstruc` : "listings"}</p>
+        ${top ? `<p class="mp-summary">${mf === "out" ? "Subfamilies with something not in mpstruc yet:" : "Largest subfamilies:"}</p><ul class="mp-ranked">${top}</ul>`
+          : '<p class="mp-summary">None.</p>'}</article>`;
     }).join("");
     const fc = m.flagCounts;
+    const nReady = readyRows().length;
     return `<div class="mp-view">
       <h2>Overview</h2>
       <p class="mp-summary">Snapshot of ${esc(m.timestamp)} · last new protein ${esc((m.lastNewProtein || "").slice(0, 10))}${state.nNew
         ? ` · <a href="#/search/${encodeURIComponent("*new")}">${state.nNew} ${state.nNew === 1 ? "structure" : "structures"} added by curators since</a>` : ""}</p>
+      <p class="mp-summary mp-legend">Every entry is marked ${mpMark("in")} (listed in the official mpstruc), ${mpMark("out")} (added by curators here)
+        or ${mpMark("sent")} (sent to the mpstruc maintainers, waiting for the weekly check).
+        ${nReady ? `<a class="mp-upload-link" href="#/notinmpstruc">Ready to upload to mpstruc (${nReady})</a>` : "Everything curators added is in mpstruc."}</p>
       <div class="mp-stats">
         <div class="mp-stat"><b>${c.parents.toLocaleString()}</b><span>parent proteins</span></div>
         <div class="mp-stat"><b>${c.daughters.toLocaleString()}</b><span>daughter structures
@@ -447,6 +543,7 @@ links.addEventListener("click", (event) => {
       <h3>Structures by publication year</h3>
       ${yearChart()}
       <h3>Families</h3>
+      <form class="mp-filters mp-home-filter" id="mp-filters" aria-label="Filter the families">${mpstrucSelect(null)}</form>
       <div class="mp-groups">${groups}</div>
       <h3>Data quality</h3>
       <p>Automatic checks against the PDB and PubMed found <b>${fc.error}</b> errors and <b>${fc.warning}</b> warnings.
@@ -510,18 +607,19 @@ links.addEventListener("click", (event) => {
       const where = `${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>`;
       const role = r.type === "related" ? `Related entry of <a href="#/entry/${e.k}">${esc(e.pdb)}</a> (${e.kind === "p" ? "parent" : "daughter"})`
         : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}`;
-      return `<tr><td>${role}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
+      return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e))}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
     }).join("");
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
       <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      ${listingHash(id) ? `<p><a class="mp-btn" href="${esc(listingHash(id))}">Go to its listing in the database</a></p>` : ""}
       ${rejectedNote(id)}
       ${stagedNote(id)}
       ${preview(id, "lg", "mp-preview-inline")}
       <p class="mp-links"><a href="${rcsb(id)}" rel="noopener">RCSB PDB ↗</a>
         <a href="https://www.ebi.ac.uk/pdbe/entry/pdb/${esc(id.toLowerCase())}" rel="noopener">PDBe ↗</a></p>
       ${x ? `<p class="mp-frompdb">From PDB: ${esc(x.title || "")} · ${esc(x.method || "")}${x.res ? ` · ${fmtRes(x.res)}` : ""}${x.released ? ` · released ${esc(x.released)}` : ""}</p>` : ""}
-      ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in mpstruc${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
+      ${refs.length ? `<p class="mp-summary">Listed ${refs.length} ${refs.length === 1 ? "time" : "times"} in the database${refs.length > 1 ? " (cross-listings are usually intentional)" : ""}.</p>
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Listed as</th><th>Where</th><th>Record key</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="mp-empty">This PDB ID is not listed in mpstruc.</p>'}
       ${mentions.length ? `<p>Cited in the description of ${mentions.map((r) =>
@@ -559,14 +657,32 @@ links.addEventListener("click", (event) => {
       <a href="#/approved">Review in Decisions › Approved</a></p>`;
   }
 
-  function viewEntry(e) {
+  // Where a PDB ID asked for by a search or a PDB link is placed, at the top of
+  // the listing it was taken to (focus: that PDB ID).
+  function placedLine(e, focus) {
+    const refs = (state.byPdb.get(focus) || []).filter((r) => r.type !== "mentioned");
+    if (!refs.length) return "";
+    const one = (r) => {
+      const x = r.entry, sg = `${esc(x.sg.group.topology)} › <a href="#/sg/${x.sg.k}">${x.sg.name}</a>`;
+      const what = r.type === "parent" ? "a parent"
+        : r.type === "daughter" ? `a daughter of <a href="#/entry/${x.parent.k}">${esc(x.parent.pdb)}</a>`
+        : `a related entry of <a href="#/entry/${x.k}">${esc(x.pdb)}</a>${x.parent ? ` (a daughter of ${esc(x.parent.pdb)})` : ""}`;
+      return `${what} in ${sg} ${mpMark(r.type === "related" ? relMark(x, focus) : markOf(x))}`;
+    };
+    return `<nav class="mp-placed" aria-label="Where ${esc(focus)} is placed"><span class="mp-of">Where it is placed:</span>
+      <b class="mp-pdb">${esc(focus)}</b> is ${refs.map(one).join("; also ")}.
+      <a class="mp-of" href="#/pdb/${esc(focus)}/about">PDB details</a></nav>`;
+  }
+
+  function viewEntry(e, focus = "") {
     const others = (state.byPdb.get(e.pdb.toUpperCase()) || [])
       .filter((r) => r.type !== "mentioned" && !(r.entry === e && r.type !== "related"));
     const relRows = (e.rel || []).map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
-      return `<tr><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}">${esc(id)}</a></td>
+      const hit = focus === id.toUpperCase() ? ' class="mp-hit"' : "";
+      return `<tr id="rel-${esc(id.toUpperCase())}"${hit}><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}/about">${esc(id)}</a></td>
         <td>${x ? esc(x.title || "") : '<span class="mp-frompdb">Not found in the PDB</span>'}</td>
-        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td></tr>`;
+        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td><td>${mpMark(relMark(e, id))}</td></tr>`;
     }).join("");
     const daughters = e.kind === "p" && e.d && e.d.length
       ? `<h3>Daughter structures described in full (${e.d.length})</h3>${e.d.map((d) => entryCard(d)).join("")}` : "";
@@ -574,6 +690,8 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › ${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>
         ${e.parent ? ` › <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}</p>
+      ${focus ? placedLine(e, focus) : ""}
+      ${focus && focus !== e.pdb.toUpperCase() ? `${rejectedNote(focus)}${stagedNote(focus)}` : ""}
       <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${asText(e.name)}</h2>
       <div class="mp-entry-top">
         ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true })}
@@ -588,12 +706,13 @@ links.addEventListener("click", (event) => {
       <p class="mp-summary">Record key <code>${esc(e.k)}</code>${e.x && e.x.released ? ` · released ${esc(e.x.released)} (from PDB)` : ""}</p>
       ${e.isNew ? `<p class="mp-newnote">Pushed to the database by ${esc(e.newBy)} on ${esc(fmtDate(e.newAt))}${e.approvedBy && e.approvedBy !== e.newBy ? ` (approved by ${esc(e.approvedBy)})` : ""}
         from the Automation tab${e.edited ? ", with the entry edited by a curator" : ""}. It is in this site's shared
-        curation record (<code>data/curation.json</code>) and in the downloads for the mpstruc maintainers, but not yet in the official mpstruc file.
+        curation record (<code>data/curation.json</code>) and in <a href="#/notinmpstruc">Ready to upload to mpstruc</a>, but not yet in the official mpstruc file${isSubmitted(e.pdb)
+          ? " (submitted to the mpstruc maintainers; it is marked In mpstruc once the weekly check finds it there)" : ""}.
         ${signedIn() ? `<a href="#/approved/pushed">See it in Decisions › Pushed</a>` : ""}</p>` : ""}
       ${stagedNote(e.pdb)}
       ${(e.bib || []).length ? `<h3>Bibliography</h3>${e.bib.map((b, i) => `<div>${i ? "<b>Secondary</b>" : "<b>Primary</b>"}${citation(b, true)}</div>`).join("")}` : ""}
       ${relRows ? `<h3>Related entries (${e.rel.length})</h3><p class="mp-frompdb">Details below come from the PDB; mpstruc records only the IDs.</p>
-        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
+        <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th><span class="mp-visually-hidden">Picture</span></th><th>PDB</th><th>Title</th><th>Method</th><th>Resolution</th><th>In mpstruc?</th></tr></thead><tbody>${relRows}</tbody></table></div>` : ""}
       ${others.length ? `<h3>Also listed</h3><ul>${others.map((r) => `<li>${r.type === "related" ? `As a related entry of <a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>` : `As a ${r.type} in <a href="#/entry/${r.entry.k}">${esc(r.entry.k)}</a>`} · <a href="#/sg/${r.entry.sg.k}">${r.entry.sg.name}</a></li>`).join("")}</ul>` : ""}
       ${daughters}
     </div>`;
@@ -665,7 +784,7 @@ links.addEventListener("click", (event) => {
                  fetch("data/backtest.json").then((r) => r.ok ? r.json() : null).catch(() => null)])
       .then(([c, b]) => { auto.cands = c; auto.backtest = b; auto.view.min = c.threshold ?? 0.5; })
       .catch((err) => { auto.error = err.message; })
-      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved)/.test(lastRoute)) rerender(); });
+      .finally(() => { auto.loading = false; if (/^(automation|rejected|approved|notinmpstruc)/.test(lastRoute)) rerender(); });
   }
 
   const PLACEMENT_LABEL = { parent: "New parent", daughter: "Daughter", related: "Related entry", review: "Needs a decision" };
@@ -1728,6 +1847,7 @@ links.addEventListener("click", (event) => {
     const opt = (val, label, cur) => `<option value="${val}"${String(cur) === String(val) ? " selected" : ""}>${label}</option>`;
     return `<div class="mp-view">
       <h2>New structures to review</h2>
+      ${pipeline("automation")}
       <p class="mp-summary mp-auto-links"><a href="#/automation/vercel">Compared with the Vercel demo</a>: membrane proteins another group's demo site
         missed, and structures it lists that are not membrane proteins.</p>
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
@@ -1893,7 +2013,7 @@ links.addEventListener("click", (event) => {
     const today = new Date().toISOString().slice(0, 10);
     const out = ['<?xml version="1.0" encoding="UTF-8"?>',
       `<!-- mpstruc entries approved ${today}. Lines like this one are instructions, not XML to paste; names are drafts from the PDB: please check them. -->`,
-      "<!-- Field text is mpstruc markup written as in mpstruc's own XML export: <sub> appears as &lt;sub&gt;, and entities such as &Aring; as the character itself. -->",
+      "<!-- Field text is mpstruc markup written as in mpstruc's own XML export: <sub> appears as &lt;sub&gt;, named entities such as &Aring; as the character itself, and &amp; (part of the markup) as &amp;amp;, as in mpstruc's own file. -->",
       `<mpstrucApproved date="${today}">`];
     // Every field goes through xmlText() (it is curator-edited markup), so the file is well-formed XML.
     const leaf = (tag, raw) => (raw == null || raw === "" ? `<${tag}/>` : `<${tag}>${xmlText(raw)}</${tag}>`);
@@ -2215,6 +2335,12 @@ links.addEventListener("click", (event) => {
       // A push record must say who and when; anything else counts as not pushed.
       if (e.pushed !== undefined && !(isObj(e.pushed) && typeof e.pushed.at === "string" && (typeof e.pushed.by === "string" || typeof e.pushed.byName === "string"))) {
         const { pushed, ...rest } = e;
+        e = rest;
+      }
+      // "Submitted to mpstruc" (Ready to upload) likewise; it means something only for a pushed structure.
+      if (e.submitted !== undefined && !(isObj(e.pushed) && isObj(e.submitted) && typeof e.submitted.at === "string"
+          && (typeof e.submitted.by === "string" || typeof e.submitted.byName === "string"))) {
+        const { submitted, ...rest } = e;
         e = rest;
       }
       out.entries[pdb] = e;
@@ -2604,8 +2730,9 @@ links.addEventListener("click", (event) => {
       // repository as it is now: saving an edit never puts a structure into
       // the database or takes it out.
       if (entry && entry.status === "approved" && isObj(now) && now.status === "approved") {
-        const { pushed: _old, ...rest } = entry;
-        entry = isPushed(now) ? { ...rest, pushed: now.pushed } : rest;
+        const { pushed: _old, submitted: _sent, ...rest } = entry;
+        // The same for "submitted to mpstruc", which goes with the push.
+        entry = isPushed(now) ? { ...rest, pushed: now.pushed, ...(isObj(now.submitted) ? { submitted: now.submitted } : {}) } : rest;
       }
       if (entry) raw.entries[pdb] = entry; else delete raw.entries[pdb];
       raw.log.push(event);
@@ -2658,7 +2785,7 @@ links.addEventListener("click", (event) => {
                     ...(moved || fromSuggestion.length ? { edited: true } : {}), ...stamp(), ...snapshot(c),
                     ...(fromSuggestion.length ? { mpEdited: mpNew } : {}), ...(note ? { note } : {}),
                     // Editing a structure already pushed keeps it in the database.
-                    ...(prevAp && isObj(prevAp.pushed) ? { pushed: prevAp.pushed } : {}) };
+                    ...(prevAp && isObj(prevAp.pushed) ? { pushed: prevAp.pushed, ...(isObj(prevAp.submitted) ? { submitted: prevAp.submitted } : {}) } : {}) };
     // What changed, for the log: against the saved entry when editing one, else against the suggestion.
     const before = prevAp || { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" };
     const changed = [
@@ -3126,12 +3253,13 @@ links.addEventListener("click", (event) => {
   // Log actions as shown in the terminal, and a plain sentence for lines saved without one.
   const LOG_ACT = { approve: "APPROVE", reject: "REJECT", undo: "UNDO", change: "CHANGE", edit: "EDIT", reason: "REASON",
                     unarchive: "UNARCHIVE", delete: "DELETE", restore: "RESTORE", "auto-reject": "AUTO-REJECT", "auto-unreject": "AUTO-UNREJECT",
-                    push: "PUSH", unpush: "UNPUSH" };
+                    push: "PUSH", unpush: "UNPUSH", submit: "SUBMIT", unsubmit: "UNSUBMIT", "in-mpstruc": "IN-MPSTRUC" };
   const LOG_SAY = { approve: "Approved", reject: "Rejected", undo: "Undid the last decision on", change: "Changed the decision on",
                     edit: "Edited the mpstruc entry for", reason: "Changed the reject reason of", unarchive: "Moved back to To decide:",
                     delete: "Deleted permanently (never suggested again):", restore: "Restored from Deleted to To decide:",
                     "auto-reject": "Rejected automatically as not published yet:", "auto-unreject": "Paper now published, back in To decide:",
-                    push: "Pushed to the database:", unpush: "Removed from the database (still approved):" };
+                    push: "Pushed to the database:", unpush: "Removed from the database (still approved):",
+                    submit: "Marked as submitted to mpstruc:", unsubmit: "Marked as not submitted to mpstruc:", "in-mpstruc": "Now in the official mpstruc:" };
   const isAuto = (x) => x && x.by === AUTO_BY;
   function logLines() {
     const lines = curation.log.map((x) => {
@@ -3151,6 +3279,7 @@ links.addEventListener("click", (event) => {
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).
     const m = state.data.meta, c = base.counts;
+    lines.push(...nowInMpLines(lines));
     lines.push({ at: parseSnapshotTime(m.timestamp) || m.lastEdit, who: "mpstruc", act: "SNAPSHOT", pdb: "", snapshot: true,
       msg: `Database snapshot of ${m.timestamp}: ${c.parents.toLocaleString()} parents, ${c.daughters.toLocaleString()} daughter structures, `
         + `${c.subgroups} subfamilies${state.nNew ? `; ${state.nNew} added by curators since` : ""}` });
@@ -3404,7 +3533,8 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       ${filter ? `<p class="mp-crumbs">Decisions › <a href="#/rejected">Rejected</a> › ${esc(filterName(filter))}</p>` : ""}
       <h2>${filter === "deleted" ? "Deleted structures" : filter ? `Rejected: ${esc(REASON_LABEL[filter])}` : "Rejected structures"}</h2>
-      <p class="mp-summary">${intro}</p>
+      ${pipeline("")}
+      <p class="mp-summary">${intro} Rejected structures leave these steps.</p>
       <form class="mp-filters mp-rej-filters" id="mp-rej-filters" role="search" aria-label="Filter rejected structures">
         <label>Reason<select name="filter" id="mp-rej-filter">${opt("", `All rejected (${counts.all})`, filter)}${REASONS.map((r) => opt(r.code, `${esc(r.label)} (${counts[r.code]})`, filter)).join("")}${opt("deleted", `Deleted (${counts.deleted})`, filter)}</select></label>
         <label>Sort<select name="sort" id="mp-rej-sort">${REJ_SORTS.map(([v, l]) => opt(v, l, rej.sort)).join("")}</select></label>
@@ -3747,8 +3877,8 @@ links.addEventListener("click", (event) => {
   // (approved with mpEdited, pushed or not) and pushed.
   const appr = { sort: "newest", q: "", selected: new Set() };
   const APPR_SORTS = [["newest", "Newest approved first"], ["pdb", "PDB ID"], ["subfamily", "Subfamily"], ["curator", "Curator who approved it"]];
-  const apprFilterOf = (arg) => (arg === "edited" || arg === "pushed" ? arg : "");
-  const APPR_NAME = { "": "Approved – ready to push", edited: "Edited by curators", pushed: "Pushed to database" };
+  const apprFilterOf = (arg) => (arg === "edited" || arg === "pushed" || arg === "inmpstruc" ? arg : "");
+  const APPR_NAME = { "": "Approved – ready to push", edited: "Edited by curators", pushed: "Pushed to database", inmpstruc: "Now in mpstruc" };
   // The one-time notice about the new push step, for approvals saved before it existed.
   const PUSH_NOTICE_KEY = "mpstruc-push-step-notice-v1", PUSH_STEP_FROM = "2026-11-07T00:00:00.000Z";
   const inOfficial = (pdb) => base.listed.has(pdb) || base.related.has(pdb);
@@ -3804,10 +3934,11 @@ links.addEventListener("click", (event) => {
     });
   }
   function apprCounts(rows = apprRows()) {
-    return { ready: rows.filter((r) => !r.pushed).length, edited: rows.filter((r) => r.edited).length, pushed: rows.filter((r) => r.pushed).length,
-             official: rows.filter((r) => r.pushed && r.official).length };
+    return { ready: rows.filter((r) => !r.pushed && !r.official).length, edited: rows.filter((r) => r.edited).length, pushed: rows.filter((r) => r.pushed).length,
+             official: rows.filter((r) => r.official).length, pushedOfficial: rows.filter((r) => r.pushed && r.official).length };
   }
-  const apprIn = (filter) => (r) => (filter === "pushed" ? r.pushed : filter === "edited" ? r.edited : !r.pushed);
+  // An approved structure mpstruc already lists needs no push: it is under Now in mpstruc, not Ready to push.
+  const apprIn = (filter) => (r) => (filter === "pushed" ? r.pushed : filter === "inmpstruc" ? r.official : filter === "edited" ? r.edited : !r.pushed && !r.official);
 
   function apprList(filter) {
     const rows = apprRows();
@@ -3821,7 +3952,8 @@ links.addEventListener("click", (event) => {
     const shown = rows.filter(apprIn(filter)).filter((r) => {
       const t = `${r.pdb} ${strip(r.name)} ${r.title} ${r.sg} ${groupOf(r.d.subgroup)} ${r.d.owner || ""} ${PLACEMENT_LABEL[r.d.placement] || ""} ${r.who} ${r.d.by || ""} ${r.pushedBy}`.toLowerCase();
       return terms.every((x) => t.includes(x));
-    }).sort((a, b) => (cmp[appr.sort] || cmp.newest)(a, b) || a.pdb.localeCompare(b.pdb));
+    }).sort((a, b) => (filter === "pushed" ? a.official - b.official : 0) || (cmp[appr.sort] || cmp.newest)(a, b) || a.pdb.localeCompare(b.pdb));
+    // Pushed to database: the ones now in mpstruc come last, under their own heading.
     return { rows, shown, counts: apprCounts(rows) };
   }
 
@@ -3855,14 +3987,16 @@ links.addEventListener("click", (event) => {
           <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${r.pushed ? '<span class="mp-badge in-db">In the database</span>' : '<span class="mp-badge staged">Not yet pushed</span>'}
-          ${r.official ? `<span class="mp-badge new">${r.pushed ? "Now in official mpstruc" : "Already in official mpstruc"}</span>` : ""}
+          ${r.official ? mpMark("in") : r.pushed ? mpMark(isObj(d.submitted) ? "sent" : "out") : ""}
           ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
           ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
         </div>
         <p class="mp-rej-name">${r.name || esc(r.title || r.pdb)}</p>
+        ${stageLine(r.pdb, d)}
         <p class="mp-appr-where"><span class="mp-of">Goes to:</span> ${apprWhere(d)}</p>
-        ${r.official ? `<p class="mp-rej-wait mp-appr-info">${r.pushed ? `The official mpstruc file now lists ${id} too, so the database shows the official entry and not this pushed copy.`
+        ${r.official ? `<p class="mp-rej-wait mp-appr-info">${r.pushed ? `Now in mpstruc: the official mpstruc snapshot of ${esc(snapDate())} lists ${id}, so the database shows the official entry and not this pushed copy.`
           : `The official mpstruc file already lists ${id}: pushing it would not change the database.`}</p>` : ""}
+        ${r.official ? differentNote(r.pdb, d) : ""}
         ${r.unplaced ? `<p class="mp-rej-wait">Pushed, but not shown in the database: ${esc(String(d.owner).toUpperCase())}, the entry it goes under, is not listed there.</p>` : ""}
         ${d.note ? `<p class="mp-rej-note"><span class="mp-of">Curator note:</span> ${esc(plain(d.note))}</p>` : ""}
         ${diff}
@@ -3950,7 +4084,11 @@ links.addEventListener("click", (event) => {
         <div class="mp-actions"><button class="mp-btn secondary" type="button" id="mp-push-notice-ok">Got it</button></div></div>` : "";
     const intro = filter === "pushed"
       ? `Approved structures a curator has pushed: they are listed in the <a href="#/">Database</a> tab. <b>Remove from database</b> takes one out again
-         (it stays approved). When the official mpstruc file lists one too, it is marked <i>Now in official mpstruc</i> and the database shows the official entry.`
+         (it stays approved). The next step is to <a href="#/notinmpstruc">upload them to mpstruc</a>. Each week the site reads the newest official
+         mpstruc file; a structure it lists moves to <i>Now in mpstruc</i> at the bottom, and the database shows the official entry.`
+      : filter === "inmpstruc"
+        ? `Approved structures the official mpstruc file now lists (snapshot of ${esc(snapDate())}), found automatically by the weekly check: nothing more
+           to do for them, pushed or not. If mpstruc placed one differently from what the team pushed, it says so.`
       : filter === "edited"
         ? `Approved structures whose listing a curator changed from the weekly suggestion, pushed or not. Open <i>Changed</i> on a structure to see
            each change, before and after.`
@@ -3958,19 +4096,21 @@ links.addEventListener("click", (event) => {
            then press <b>Push to database</b>. Pushed ones move to <a href="#/approved/pushed">Pushed to database</a>.`;
     const empty = appr.q ? "No structure matches the search."
       : filter === "pushed" ? "No structure has been pushed to the database yet."
+      : filter === "inmpstruc" ? `No approved structure is in the official mpstruc yet. <a href="#/notinmpstruc">See what is ready to upload</a>.`
       : filter === "edited" ? "No approved structure has been edited by a curator."
       : `Nothing is waiting to be pushed. Approve suggestions on the <a href="#/automation">Automation</a> tab.`;
     return `<div class="mp-view">
-      <p class="mp-crumbs">Decisions › Approved${filter ? ` › ${esc(filter === "edited" ? "Edited by curators" : "Pushed to database")}` : ""}</p>
+      <p class="mp-crumbs">Decisions › Approved${filter ? ` › ${esc(APPR_NAME[filter])}` : ""}</p>
       <h2>${esc(title)}</h2>
+      ${pipeline({ "": "approve", edited: "edit", pushed: "push", inmpstruc: "inmp" }[filter])}
       <p class="mp-summary">${intro}</p>
       ${notice}
       <form class="mp-filters mp-rej-filters" id="mp-appr-filters" role="search" aria-label="Filter approved structures">
-        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("edited", `Edited by curators (${counts.edited})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}</select></label>
+        <label>Show<select name="filter" id="mp-appr-filter">${opt("", `Ready to push (${counts.ready})`, filter)}${opt("edited", `Edited by curators (${counts.edited})`, filter)}${opt("pushed", `Pushed to database (${counts.pushed})`, filter)}${opt("inmpstruc", `Now in mpstruc (${counts.official})`, filter)}</select></label>
         <label>Sort<select name="sort" id="mp-appr-sort">${APPR_SORTS.map(([v, l]) => opt(v, l, appr.sort)).join("")}</select></label>
         <label class="mp-rej-q">Search<input type="search" name="q" id="mp-appr-q" value="${esc(appr.q)}" placeholder="PDB ID, name, subfamily, curator" autocomplete="off"></label>
       </form>
-      <div class="mp-toolbar"><p class="mp-summary" id="mp-appr-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${appr.q ? " match the search" : ""}${filter === "pushed" && counts.official ? ` · ${counts.official} now in official mpstruc` : ""}</p>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-appr-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${appr.q ? " match the search" : ""}${filter === "pushed" && counts.pushedOfficial ? ` · ${counts.pushedOfficial} now in official mpstruc` : ""}</p>
         <span><button type="button" class="mp-btn secondary" id="mp-appr-xml" aria-describedby="mp-appr-xml-hint">Download as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-appr-xml-hint">${nSel ? `The download has the ${nSel} selected ${nSel === 1 ? "structure" : "structures"}.` : "The download has every structure listed below; select some to download only those."} Structures already in the official mpstruc are left out.</p>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
@@ -3982,7 +4122,13 @@ links.addEventListener("click", (event) => {
           ${filter !== "" ? `<button class="mp-btn secondary" type="button" id="ap-bulk-unpush" data-abulk="unpush"${selUnpush ? "" : " disabled"}>Remove ${selUnpush || ""} selected from database</button>` : ""}
         </span>
       </div>` : ""}
-      <div class="mp-rej-list">${pageGroups.map(apprGroup).join("") || `<p class="mp-empty">${empty}</p>`}</div>
+      <div class="mp-rej-list">${pageGroups.map((g, i) => {
+          const off = g.r.official, prev = i > 0 && pageGroups[i - 1].r.official, any = filter === "pushed" && pageGroups.some((x) => x.r.official);
+          return (any && off && (i === 0 || !prev)
+            ? `<h3 class="mp-list-head" id="mp-now-in">Now in mpstruc <span class="mp-of">· found in the official snapshot of ${esc(snapDate())}</span></h3>` : "")
+            + (any && !off && (i === 0 || prev) ? '<h3 class="mp-list-head">Not in mpstruc yet</h3>' : "")
+            + apprGroup(g);
+        }).join("") || `<p class="mp-empty">${empty}</p>`}</div>
       ${more(pageGroups.length, groups.length)}
     </div>`;
   }
@@ -4112,7 +4258,8 @@ links.addEventListener("click", (event) => {
     }
     const written = new Map();
     const changes = all.filter((p) => isPushed(curation.entries[p]) && !optimistic.has(p)).map((p) => {
-      const { pushed, ...entry } = curation.entries[p];
+      // Out of the database means out of the upload list too, so "submitted" goes with the push.
+      const { pushed, submitted, ...entry } = curation.entries[p];
       written.set(p, JSON.stringify(entry));
       const under = deps.includes(p) ? ` (it goes under ${String(entry.owner).toUpperCase()}, which was removed too)` : "";
       return { pdb: p, entry, detail: `Removed ${p} from the database${under}; it stays approved, waiting to be pushed` };
@@ -4526,6 +4673,289 @@ links.addEventListener("click", (event) => {
     }));
   }
 
+  // ---- the curation steps: automation -> edit -> approve -> push -> upload to mpstruc -> in mpstruc ----
+  // A structure goes through these steps; the strip at the top of the
+  // Automation tab, the Decisions lists and Ready to upload shows how many are
+  // at each one, and each structure in those lists says which step it is at.
+  // The last step needs no curator: each week the site reads the newest
+  // official mpstruc file, and a pushed structure it lists counts as in mpstruc.
+  const PIPE = [["automation", "Automation", "#/automation"], ["edit", "Edit", "#/approved/edited"], ["approve", "Approve", "#/approved"],
+                ["push", "Push to database", "#/approved/pushed"], ["upload", "Upload to mpstruc", "#/notinmpstruc"], ["inmp", "In mpstruc", "#/approved/inmpstruc"]];
+  const snapDate = () => fmtDate(parseSnapshotTime(state.data.meta.timestamp)) || plain(state.data.meta.timestamp);
+
+  function pipeCounts() {
+    const ap = Object.entries(curation.entries).filter(([, d]) => d.status === "approved");
+    return {
+      automation: auto.cands ? auto.cands.candidates.filter((c) => !decisionOf(c)).length : null,
+      edit: ap.filter(([, d]) => isObj(d.mpEdited)).length,
+      approve: ap.filter(([p, d]) => !isPushed(d) && !inOfficial(p)).length,
+      push: ap.filter(([, d]) => isPushed(d)).length,
+      upload: ap.filter(([p, d]) => isPushed(d) && !inOfficial(p)).length,
+      // Approved structures mpstruc lists, pushed or not (stageOf puts both at step 6).
+      inmp: ap.filter(([p]) => inOfficial(p)).length,
+    };
+  }
+
+  // current: the step this view is about ("" for none).
+  function pipeline(current) {
+    const n = pipeCounts(), num = (v) => (v == null ? "…" : v.toLocaleString());
+    const say = { automation: `${num(n.automation)} to decide`, edit: `${num(n.edit)} edited`, approve: `${num(n.approve)} waiting to push`,
+                  push: `${num(n.push)} pushed`, upload: `${num(n.upload)} to upload`, inmp: `${num(n.inmp)} now in mpstruc` };
+    return `<nav class="mp-pipe" aria-label="Curation steps, with how many structures are at each"><ol>${PIPE.map(([k, label, href], i) =>
+      `<li${k === current ? ' class="current"' : ""}><a href="${href}"${k === current ? ' aria-current="step"' : ""}>`
+      + `<span class="mp-pipe-n" aria-hidden="true">${i + 1}</span><span class="mp-pipe-t">${esc(label)}</span><span class="mp-pipe-c">${esc(say[k])}</span></a></li>`).join("")}</ol></nav>`;
+  }
+
+  // The step an approved structure is at: [index into PIPE, plain sentence].
+  function stageOf(pdb, d) {
+    if (!isObj(d) || d.status !== "approved") return null;
+    if (inOfficial(pdb)) return [5, isPushed(d) ? `done, the official snapshot of ${snapDate()} lists it.` : "already listed there, so there is no need to push it."];
+    if (!isPushed(d)) return [3, "Approved, waiting to be pushed to the database."];
+    if (isObj(d.submitted)) return [4, `Submitted to mpstruc${d.submitted.at ? ` on ${fmtDate(d.submitted.at)}` : ""}, waiting for the official file to list it.`];
+    return [4, "In the database, ready to upload to mpstruc."];
+  }
+  function stageLine(pdb, d) {
+    const s = stageOf(pdb, d);
+    if (!s) return "";
+    const [i, text] = s;
+    const dots = PIPE.map(([, label], j) => `<i class="${j < i || i === 5 ? "done" : j === i ? "now" : ""}" title="${esc(label)}"></i>`).join("");
+    return `<p class="mp-stage"><span class="mp-stage-dots" aria-hidden="true">${dots}</span>
+      <span><span class="mp-stage-step">Step ${i + 1} of ${PIPE.length}, ${esc(PIPE[i][1])}:</span> ${esc(text)}</span></p>`;
+  }
+
+  // A pushed structure the official file lists somewhere else than (or as
+  // another kind of entry than) the team pushed it. null when it matches.
+  function placedDifferently(pdb, d) {
+    const off = officialPlaces(pdb);
+    if (!off.length) return null;
+    const owner = String(d.owner || "").toUpperCase();
+    const same = off.some((o) => o.placement === d.placement && (d.placement === "parent" ? o.subgroup === d.subgroup : o.owner === owner));
+    if (same) return null;
+    const team = placeText({ placement: d.placement, subgroup: d.subgroup, owner });
+    return { team, official: off.map(placeText), text: `the team pushed it as ${team}; mpstruc lists it as ${off.map(placeText).join(" and as ")}` };
+  }
+  function differentNote(pdb, d) {
+    const x = placedDifferently(pdb, d);
+    return x ? `<p class="mp-rej-wait mp-differs"><b>mpstruc placed it differently.</b> The team pushed it as ${esc(x.team)};
+      the official mpstruc lists it as ${esc(x.official.join(" and as "))}.</p>` : "";
+  }
+
+  // Activity log: one line per pushed structure the official file now lists,
+  // worked out here from the pushed structures and the snapshot (not saved).
+  function nowInMpLines(existing) {
+    const m = state.data.meta, snapAt = parseSnapshotTime(m.timestamp) || m.lastEdit;
+    const seen = new Set(existing.filter((l) => l.act === "IN-MPSTRUC").map((l) => l.pdb));
+    const out = [];
+    for (const [pdb, d] of Object.entries(curation.entries)) {
+      if (!isPushed(d) || !inOfficial(pdb) || seen.has(pdb)) continue;
+      seen.add(pdb);
+      const x = placedDifferently(pdb, d);
+      out.push({ at: (Date.parse(d.pushed.at) || 0) > (Date.parse(snapAt) || 0) ? d.pushed.at : snapAt, who: "mpstruc", act: "IN-MPSTRUC", pdb,
+                 msg: `Now in the official mpstruc (snapshot ${snapDate()}): ${pdb}${x ? `. mpstruc placed it differently: ${x.text}` : ""}` });
+    }
+    return out;
+  }
+
+  // ---- Ready to upload to mpstruc (#/notinmpstruc) ---------------------------
+  // Every pushed structure the official mpstruc file does not list yet: where it
+  // goes, the listing as drafted (with the curator's edits), and downloads for
+  // the mpstruc entry form (CSV, in its columns) or as mpstruc XML. Curators can
+  // mark what they sent (entries[PDB].submitted = { by, byName, at }, logged as
+  // 'submit'); a structure leaves this list by itself once the weekly snapshot lists it.
+  const up = { show: "", q: "", selected: new Set() };
+  const readyRows = () => apprRows().filter((r) => r.pushed && !r.official);
+  const FORM_COLS = ["Pdb Code", "Name", "Experimental Method", "Species", "Taxonomic Domain", "Expressed In Species", "Resolution", "Description",
+                     "Family", "Subfamily", "Bibliography", "PDB Link", "mpstruc Link", "PubMed Link", "DOI Link", "Status", "Memo"];
+
+  // The mpstruc entry form's columns, one row per structure (ids: PDB IDs, in order).
+  function formCsv(ids) {
+    const q = (v) => `"${unquote(v ?? "").replace(/\r?\n/g, " ").replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
+    const txt = (v) => decodeEntities(safeMarkup(v == null ? "" : String(v))).trim();
+    const rows = ids.map((pdb) => {
+      const d = curation.entries[pdb];
+      const m = safeMp(effectiveMp(d, candIndex().get(pdb)) || {}), b = m.bibliography || {};
+      const sg = state.sgOf.get(d.subgroup), owner = String(d.owner || "").toUpperCase();
+      const doi = strip(b.doi || "") || plain(d.doi), pmid = strip(b.pubMedId || "") || plain(d.pmid);
+      // The bibliography is one line of plain text (no markup, & as &).
+      const pt = (v) => strip(decodeEntities(v == null ? "" : String(v))).trim();
+      const bib = [b.authors && `${pt(b.authors)}${b.year ? ` (${pt(b.year)})` : ""}`, b.title && pt(b.title).replace(/\.$/, ""),
+                   [pt(b.journal), b.volume && `${pt(b.volume)}${b.issue ? `(${pt(b.issue)})` : ""}${b.pages ? `:${pt(b.pages)}` : ""}`].filter(Boolean).join(" "),
+                   doi && `doi:${doi}`, pmid && `PMID:${pmid}`].filter(Boolean).join(". ");
+      const placed = !state.unplaced.includes(pdb);
+      const related = (m.related || []).filter((r) => r !== pdb);
+      const memo = [d.placement === "parent" ? "New parent" : d.placement === "daughter" ? `Daughter of ${owner}` : `Related entry of ${owner}`,
+                    d.placement === "related" && m.relatedLine ? `line to add to ${owner}'s description: ${txt(m.relatedLine)}` : "",
+                    related.length ? `related PDB entries: ${related.join(", ")}` : "",
+                    isObj(d.mpEdited) ? "entry edited by a curator" : "",
+                    placed ? "" : `${owner} is not in the database yet`,
+                    d.note ? `curator note: ${plain(d.note)}` : ""].filter(Boolean).join("; ");
+      return [pdb, txt(m.name) || plain(d.title), METHOD[String(d.method || "").toUpperCase()] || plain(d.method), txt(m.species), txt(m.taxonomicDomain),
+              txt(m.expressedInSpecies), txt(m.resolution) || (d.res != null ? String(d.res) : ""), txt(m.description),
+              sg ? sg.group.name : "", sg ? strip(sg.name) : plain(d.subgroup), bib, `https://www.rcsb.org/structure/${pdb}`,
+              `https://blanco.biomol.uci.edu/mpstruc/#/${pdb}`, pmid ? `https://www.ncbi.nlm.nih.gov/pubmed/?term=${pmid}` : "",
+              doi ? `https://doi.org/${doi}` : "", placed ? "Ready for yes" : "", memo].map(q).join(",");
+    });
+    return "﻿" + [FORM_COLS.map(q).join(","), ...rows].join("\r\n") + "\r\n";
+  }
+
+  function readyList() {
+    const all = readyRows();
+    const terms = up.q.toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = all.filter((r) => (up.show === "sent" ? isObj(r.d.submitted) : up.show === "waiting" ? !isObj(r.d.submitted) : true))
+      .filter((r) => {
+        const t = `${r.pdb} ${strip(r.name)} ${r.title} ${r.sg} ${groupOf(r.d.subgroup)} ${r.d.owner || ""} ${PLACEMENT_LABEL[r.d.placement] || ""} ${r.who} ${r.pushedBy}`.toLowerCase();
+        return terms.every((x) => t.includes(x));
+      })
+      // Oldest push first, so a structure comes before what goes under it.
+      .sort((a, b) => a.pushedAt.localeCompare(b.pushedAt) || a.pdb.localeCompare(b.pdb));
+    return { all, shown, counts: { all: all.length, sent: all.filter((r) => isObj(r.d.submitted)).length } };
+  }
+
+  function readyRow(r) {
+    const id = esc(r.pdb), d = r.d, saving = optimistic.has(r.pdb), off = saving ? " disabled" : "", sent = isObj(d.submitted);
+    const checked = up.selected.has(r.pdb), c = candOf(r.pdb);
+    const badge = d.placement === "daughter" ? " daughter" : d.placement === "related" ? " related" : "";
+    const listing = listingHash(r.pdb);
+    return `<article class="mp-rej-row mp-appr-row mp-ready-row${checked ? " selected" : ""}${saving ? " saving" : ""}" id="c-${id}" aria-labelledby="up-h-${id}">
+      <input type="checkbox" class="mp-rej-check mp-up-check" id="up-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
+      <div class="mp-rej-main">
+        <div class="mp-rej-head">
+          <a class="mp-pdb" id="up-h-${id}" href="${listing ? esc(listing) : `#/pdb/${id}/about`}">${id}</a>
+          <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
+          ${mpMark(sent ? "sent" : "out")}
+          ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
+          ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
+        </div>
+        <p class="mp-rej-name">${r.name || esc(r.title || r.pdb)}</p>
+        ${stageLine(r.pdb, d)}
+        <p class="mp-appr-where"><span class="mp-of">Goes to:</span> ${apprWhere(d)}</p>
+        ${r.unplaced ? `<p class="mp-rej-wait">Not shown in the database: ${esc(String(d.owner).toUpperCase())}, the entry it goes under, is not listed there. Check where it goes before uploading it (its Status in the form download is left blank).</p>` : ""}
+        ${d.note ? `<p class="mp-rej-note"><span class="mp-of">Curator note:</span> ${esc(plain(d.note))}</p>` : ""}
+        <dl class="mp-rej-facts">
+          <div><dt>Approved by</dt><dd>${esc(r.who || "unknown")}</dd></div>
+          <div><dt>Pushed</dt><dd>${esc(r.pushedBy || "a curator")}, <time datetime="${esc(r.pushedAt)}">${esc(fmtDate(r.pushedAt))}</time></dd></div>
+          <div><dt>Submitted to mpstruc</dt><dd>${sent ? `${esc(plain(d.submitted.byName || d.submitted.by))}, <time datetime="${esc(plain(d.submitted.at))}">${esc(fmtDate(d.submitted.at))}</time>` : "Not yet"}</dd></div>
+          <div><dt>Released</dt><dd>${esc(dayText(r.released) || "—")}</dd></div>
+        </dl>
+        <details class="mp-appr-listing" open><summary>Listing to enter in mpstruc${r.edited ? " (with the curator's edits)" : ""}</summary>
+          <div class="mp-appr-preview"><h4 class="mp-ed-prevname">${r.name || esc(r.title || r.pdb)}</h4>
+          ${c ? mpListing(c, effectiveMp(d, r.c) || {}, { placement: d.placement, owner: d.owner }) : ""}</div></details>
+        <div class="mp-actions">
+          ${signedIn() ? (sent
+            ? `<button class="mp-btn secondary" type="button" id="up-unsent-${id}" data-uact="unsubmit" data-pdb="${id}"${off}>Not submitted after all</button>`
+            : `<button class="mp-btn" type="button" id="up-sent-${id}" data-uact="submit" data-pdb="${id}"${off}>Mark as submitted to mpstruc</button>`) : ""}
+          ${listing ? `<a class="mp-btn secondary" href="${esc(listing)}">View in the database</a>` : ""}
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function viewReady() {
+    loadAutomation();
+    const { all, shown, counts } = readyList();
+    const page = shown.slice(0, state.limit);
+    const inList = new Set(all.map((r) => r.pdb));
+    [...up.selected].forEach((p) => { if (!inList.has(p) && !optimistic.has(p)) up.selected.delete(p); });
+    const sel = page.filter((r) => up.selected.has(r.pdb) && !optimistic.has(r.pdb));
+    const nSel = sel.length, nPage = page.filter((r) => !optimistic.has(r.pdb)).length;
+    const selMark = sel.filter((r) => !isObj(r.d.submitted)).length, selUnmark = sel.length - selMark;
+    const opt = (val, label) => `<option value="${val}"${up.show === val ? " selected" : ""}>${label}</option>`;
+    return `<div class="mp-view">
+      <p class="mp-crumbs"><a href="#/">Database</a> › Not in mpstruc yet</p>
+      <h2>Ready to upload to mpstruc</h2>
+      ${pipeline("upload")}
+      <p class="mp-summary">Structures in this site's database that the official mpstruc does not list yet. This is the list to upload from:
+        download them for the mpstruc entry form (one row per structure, in the form's columns) or as mpstruc XML, enter them in mpstruc, then
+        ${signedIn() ? "press <b>Mark as submitted to mpstruc</b>" : "a signed-in curator marks them as submitted"}. Each week the site reads the newest
+        official mpstruc file (now the snapshot of ${esc(snapDate())}); a structure it lists is marked ${mpMark("in")} by itself and leaves this list.</p>
+      <form class="mp-filters mp-rej-filters" id="mp-up-filters" role="search" aria-label="Filter structures to upload">
+        <label>Show<select name="show" id="mp-up-show">${opt("", `All not in mpstruc (${counts.all})`)}${opt("waiting", `Not submitted yet (${counts.all - counts.sent})`)}${opt("sent", `Submitted, waiting for mpstruc (${counts.sent})`)}</select></label>
+        <label class="mp-rej-q">Search<input type="search" name="q" id="mp-up-q" value="${esc(up.q)}" placeholder="PDB ID, name, subfamily, curator" autocomplete="off"></label>
+      </form>
+      <div class="mp-toolbar"><p class="mp-summary" id="mp-up-count">${shown.length} ${shown.length === 1 ? "structure" : "structures"}${up.q ? " match the search" : ""}</p>
+        <span class="mp-dl-btns"><button type="button" class="mp-btn" id="mp-up-csv" aria-describedby="mp-up-hint">Download for the mpstruc form (CSV)</button>
+        <button type="button" class="mp-btn secondary" id="mp-up-xml" aria-describedby="mp-up-hint">Download as mpstruc XML</button></span></div>
+      <p class="mp-summary mp-dl-note" id="mp-up-hint">${nSel ? `The downloads have the ${nSel} selected ${nSel === 1 ? "structure" : "structures"}.` : "The downloads have every structure listed below; select some to download only those."}</p>
+      <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
+      ${page.length ? `<div class="mp-rej-bulk" role="group" aria-label="Act on selected structures">
+        <label class="mp-check"><input type="checkbox" id="mp-up-all"${nSel && nSel === nPage ? " checked" : ""}> Select all ${page.length} listed</label>
+        <span class="mp-rej-selcount" id="mp-up-selcount">${nSel} selected</span>
+        ${signedIn() ? `<span class="mp-rej-bulk-btns">
+          <button class="mp-btn" type="button" id="up-bulk-sent" data-ubulk="submit"${selMark ? "" : " disabled"}>Mark ${selMark || ""} selected as submitted</button>
+          <button class="mp-btn secondary" type="button" id="up-bulk-unsent" data-ubulk="unsubmit"${selUnmark ? "" : " disabled"}>Mark ${selUnmark || ""} selected as not submitted</button>
+        </span>` : ""}
+      </div>` : ""}
+      <div class="mp-rej-list">${page.map(readyRow).join("") || `<p class="mp-empty">${up.q || up.show ? "No structure matches."
+        : `Nothing to upload: every structure pushed to the database is in mpstruc. Push approved structures from ${signedIn() ? '<a href="#/approved">Decisions › Approved</a>' : "Decisions › Approved"}.`}</p>`}</div>
+      ${more(page.length, shown.length)}
+    </div>`;
+  }
+
+  // on: true marks ids as submitted to mpstruc, false takes the mark off.
+  function markSubmitted(ids, on) {
+    if (!signedIn()) { toast("Sign in on the Curators tab to mark structures as submitted.", { kind: "error" }); return; }
+    ids = ids.filter((p) => isPushed(curation.entries[p]) && !inOfficial(p) && !optimistic.has(p) && isObj(curation.entries[p].submitted) !== on);
+    if (!ids.length) return;
+    const st = { by: cur.user.login, byName: cur.user.name, at: new Date().toISOString() };
+    const written = new Map();
+    const changes = ids.map((p) => {
+      const { submitted, ...rest } = curation.entries[p];
+      const entry = on ? { ...rest, submitted: st } : rest;
+      written.set(p, JSON.stringify(entry));
+      return { pdb: p, entry, detail: on ? `Marked ${p} as submitted to mpstruc: it shows as 'Submitted, waiting for mpstruc' until the official mpstruc file lists it`
+                                          : `Marked ${p} as not submitted to mpstruc after all` };
+    });
+    mutate({ changes, action: on ? "submit" : "unsubmit", what: on ? `mark ${subject(ids)} as submitted` : `mark ${subject(ids)} as not submitted`,
+             message: `Curator ${cur.user.login}: mark ${listIds(ids)} as ${on ? "" : "not "}submitted to mpstruc`,
+             done: (ok, miss, before) => afterRej(on ? `Marked ${subject(ok)} as submitted to mpstruc. ${ok.length === 1 ? "It is" : "They are"} marked In mpstruc by itself once the weekly check finds ${ok.length === 1 ? "it" : "them"} in the official file.`
+                 : `Marked ${subject(ok)} as not submitted to mpstruc.`, ok, miss, before, written, on ? "marking as submitted" : "marking as not submitted",
+               { undo: { action: on ? "unsubmit" : "submit", detail: (p) => `Undid marking ${p} as ${on ? "" : "not "}submitted to mpstruc` } }) });
+  }
+
+  function wireReady() {
+    const form = document.getElementById("mp-up-filters");
+    if (!form) return;
+    form.addEventListener("submit", (ev) => ev.preventDefault());
+    form.elements.show.addEventListener("change", () => { up.show = form.elements.show.value; state.limit = PAGE; rerender(); });
+    form.elements.q.addEventListener("input", () => { up.q = form.elements.q.value; state.limit = PAGE; rerender(); });
+    const visibleSelected = () => [...app.querySelectorAll(".mp-up-check:checked:not([disabled])")].map((b) => b.dataset.pdb);
+    const pick = () => {
+      const ids = visibleSelected();
+      return { ids: ids.length ? readyList().shown.map((r) => r.pdb).filter((p) => ids.includes(p)) : readyList().shown.map((r) => r.pdb), some: ids.length > 0 };
+    };
+    const stampName = () => new Date().toISOString().slice(0, 10);
+    document.getElementById("mp-up-csv").addEventListener("click", () => {
+      const { ids, some } = pick();
+      if (!ids.length) { dlNote("Nothing to download: no structure is listed."); return; }
+      download(`mpstruc_form_upload_${stampName()}${some ? "_selected" : ""}.csv`, formCsv(ids), "text/csv");
+    });
+    document.getElementById("mp-up-xml").addEventListener("click", () => {
+      const { ids, some } = pick();
+      if (!ids.length) { dlNote("Nothing to download: no structure is listed."); return; }
+      download(`mpstruc_upload_${stampName()}${some ? "_selected" : ""}.xml`, approvedXml(new Set(ids)), "application/xml");
+    });
+    app.querySelectorAll(".mp-up-check").forEach((box) => box.addEventListener("change", () => {
+      if (box.checked) up.selected.add(box.dataset.pdb); else up.selected.delete(box.dataset.pdb);
+      rerender();
+    }));
+    const all = document.getElementById("mp-up-all");
+    if (all) {
+      const boxes = [...app.querySelectorAll(".mp-up-check:not([disabled])")];
+      const nOn = boxes.filter((b) => b.checked).length;
+      all.indeterminate = nOn > 0 && nOn < boxes.length;
+      all.addEventListener("change", () => {
+        boxes.forEach((b) => { if (all.checked) up.selected.add(b.dataset.pdb); else up.selected.delete(b.dataset.pdb); });
+        rerender();
+      });
+    }
+    app.querySelectorAll("[data-uact]").forEach((btn) => btn.addEventListener("click", () => markSubmitted([btn.dataset.pdb], btn.dataset.uact === "submit")));
+    app.querySelectorAll("[data-ubulk]").forEach((btn) => btn.addEventListener("click", () => {
+      const ids = visibleSelected();
+      if (ids.length) markSubmitted(ids, btn.dataset.ubulk === "submit");
+    }));
+  }
+
   // ---- the Decisions tab's menu (Approved, Rejected and Deleted lists) (a menu button in the tab bar) ----
   // The menu lives outside the tab bar (which scrolls sideways on phones and
   // would clip it) and is placed under the button while open.
@@ -4553,6 +4983,10 @@ links.addEventListener("click", (event) => {
           item("#/approved", "Approved – ready to push", a.ready, curA === "")
           + item("#/approved/edited", "Edited by curators", a.edited, curA === "edited")
           + item("#/approved/pushed", "Pushed to database", a.pushed, curA === "pushed"))
+        + '<div role="separator" class="mp-menu-sep"></div>'
+        + group("mp-menu-h-mp", "mpstruc",
+          item("#/notinmpstruc", "Ready to upload to mpstruc", readyRows().length, kind === "notinmpstruc")
+          + item("#/approved/inmpstruc", "Now in mpstruc", a.official, curA === "inmpstruc"))
         + '<div role="separator" class="mp-menu-sep"></div>'
         + group("mp-menu-h-rej", "Rejected", item("#/rejected", "All rejected", n.all, curF === "")
           + REASONS.map((r) => item(`#/rejected/${r.code}`, r.label, n[r.code], curF === r.code)).join(""))
@@ -4693,8 +5127,10 @@ links.addEventListener("click", (event) => {
     const h = location.hash.replace(/^#\/?/, "");
     if (h !== lastRoute) state.limit = PAGE;
     state.focusHeading = lastRoute !== "" || h !== "";
-    if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); }
+    if (h.split("/")[0] !== lastRoute.split("/")[0]) { rej.selected.clear(); rej.changing = null; appr.selected.clear(); up.selected.clear(); }
     lastRoute = h;
+    // A listing opened for one PDB ID (a search or a PDB link): scroll to it once drawn.
+    state.scrollHit = true;
     rejMenu.close(false);
     logTimer(h.split("/")[0] === "log");
     // Presentation only: the view fade-in runs on navigation, not on every filter or search re-render.
@@ -4749,7 +5185,19 @@ links.addEventListener("click", (event) => {
     // A text field being typed in (the Change editor): put the caret back where it was.
     const caret = hadFocus && active.id && /^(TEXTAREA|INPUT)$/.test(active.tagName) && active.type !== "search" && typeof active.selectionStart === "number"
       ? { id: active.id, start: active.selectionStart, end: active.selectionEnd, dir: active.selectionDirection, top: active.scrollTop } : null;
-    const tab = kind === "rejected" || kind === "approved" ? "decisions" : ["automation", "curators", "log"].includes(kind) ? kind : "database";
+    // #/pdb/<ID> of a PDB ID listed in the database opens its listing (#/pdb/<ID>/about keeps the PDB page).
+    if (kind === "pdb" && arg && !/\/about$/i.test(arg)) {
+      const to = listingHash(arg.toUpperCase());
+      if (to) {
+        history.replaceState(null, "", to);
+        lastRoute = to.slice(2);
+        renderNow();
+        return;
+      }
+    }
+    const tab = kind === "rejected" || kind === "approved" || (kind === "notinmpstruc" && signedIn()) ? "decisions"
+      : ["automation", "curators", "log"].includes(kind) ? kind : "database";
+    state.focusPdb = "";
     document.querySelectorAll(".mp-tabs [data-tab]").forEach((a) => {
       a.classList.toggle("active", a.dataset.tab === tab);
       if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -4762,11 +5210,13 @@ links.addEventListener("click", (event) => {
       if (l < bar.scrollLeft) bar.scrollLeft = l;
       else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth;
     }
-    if (["automation", "curators", "log", "rejected", "approved"].includes(kind)) {
+    if (["automation", "curators", "log", "rejected", "approved", "notinmpstruc"].includes(kind)) {
+      state.scrollHit = false;
       if (kind === "automation") {
         app.innerHTML = viewAutomation(arg);
         if (/^vercel(\/|$)/.test(arg)) wireVercel(arg); else wireAutomation();
       }
+      else if (kind === "notinmpstruc") { app.innerHTML = viewReady(); wireReady(); }
       else if (kind === "curators") { app.innerHTML = viewCurators(); wireCurators(); }
       else if (kind === "rejected") { app.innerHTML = viewRejected(arg); wireRejected(arg); }
       else if (kind === "approved") { app.innerHTML = viewApproved(arg); wireApproved(arg); }
@@ -4809,11 +5259,14 @@ links.addEventListener("click", (event) => {
     if (kind === "sg" && state.sgOf.has(arg)) {
       const v = viewSubgroup(state.sgOf.get(arg));
       main = v.html; currentSg = v.sg; csv = [v.pool.filter(matches), v.filename];
-    } else if (kind === "entry" && state.byKey.has(arg)) {
-      const e = state.byKey.get(arg);
-      main = viewEntry(e); currentSg = e.sg;
+    } else if (kind === "entry" && state.byKey.has(arg.split("/")[0])) {
+      // #/entry/<key>/<PDB ID>: the listing opened for that PDB ID (highlighted, with where it is placed).
+      const [key, want = ""] = arg.split("/");
+      const e = state.byKey.get(key), focus = PDB_RE.test(want.toUpperCase()) ? want.toUpperCase() : "";
+      state.focusPdb = focus;
+      main = viewEntry(e, focus); currentSg = e.sg;
     } else if (kind === "pdb" && arg) {
-      main = viewPdb(arg.toUpperCase());
+      main = viewPdb(arg.replace(/\/about$/i, "").toUpperCase());
     } else if (kind === "search" && arg) {
       const v = viewSearch(arg);
       main = v.html; csv = [v.pool.filter(matches), v.filename];
@@ -4851,6 +5304,10 @@ links.addEventListener("click", (event) => {
     const curLink = app.querySelector(".mp-side a.current");
     const sideBox = app.querySelector(".mp-side");
     if (curLink && sideBox) sideBox.scrollTop = curLink.offsetTop - sideBox.clientHeight / 2;
+    // A daughter or related line asked for: bring it into view (after route() has scrolled to the top).
+    const hit = state.scrollHit && app.querySelector(".mp-hit");
+    state.scrollHit = false;
+    if (hit) requestAnimationFrame(() => hit.scrollIntoView({ block: "center" }));
   }
 })();
 
