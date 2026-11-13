@@ -924,6 +924,8 @@ def main() -> None:
     stats["below 10% membrane protein (not shown)"] = sum(v["p"] < floor for v in mem.values())
     for p in props:
         p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
+        if mem[p["pdb"]].get("tmTable"):  # per-protein 'Check it yourself' table on the site
+            p["tmEvidence"] = mem[p["pdb"]]["tmTable"]
     props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
     props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
     # Citations first: any cached entry whose paper turns out to be out now is

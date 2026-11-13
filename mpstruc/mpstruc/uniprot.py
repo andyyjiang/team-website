@@ -74,3 +74,60 @@ def membrane_features(accessions: list[str], batch: int = 100, max_age_s: float 
                 "named": [[int(b), int(e), n] for col in dom_reg for b, e, n in _NAMED.findall(col)]}
     return _batched("uniprot_membrane.json", "accession,ft_transmem,ft_intramem,ft_domain,ft_region",
                     parse, accessions, batch, max_age_s, lambda: {"tm": [], "named": []})
+
+
+ACCESSIONS = "https://rest.uniprot.org/uniprotkb/accessions"
+
+
+def _get(url: str) -> bytes:
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "mpstruc-curation-tool"}),
+                                        timeout=120) as r:
+                return r.read()
+        except Exception:
+            if attempt == 4:
+                raise
+            time.sleep(2 ** (attempt + 1))
+    raise RuntimeError("unreachable")
+
+
+def _protein_name(desc: dict | None) -> str:
+    desc = desc or {}
+    for names in ([desc.get("recommendedName")], desc.get("submissionNames") or [], desc.get("alternativeNames") or []):
+        for n in names:
+            value = ((n or {}).get("fullName") or {}).get("value")
+            if value:
+                return value.strip()
+    return ""
+
+
+def entries(accessions: list[str], batch: int = 80, max_age_s: float = 30 * 86400) -> dict[str, dict | None]:
+    """{accession: {"name": UniProt's protein name, "seq": sequence of the current entry}}.
+
+    None means UniProt has no such entry any more (deleted or merged away). That is not
+    the same as an entry without membrane segments, which membrane_features cannot tell
+    apart: it answers {"tm": [], "named": []} for both."""
+    path = CACHE_DIR / "uniprot_entry.json"
+    cache: dict = {}
+    if path.exists() and time.time() - path.stat().st_mtime < max_age_s:
+        cache = json.loads(path.read_text())
+    todo = sorted({a for a in accessions if a and re.fullmatch(r"[A-Z0-9]{6,10}", a)} - cache.keys())
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        url = ACCESSIONS + "?" + urllib.parse.urlencode({"accessions": ",".join(chunk), "format": "json", "size": 500,
+                                                         "fields": "accession,protein_name,sequence"})
+        results = json.loads(_get(url)).get("results") or []
+        for a in chunk:
+            cache[a] = None
+        for x in results:
+            rec = {"name": _protein_name(x.get("proteinDescription")), "seq": (x.get("sequence") or {}).get("value") or ""}
+            if not rec["seq"]:  # an inactive entry
+                continue
+            for a in [x.get("primaryAccession")] + (x.get("secondaryAccessions") or []):
+                if a in chunk and (cache.get(a) is None or a == x.get("primaryAccession")):
+                    cache[a] = rec
+        if (i // batch) % 20 == 0 or i + batch >= len(todo):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+    return {a: cache.get(a) for a in accessions}

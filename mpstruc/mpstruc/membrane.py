@@ -2,6 +2,7 @@
 
     python -m mpstruc.membrane             # train, test, write membrane_model.json + reports/membrane.md
     python -m mpstruc.membrane --tradeoff  # also compare ways of labelling monotopic proteins
+    python -m mpstruc.membrane table       # add the per-protein evidence table (tmEvidence) to data/candidates.json
 
 Labels (what counts as a membrane protein): the structure is listed in
 mpstruc, or PDBTM or MemProtMD (which screened every PDB entry for
@@ -40,11 +41,15 @@ resolved part is the first reason given (core_tm, TM_FLOOR).
 """
 from __future__ import annotations
 
+import datetime
 import json
+import difflib
+import functools
 import math
 import re
 import urllib.request
 from collections import Counter, defaultdict
+from pathlib import Path
 
 from . import membranedb, rcsb, uniprot
 from .automation import FUSION_UNIPROT, SEARCH, TM_KEYWORDS, released_between
@@ -160,8 +165,12 @@ def _uniprots(det: dict | None) -> set[str]:
             for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []}
 
 
-def _fetch(ids: list[str]):
-    ext, fam, det, cov = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids), rcsb.entry_coverage(ids)
+def _fetch(ids: list[str], chains: bool = False):
+    """chains: take the coverage from rcsb.entry_chains (every chain and the sequences),
+    to be checked with checked_coverage, instead of rcsb.entry_coverage. Used when scoring
+    new structures; training reads the PDB's alignment as it is (see checked_coverage)."""
+    ext, fam, det = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_details(ids)
+    cov = rcsb.entry_chains(ids) if chains else rcsb.entry_coverage(ids)
     # Segments for every linked protein, not only the aligned ones, so "UniProt has
     # no segments for it" is known rather than guessed.
     accs = sorted({a for v in cov.values() for e in (v or []) for a in e.get("align") or {}} |
@@ -271,6 +280,377 @@ def core_tm(by_protein: dict[str, dict], total: int, tm_accessions, strand_acces
         if (n, share) > (best["segments"], best["share"]):
             best.update(protein=acc, segments=n, resolved=len(d["segments"]), share=round(share, 3))
     return best
+
+
+ALIGN_TRUST = 0.98   # identity over the PDB's aligned regions at or above which they are used as they are
+ALIGN_MIN = 0.7      # ... below which (and if the sequences cannot be lined up either) the chain is not checked
+ALIGN_BLOCK = 6      # shortest identical stretch that anchors a re-alignment
+ALIGN_FILL = 40      # longest run of substitutions bridged between two anchors on the same diagonal
+ALIGN_MAX_CELLS = 40_000_000  # entity length x UniProt length above which no re-alignment is tried
+
+
+def _identical(regions: list, seq: str, ref: str) -> tuple[int, int]:
+    """(aligned residues, of those identical in the two sequences)."""
+    n = same = 0
+    for eb, rb, k in regions:
+        for j in range(k):
+            n += 1
+            q, u = eb + j, rb + j
+            same += 1 <= q <= len(seq) and 1 <= u <= len(ref) and seq[q - 1] == ref[u - 1]
+    return n, same
+
+
+def _clip(regions: list, ref_len: int) -> list:
+    """Regions without the residues numbered past the end of the UniProt sequence."""
+    out = []
+    for eb, rb, k in regions:
+        k = min(k, ref_len - rb + 1)
+        if k > 0 and rb >= 1:
+            out.append([eb, rb, k])
+    return out
+
+
+@functools.lru_cache(maxsize=4096)
+def _seq_blocks(seq: str, ref: str) -> tuple:
+    return tuple((b.a, b.b, b.size) for b in difflib.SequenceMatcher(None, seq, ref, autojunk=False).get_matching_blocks()
+                 if b.size >= ALIGN_BLOCK)
+
+
+def seq_regions(seq: str, ref: str) -> list[list[int]]:
+    """[[entity_start, uniprot_start, length], ...] from the sequences themselves:
+    identical stretches of ALIGN_BLOCK or more, in order, joined across substitutions."""
+    if not seq or not ref or len(seq) * len(ref) > ALIGN_MAX_CELLS:
+        return []
+    out: list[list[int]] = []
+    for a, b, size in _seq_blocks(seq, ref):
+        if out:
+            eb, rb, k = out[-1]
+            gap = a + 1 - (eb + k)
+            if gap == b + 1 - (rb + k) and 0 <= gap <= ALIGN_FILL:
+                out[-1][2] = k + gap + size
+                continue
+        out.append([a + 1, b + 1, size])
+    return out
+
+
+def _unclaimed(new: list, claimed: set, regions: list) -> list:
+    """The stretches of the re-derived regions on chain residues no PDB region claims
+    (claimed) and on UniProt residues the PDB's regions for this protein do not reach."""
+    reached = {rb + j for _, rb, k in regions for j in range(k)}
+    free = [(eb + j, rb + j) for eb, rb, k in new for j in range(k) if eb + j not in claimed and rb + j not in reached]
+    out: list[list[int]] = []
+    for q, u in free:
+        if out and out[-1][0] + out[-1][2] == q and out[-1][1] + out[-1][2] == u:
+            out[-1][2] += 1
+        else:
+            out.append([q, u, 1])
+    return [r for r in out if r[2] >= ALIGN_BLOCK]
+
+
+def check_alignment(regions: list, seq: str, ref: str, claimed: set | None = None) -> tuple[list, str]:
+    """(regions to use, how they were got) for one chain against one UniProt sequence.
+
+    The PDB often gives one gap-free region although the construct has a deletion or an
+    insertion, or numbers the chain by another isoform than UniProt's entry: every residue
+    after that point is then shifted, and a membrane segment looked up there is the wrong
+    piece of chain. It also leaves parts out (the stretch after a deleted loop). So the
+    regions are compared with the two sequences:
+    "pdb": they agree (identity ALIGN_TRUST or more) and lining up the sequences finds no
+           more, used as given. claimed: the chain holds several UniProt proteins (a
+           fusion or chimera) and these are the chain residues the PDB gives to any of
+           them. Its division is then kept, since two related proteins (HCN1 and HCN2)
+           would both line up with the same stretch, and only stretches it gives to no
+           protein are added;
+    "sequence": lining up the sequences explains more residues (or as many, where the
+           PDB's regions do not agree with the sequences): the regions are re-derived;
+    "pdb-homolog": a related sequence (identity ALIGN_MIN or more) that the re-alignment
+           does not improve on, used as given;
+    "unchecked": neither works, [] is returned: nothing may be read off this chain."""
+    regions = _clip(regions, len(ref))
+    n, same = _identical(regions, seq, ref)
+    trusted = bool(n) and same >= ALIGN_TRUST * n
+    new = seq_regions(seq, ref)
+    if trusted and claimed is not None:
+        more = _unclaimed(new, claimed, regions)
+        return (sorted(regions + more), "sequence") if more else (regions, "pdb")
+    new_same = _identical(new, seq, ref)[1]
+    if new_same > same - (not trusted) and new_same >= min(20, 0.8 * len(seq)):
+        return new, "sequence"
+    if trusted:
+        return regions, "pdb"
+    if n and same >= ALIGN_MIN * n:
+        return regions, "pdb-homolog"
+    return [], "unchecked"
+
+
+def _observed(regions: list, unobs: list) -> int:
+    return sum(1 for eb, _, n in regions for q in range(eb, eb + n) if not any(lo <= q <= hi for lo, hi in unobs))
+
+
+def _resolved(seg: list, regions: list, unobs: list) -> bool:
+    """A UniProt segment is resolved in a chain: in the construct and at least half modelled."""
+    b, e = seg
+    pos = [q for q in (_to_entity(u, regions) for u in range(b, e + 1)) if q is not None]
+    return len(pos) >= (e - b + 1) / 2 and \
+        sum(1 for q in pos if not any(lo <= q <= hi for lo, hi in unobs)) >= (e - b + 1) / 2
+
+
+def checked_coverage(item: list | None, feats: dict | None = None, kw: dict | None = None,
+                     proteins: dict | None = None) -> list | None:
+    """An rcsb.entry_chains item as an rcsb.entry_coverage item that can be trusted.
+
+    Per entity: {"align": regions per accession after check_alignment (an accession that
+    could not be checked is left out), "unobs": unobserved residues of its best chain,
+    "unchecked": [accessions left out], "realigned": [accessions whose regions were
+    re-derived from the sequences]}.
+
+    The best chain is the copy with the most resolved membrane segments or barrel domains
+    (of CORE_MIN_LENGTH or more first), then the most modelled residues: copies of a chain
+    are often modelled to different extents, and the first one may lack what another has.
+
+    feats: uniprot.membrane_features output; kw: {accession: UniProt keywords};
+    proteins: uniprot.entries output (without a UniProt sequence the PDB's regions stand)."""
+    if item is None:
+        return None
+    feats, kw, proteins = feats or {}, kw or {}, proteins or {}
+    out = []
+    for ent in item:
+        align, unchecked, realigned = {}, [], []
+        given = ent.get("align") or {}
+        claimed = {eb + j for regions in given.values() for eb, _, k in regions for j in range(k)} if len(given) > 1 else None
+        for acc, regions in given.items():
+            ref, seq = (proteins.get(acc) or {}).get("seq"), ent.get("seq")
+            if not ref or not seq:
+                if regions:
+                    align[acc] = regions
+                else:
+                    unchecked.append(acc)
+                continue
+            regions, how = check_alignment(regions, seq, ref, claimed)
+            if how == "unchecked":
+                unchecked.append(acc)
+            else:
+                align[acc] = regions
+                if how == "sequence":
+                    realigned.append(acc)
+        targets = {}
+        for acc in align:
+            f = feats.get(acc) or {}
+            targets[acc] = f.get("tm") or barrel_domains(f.get("named") or [], kw.get(acc, ()))
+        def worth(unobs):
+            hits = [e - b + 1 >= CORE_MIN_LENGTH for acc, regions in align.items() for b, e in targets[acc]
+                    if _resolved([b, e], regions, unobs)]
+            return sum(hits), len(hits), sum(_observed(regions, unobs) for regions in align.values()), \
+                -sum(hi - lo + 1 for lo, hi in unobs)
+        chains = ent.get("chains") or [ent.get("unobs") or []]
+        out.append({"align": align, "unobs": max(chains, key=worth), "unchecked": unchecked, "realigned": realigned})
+    return out
+
+
+TABLE_MAX_SEGMENTS = 30  # segmentRanges kept per protein (titin-sized lists are no help)
+
+
+def _ranges(nums) -> list[list[int]]:
+    """Sorted residue numbers as merged [[first, last], ...]."""
+    out: list[list[int]] = []
+    for n in sorted(set(nums)):
+        if out and n <= out[-1][1] + 1:
+            out[-1][1] = n
+        else:
+            out.append([n, n])
+    return out
+
+
+def _range_text(ranges: list, gap: int = 25, most: int = 4) -> str:
+    """'168-628' or '31-200, 260-489': ranges for a sentence, short loops not shown as breaks."""
+    merged: list[list[int]] = []
+    for b, e in ranges:
+        if merged and b - merged[-1][1] <= gap:
+            merged[-1][1] = e
+        else:
+            merged.append([b, e])
+    text = ", ".join(f"{b}-{e}" for b, e in merged[:most])
+    return text + (f" and {len(merged) - most} more" if len(merged) > most else "")
+
+
+def _chain_view(ent: dict, acc: str, segs: list) -> dict:
+    """One chain (entity) of a protein: modelled UniProt residues, and which segments are
+    resolved (in the construct and at least half modelled, as tm_coverage counts them)."""
+    unobs, regions = ent.get("unobs") or [], (ent.get("align") or {}).get(acc) or []
+    hidden = lambda q: any(lo <= q <= hi for lo, hi in unobs)
+    modelled = _ranges(rb + q - eb for eb, rb, n in regions for q in range(eb, eb + n) if not hidden(q))
+    return {"modelled": modelled, "flags": [_resolved(g, regions, unobs) for g in segs],
+            "residues": sum(e - b + 1 for b, e in modelled), "realigned": acc in (ent.get("realigned") or [])}
+
+
+def _within(ranges: list, b: int, e: int) -> list[list[int]]:
+    return [[max(lo, b), min(hi, e)] for lo, hi in ranges if hi >= b and lo <= e]
+
+
+def _barrel_name(named: list, rng: list) -> str:
+    for b, e, name in named or []:
+        if [b, e] == rng and BARREL_DOMAIN.search(name.strip()):
+            return name.strip()
+    return "beta-barrel after the TBDR plug (estimated)"
+
+
+def tm_table(det: dict | None, cov: list | None, feats: dict | None, kw: dict | None = None,
+             chains: dict | None = None, proteins: dict | None = None) -> list[dict]:
+    """Per-protein evidence for one structure, so a curator can check the right protein.
+
+    One row per UniProt protein (and one per protein entity with no UniProt link), from
+    its chain with the most resolved segments, as tm_by_protein picks it:
+    {"uniprot", "name" (UniProt's protein name; the PDB entity description if unknown),
+     "chains" (count), "length" (UniProt sequence length, 0 if not known),
+     "modelled": [[first, last], ...] observed residues in UniProt numbering,
+     "segments": number of UniProt transmembrane/intramembrane segments,
+     "resolved": how many of them are resolved (same criterion as the score),
+     "segmentRanges": [[first, last, resolved], ...] (at most TABLE_MAX_SEGMENTS),
+     "barrel": {"barrel": name, "range": [first, last], "resolved": bool} when UniProt maps
+               no segments but a membrane-spanning barrel domain (barrel_domains),
+     "status": "resolved" (all), "partial", "unresolved", "none" (no membrane part in
+               UniProt) or "unknown" (could not be checked: no UniProt link, UniProt has
+               deleted the entry ("gone": True), or the chain's sequence could not be lined
+               up with UniProt's; resolved flags are then None and "modelled" is empty, so
+               no residue numbers are shown that are not UniProt's),
+     "pdbName": what the PDB calls the chain, when that is not UniProt's name (a viral
+               polyprotein is one UniProt entry; the PDB names the product, e.g. 'M protein'),
+     "fusion": True if the PDB chain it is in also holds another UniProt protein,
+     "realigned": True if the positions come from the sequences because the PDB's own
+               residue mapping was shifted or incomplete (check_alignment),
+     "note": the same in plain English}.
+    Rows: proteins with resolved segments first (most first), then with unresolved ones,
+    then without any, then those that could not be checked.
+
+    det: rcsb.entry_details item; cov: checked_coverage output (or an rcsb.entry_coverage
+    item); feats: uniprot.membrane_features output; kw: {accession: UniProt keywords};
+    chains: {accession or entity description: number of chains}; proteins: uniprot.entries
+    output ({accession: {"name", "seq"}}, None for an entry UniProt no longer has)."""
+    feats, kw, chains, proteins = feats or {}, kw or {}, chains or {}, proteins or {}
+    names: dict[str, str] = {}
+    fused: set[str] = set()
+    unlinked: list[str] = []
+    for e in (det or {}).get("polymer_entities") or []:
+        if (e.get("entity_poly") or {}).get("rcsb_entity_polymer_type") not in (None, "Protein"):
+            continue
+        desc = ((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "").strip()
+        ups = (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []
+        for u in ups:
+            names.setdefault(u, desc)
+        if len(ups) > 1:
+            fused.update(ups)
+        if not ups and desc not in unlinked:
+            unlinked.append(desc)
+    order = list(dict.fromkeys([a for ent in cov or [] for a in list(ent.get("align") or {}) + list(ent.get("unchecked") or [])]
+                               + list(names)))
+    rows = []
+    for acc in order:
+        f = feats.get(acc) or {}
+        known = proteins.get(acc)
+        gone = acc in proteins and known is None
+        segs = sorted([list(s) for s in {tuple(s) for s in f.get("tm") or []}])
+        barrels = [] if segs else barrel_domains(f.get("named") or [], kw.get(acc, ()))
+        targets = segs or barrels
+        long_ = lambda v: (sum(1 for (b, e), ok in zip(targets, v["flags"]) if ok and e - b + 1 >= CORE_MIN_LENGTH),
+                           sum(v["flags"]), v["residues"])
+        views = [] if gone else [_chain_view(ent, acc, targets) for ent in cov or [] if (ent.get("align") or {}).get(acc)]
+        best = max(views, key=long_) if views else None
+        row = {"uniprot": acc, "name": (known or {}).get("name") or names.get(acc, ""), "chains": chains.get(acc) or 1,
+               "length": len((known or {}).get("seq") or ""), "modelled": best["modelled"] if best else [],
+               "segments": len(segs), "resolved": 0, "segmentRanges": []}
+        if acc in fused:
+            row["fusion"] = True
+        flags = best["flags"] if best else [None] * len(targets)
+        where = _range_text(row["modelled"])
+        only = f"only residues {where} were modelled" if where else "none of it was modelled"
+        what = (f"{len(segs)} membrane-crossing segment{'' if len(segs) == 1 else 's'} ({_range_text(segs, gap=0, most=3)})"
+                if segs else f"a beta-barrel domain ({_range_text(barrels, gap=0)})" if barrels else "")
+        if segs:
+            n, k = len(segs), sum(map(bool, flags))
+            row["resolved"] = k
+            row["segmentRanges"] = [[b, e, ok] for (b, e), ok in zip(segs, flags)][:TABLE_MAX_SEGMENTS]
+            missing = [f"{b}-{e}" for (b, e), ok in zip(segs, flags) if not ok]
+            miss = ", ".join(missing[:3]) + (f" and {len(missing) - 3} more" if len(missing) > 3 else "")
+            if k == n:
+                row["status"] = "resolved"
+                row["note"] = (f"its 1 membrane-crossing segment ({segs[0][0]}-{segs[0][1]}) is in the structure" if n == 1
+                               else f"{'both' if n == 2 else 'all ' + str(n)} membrane-crossing segments are in the structure")
+            elif k:
+                row["status"] = "partial"
+                row["note"] = f"{k} of its {n} membrane-crossing segments {'is' if k == 1 else 'are'} in the structure (not {miss})"
+            else:
+                row["status"] = "unresolved"
+                row["note"] = (f"its 1 membrane-crossing segment ({miss}) is not in the structure: {only}" if n == 1
+                               else f"none of its {n} membrane-crossing segments ({miss}) is in the structure: {only}")
+        elif barrels:
+            i = max(range(len(barrels)), key=lambda j: bool(flags[j]))
+            b, e = barrels[i]
+            row["barrel"] = {"barrel": _barrel_name(f.get("named") or [], barrels[i]), "range": [b, e], "resolved": flags[i]}
+            row["status"] = "resolved" if flags[i] else "unresolved"
+            inside = _within(row["modelled"], b, e)
+            share = sum(hi - lo + 1 for lo, hi in inside) / (e - b + 1)
+            row["note"] = (f"beta-barrel domain {b}-{e} is not in the structure: {only}" if not flags[i]
+                           else f"beta-barrel domain {b}-{e} is in the structure" if share >= 0.9
+                           else f"{'most' if share >= 0.75 else 'part'} of beta-barrel domain {b}-{e} is in the structure "
+                                f"(modelled {_range_text(inside)})")
+        else:
+            row["status"] = "none"
+            row["note"] = "no membrane-crossing segments in UniProt"
+        if gone:
+            # UniProt answers nothing for a deleted entry, which is not "it has no segments".
+            row.update(status="unknown", gone=True,
+                       note="UniProt no longer has this entry (it was deleted or merged into another), "
+                            "so its membrane segments could not be checked")
+        elif not best and targets:
+            # No residue numbers are shown for this chain: they would not be UniProt's.
+            row["status"] = "unknown"
+            row["note"] = (f"UniProt maps {what}, but this chain's sequence could not be lined up with the UniProt entry, "
+                           f"so {'it' if len(targets) == 1 else 'they'} could not be checked automatically")
+        elif best and best["realigned"]:
+            row["realigned"] = True
+            if targets:
+                row["note"] += " (positions lined up by sequence: the PDB's own residue mapping to UniProt is shifted or incomplete for this chain)"
+        if acc not in fused and known and names.get(acc) and names[acc].lower() != row["name"].lower():
+            row["pdbName"] = names[acc] if len(names[acc]) <= 80 else names[acc][:77].rstrip() + "..."
+        rows.append(row)
+    for desc in unlinked:
+        rows.append({"uniprot": None, "name": desc, "chains": chains.get(desc) or 1, "length": 0, "modelled": [],
+                     "segments": 0, "resolved": 0, "segmentRanges": [], "status": "unknown",
+                     "note": "not linked to UniProt, so its membrane segments could not be checked"})
+    rank = {"resolved": 0, "partial": 0, "unresolved": 1, "none": 2, "unknown": 3}
+    done = lambda r: r["resolved"] or int(bool((r.get("barrel") or {}).get("resolved")))
+    rows.sort(key=lambda r: (rank[r["status"]], -done(r)))
+    return rows
+
+
+def chain_counts(ent: dict | None) -> dict[str, int]:
+    """{accession (or, for entities with no UniProt link, entity description): chains} from
+    an rcsb.entry_entities item."""
+    out: dict[str, int] = defaultdict(int)
+    for e in (ent or {}).get("polymer_entities") or []:
+        ids = e.get("rcsb_polymer_entity_container_identifiers") or {}
+        n = len(ids.get("auth_asym_ids") or []) or 1
+        for key in ids.get("uniprot_ids") or [((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "").strip()]:
+            out[key] += n
+    return dict(out)
+
+
+def name_proteins(table: list[dict], most: int = 3) -> str:
+    """'A (P1) 6, B (P2) 4 and 1 more': the proteins whose membrane-crossing segments are
+    resolved, with how many each. Words that all listed names start with are said once
+    (not when a name has a comma, as the PDB writes fusion chains: 'A,B chimera')."""
+    rows = [r for r in table if r.get("uniprot") and r.get("resolved")]
+    shown = rows[:most]
+    words = [(r.get("name") or "").split() for r in shown]
+    common = 0
+    while len(shown) > 1 and not any("," in (r.get("name") or "") for r in shown) and all(len(w) > common + 1 for w in words) and len({w[common].lower() for w in words}) == 1:
+        common += 1
+    parts = []
+    for i, (r, w) in enumerate(zip(shown, words)):
+        name = " ".join(w if i == 0 else w[common:])
+        name = name if len(name) <= 48 else name[:45].rstrip() + "..."
+        parts.append((f"{name} ({r['uniprot']})" if name else r["uniprot"]) + f" {r['resolved']}")
+    return ", ".join(parts) + (f" and {len(rows) - most} more" if len(rows) > most else "")
 
 
 def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
@@ -446,7 +826,8 @@ def predict_model(x: dict[str, float], model: dict) -> float:
     return p
 
 
-def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: int = 3) -> list[str]:
+def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: int = 3,
+            table: list[dict] | None = None) -> list[str]:
     """Plain-English reasons, strongest first.
 
     High score: the evidence for it, then "but" and the strongest evidence
@@ -455,6 +836,11 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
     for it folded into the last reason as "although ..." (or, if nothing
     counts against it, "the evidence for it is limited: ..."). So "but" only
     ever introduces evidence against a membrane protein.
+
+    table: tm_table rows. With more than one protein in the structure, the resolved
+    segments are named by protein, so a curator opens the right UniProt entry. A reason
+    that lists proteins ends in a count ("... (P0DH92) 4 and 3 more"); the site shows it
+    as a sentence of its own.
     """
     w = model["weights"]
     reasons = []  # (signed contribution, text)
@@ -491,7 +877,16 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
         if x.get("barrel_modelled"):
             parts.append("the beta-barrel that crosses the membrane is resolved in the structure")
         rule = why.get("rule") or {}
-        if x.get("rule:tm_resolved") and rule.get("segments", 0) >= CORE_MIN_SEGMENTS and parts and f.get("tm_modelled") \
+        named = name_proteins(table) if table and sum(1 for r in table if r.get("uniprot")) > 1 else ""
+        if named and parts and f.get("tm_modelled"):
+            # The number said is the sum of the per-protein counts listed after it (each
+            # protein's best chain), not tm_modelled, which counts every chain entity and
+            # so counts a protein twice when the PDB splits it over two entities.
+            holders = [r for r in table if r.get("uniprot") and r.get("resolved")]
+            k = sum(r["resolved"] for r in holders)
+            parts[0] = (f"{k} membrane-crossing {'segment is' if k == 1 else 'segments are'} resolved in the structure" +
+                        (f", {'' if k == 1 else 'all '}in {named.rsplit(' ', 1)[0]}" if len(holders) == 1 else f": {named}"))
+        elif x.get("rule:tm_resolved") and rule.get("segments", 0) >= CORE_MIN_SEGMENTS and parts and f.get("tm_modelled") \
                 and len(f["uniprots"]) > 1:  # with one UniProt protein there is nothing to point to
             parts[0] += (f" ({rule['resolved']} of them in UniProt {rule['protein']}, one of its main proteins)"
                          if f["tm_modelled"] > rule["resolved"] else f" (in UniProt {rule['protein']}, one of its main proteins)")
@@ -826,22 +1221,77 @@ def load_model() -> dict | None:
     return json.loads(MODEL_PATH.read_text()) if MODEL_PATH.exists() else None
 
 
-def score_structures(ids: list[str], db=None, model: dict | None = None) -> dict[str, dict]:
-    """{pdb: {"p": probability, "why": [reasons]}} for new structures."""
-    model = model or load_model()
-    if not model:
-        return {}
+def _scored(ids: list[str], db=None, model: dict | None = None):
+    """Yields (pdb, probability, reasons, tm_table rows) for each structure the PDB knows."""
     ctx = Context(db or load(source_xml()), model.get("fam_stats"))
-    ext, fam, det, cov, seg = _fetch(ids)
-    out = {}
+    ext, fam, det, chains, seg = _fetch(ids, chains=True)
+    ents = rcsb.entry_entities(ids)  # chains per protein
+    try:
+        proteins = uniprot.entries(sorted(seg))
+    except Exception as err:  # then the PDB's alignment stands unchecked, and rows are named by the PDB
+        print(f"membrane: UniProt names and sequences unavailable ({err})")
+        proteins = {}
     for pdb in ids:
+        # The same checked coverage for the score and for the table.
+        cov = {pdb: checked_coverage(chains.get(pdb), seg, (ext.get(pdb) or {}).get("kw"), proteins)}
         f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
         if not f:
             continue
         x, why = features(f, ctx, model["prior"])
         p = predict(x, model)
-        out[pdb] = {"p": round(p, 3), "why": explain(x, why, f, p, model)}
-    return out
+        table = tm_table(det.get(pdb), cov.get(pdb), seg, (ext.get(pdb) or {}).get("kw"),
+                         chain_counts(ents.get(pdb)), proteins)
+        yield pdb, p, explain(x, why, f, p, model, table=table), table
+
+
+def score_structures(ids: list[str], db=None, model: dict | None = None) -> dict[str, dict]:
+    """{pdb: {"p": probability, "why": [reasons], "tmTable": tm_table rows}} for new structures."""
+    model = model or load_model()
+    if not model:
+        return {}
+    return {pdb: {"p": round(p, 3), "why": why, "tmTable": table} for pdb, p, why, table in _scored(ids, db, model)}
+
+
+def backfill_table(path: Path | None = None, today: datetime.date | None = None) -> dict:
+    """Add tmEvidence to every candidate in data/candidates.json without a weekly run.
+
+    Reads the file, computes each candidate's per-protein table from the caches (and the
+    network for anything missing), replaces membraneWhy only where its text changed and
+    the score is still the one stored, and rewrites the file as automation.main writes it
+    (compact separators), leaving everything else as it was, except "tmChecked": the day
+    the tables were computed."""
+    from .automation import SITE_DATA
+    path = path or SITE_DATA / "candidates.json"
+    text = path.read_text()
+    data = json.loads(text)
+    if json.dumps(data, separators=(",", ":")) != text.strip():
+        print("membrane table: note: the file was not in automation.py's compact format; it will be now")
+    model = load_model()
+    if not model:
+        raise SystemExit("no membrane_model.json: train the model first (python -m mpstruc.membrane)")
+    cands = data.get("candidates") or []
+    got = {pdb: (p, why, table) for pdb, p, why, table in _scored([c["pdb"] for c in cands], None, model)}
+    n = {"candidates": len(cands), "with_table": 0, "without_table": 0, "why_changed": 0, "why_kept_score_moved": 0}
+    for c in cands:
+        hit = got.get(c["pdb"])
+        if not hit or not hit[2]:
+            n["without_table"] += 1
+            c.pop("tmEvidence", None)
+            continue
+        p, why, table = hit
+        c["tmEvidence"] = table
+        n["with_table"] += 1
+        if why != c.get("membraneWhy"):
+            if abs(p - (c.get("membrane") or 0)) < 0.0015:
+                c["membraneWhy"] = why
+                n["why_changed"] += 1
+            else:  # annotations moved since the weekly run: the stored score and text stay together
+                n["why_kept_score_moved"] += 1
+    # The PDB and UniProt records move; the site says when the tables were last checked
+    # against them (a weekly run's tables are as old as "generated").
+    data["tmChecked"] = (today or datetime.date.today()).isoformat()
+    path.write_text(json.dumps(data, separators=(",", ":")))
+    return n
 
 
 def report_md(r: dict, model: dict) -> str:
@@ -963,6 +1413,9 @@ def report_md(r: dict, model: dict) -> str:
 
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:2] == ["table"]:  # python -m mpstruc.membrane table: backfill tmEvidence
+        print(json.dumps(backfill_table(Path(sys.argv[2]) if len(sys.argv) > 2 else None)))
+        raise SystemExit(0)
     # --tradeoff: also train with the other monotopic labellings and report them side by side.
     other = [m for m in ("positive", "exclude", "negative") if m != MONOTOPIC_LABEL] if "--tradeoff" in sys.argv else []
     trade = {m: _brief(train_and_test(monotopic=m, write=False)) for m in other} or None
