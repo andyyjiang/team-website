@@ -1135,7 +1135,9 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 }
 .mp-study-head .mp-actions { margin-top: 10px; }
 .mp-study-head .mp-study-acts:first-child { padding-left: 0; border-left: 0; }
-.mp-study-title { margin: 0; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-study-title { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.mp-study-forced { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; font-size: 0.85rem; color: var(--color-muted); }
+.mp-study-forced .mp-btn { padding: 5px 11px; font-size: 0.8rem; }
 .mp-study-title .mp-badge { margin-left: 4px; vertical-align: 1px; }
 .mp-study-note { margin: 4px 0 0; font-size: 0.86rem; color: var(--color-muted); overflow-wrap: anywhere; }
 /* The tree: one line down from the lead, a branch to each related entry. */
@@ -1160,8 +1162,9 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-relitem:hover { border-color: var(--color-border-strong); }
 .mp-relitem.decided.approved { box-shadow: inset 2px 0 0 var(--color-daughter); }
 .mp-relitem.decided.rejected { box-shadow: inset 2px 0 0 var(--color-related); }
+/* Dimmed by the dashed border and background only: the text keeps full contrast. */
 .mp-relitem.dim { background: var(--color-bg-alt); border-style: dashed; }
-.mp-relitem.dim > :not(.mp-relitem-acts) { opacity: 0.72; }
+.mp-relitem-id { margin: 0; font-size: inherit; font-weight: inherit; line-height: inherit; }
 .mp-relitem-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
 .mp-relitem-head .mp-pdb { font-size: 0.86rem; }
 .mp-relitem-line { margin: 4px 0 2px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }

@@ -610,7 +610,8 @@ links.addEventListener("click", (event) => {
                  view: { min: null, placement: "", status: "undecided", q: "", age: "", sort: "newest" }, editing: null, rejecting: null,
                  // open: PDB IDs whose full card is shown inside their study (related entries, or a lead the filters hide);
                  // groupRejecting: the study whose 'Reject all' form is open.
-                 open: new Set(), groupRejecting: null };
+                 // formOpened: the related entries whose card was opened only for a Change or Reject form.
+                 open: new Set(), formOpened: new Set(), groupRejecting: null };
   // Why a structure was rejected: the code is saved as reasonCode, the label
   // (plus the curator's note, if any) as reason. Rejections saved before codes
   // existed have no reasonCode and count as "other".
@@ -1340,9 +1341,11 @@ links.addEventListener("click", (event) => {
       if ((v.age === "latest" && c.released !== latest && !newlyPublished(c)) || (v.age === "new" && days > 28)
           || (v.age === "mid" && (days <= 28 || days > 91)) || (v.age === "old" && days <= 91)) return "released outside the chosen dates";
     }
-    const q = (v.q || "").toLowerCase();
-    if (q && !`${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(q)) return "does not match the search";
+    if (v.q && !matchesSearch(c, v.q)) return "does not match the search";
     return "";
+  }
+  function matchesSearch(c, q) {
+    return `${c.pdb} ${c.title || ""} ${(c.organisms || []).join(" ")} ${(c.entities || []).join(" ")} ${c.subgroupName || ""}`.toLowerCase().includes(String(q).toLowerCase());
   }
 
   // view defaults to the current filters; pass one to count with other settings.
@@ -1366,20 +1369,36 @@ links.addEventListener("click", (event) => {
   // decision') with the related entries listed under it (and under those, when
   // the weekly job chained them), the way mpstruc will show them. Related
   // entries of a structure already in mpstruc are grouped under a header for
-  // that entry. The grouping depends only on this week's suggestions, so it is
-  // built once per load; the filters then pick studies (see filteredStudies).
+  // that entry. The grouping follows where each structure goes now: the
+  // curator's approved placement when there is one (Change can move a related
+  // entry to another owner, or make it a daughter or parent), else the weekly
+  // suggestion. It is rebuilt when that changes; the filters then pick studies
+  // (see filteredStudies).
   // A study: { key, lead (suggestion or null), ext ({ pdb, key } of the mpstruc
   // entry, or null), kids: [node], members: [every suggestion in it], first },
   // where a node is { c, kids: [node] }.
+  // Where c goes now: { placement, owner (PDB ID), ownerKey }.
+  function placeOf(c) {
+    const d = decisionOf(c);
+    if (d && d.status === "approved" && d.placement) {
+      const owner = String(d.owner || "").toUpperCase();
+      return { placement: d.placement, owner, ownerKey: owner === c.ownerPdb ? c.ownerKey || "" : "" };
+    }
+    return { placement: c.placement, owner: c.ownerPdb || "", ownerKey: c.ownerKey || "" };
+  }
   function studies() {
-    if (studies.src === auto.cands) return studies.list;
-    const by = candIndex(), all = auto.cands.candidates;
+    const all = auto.cands.candidates;
+    const places = all.map(placeOf);
+    const sig = places.map((x) => `${x.placement}:${x.owner}`).join(",");
+    if (studies.src === auto.cands && studies.sig === sig) return studies.list;
+    const by = candIndex(), place = new Map(all.map((c, i) => [c.pdb, places[i]]));
     const pos = new Map(all.map((c, i) => [c.pdb, i]));
     const kidsOf = new Map();
     for (const c of all) {
-      if (c.placement !== "related" || !c.ownerPdb || c.ownerPdb === c.pdb || !by.has(c.ownerPdb)) continue;
-      if (!kidsOf.has(c.ownerPdb)) kidsOf.set(c.ownerPdb, []);
-      kidsOf.get(c.ownerPdb).push(c);
+      const pl = place.get(c.pdb);
+      if (pl.placement !== "related" || !pl.owner || pl.owner === c.pdb || !by.has(pl.owner)) continue;
+      if (!kidsOf.has(pl.owner)) kidsOf.set(pl.owner, []);
+      kidsOf.get(pl.owner).push(c);
     }
     const seen = new Set();
     // Related lines in mpstruc order: as the owner's drafted description lists them.
@@ -1403,12 +1422,13 @@ links.addEventListener("click", (event) => {
     };
     // Leads first, then related entries of mpstruc entries, then anything left
     // (related entries pointing at each other in a loop): each its own lead.
-    for (const c of all) if (c.placement !== "related") add(c);
+    for (const c of all) if (place.get(c.pdb).placement !== "related") add(c);
     for (const c of all) {
-      if (seen.has(c.pdb) || c.placement !== "related" || by.has(c.ownerPdb)) continue;
-      const k = `x-${c.ownerPdb || "none"}`;
+      const pl = place.get(c.pdb);
+      if (seen.has(c.pdb) || pl.placement !== "related" || by.has(pl.owner)) continue;
+      const k = `x-${pl.owner || "none"}`;
       if (!ext.has(k)) {
-        const s = { key: k, lead: null, ext: { pdb: c.ownerPdb || "", key: c.ownerKey || "" }, kids: [], members: [], first: pos.get(c.pdb) };
+        const s = { key: k, lead: null, ext: { pdb: pl.owner, key: pl.ownerKey }, kids: [], members: [], first: pos.get(c.pdb) };
         ext.set(k, s);
         list.push(s);
       }
@@ -1422,6 +1442,7 @@ links.addEventListener("click", (event) => {
     }
     for (const c of all) if (!seen.has(c.pdb)) add(c);
     studies.src = auto.cands;
+    studies.sig = sig;
     studies.list = list;
     return list;
   }
@@ -1429,11 +1450,15 @@ links.addEventListener("click", (event) => {
   // The studies to list: one shows when its lead or any related entry passes the
   // filters (hit: the PDB IDs that do). Newest first sorts by the newest
   // release in the study; the other sort by the most likely membrane protein in it.
+  // The search finds studies: when any member (the lead included) matches it,
+  // the other filters alone decide which members count.
   function filteredStudies(view) {
     const v = view || auto.view, latest = latestRelease();
+    const q = v.q || "", rest = q ? { ...v, q: "" } : v;
     const out = [];
     for (const s of studies()) {
-      const hit = new Set(s.members.filter((c) => !candMiss(c, v, latest)).map((c) => c.pdb));
+      if (q && !s.members.some((c) => matchesSearch(c, q))) continue;
+      const hit = new Set(s.members.filter((c) => !candMiss(c, rest, latest)).map((c) => c.pdb));
       if (!hit.size) continue;
       const live = s.members.filter((c) => decisionOf(c)?.status !== "deleted");
       out.push({ s, hit, day: live.reduce((m, c) => (sortDay(c) > m ? sortDay(c) : m), ""),
@@ -1470,19 +1495,33 @@ links.addEventListener("click", (event) => {
   }
 
   // What a group action can do: the undecided suggestions in a study it can
-  // approve (the lead first, so it is saved before the entries listed under it)
-  // or reject, and why approving is blocked, if it is.
+  // approve (owners first, so each is saved before the entries listed under
+  // it) or reject, and why approving is blocked, if it is. A related entry is
+  // approved only with an owner that is (or will be, in the same save)
+  // approved; the others are held back.
   function studyPlan(s) {
     const free = (c) => !decisionOf(c) && !optimistic.has(c.pdb);
     const und = s.members.filter(free);
     const kids = und.filter((c) => c !== s.lead);
     const lead = s.lead, ld = lead && decisionOf(lead);
     let block = "";
-    if (lead && !ld && (lead.placement === "review" || !lead.subgroup)) block = `Choose where ${lead.pdb} goes first (Decide on its card); then approve the study.`;
+    if (lead && !ld && (lead.placement === "review" || !lead.subgroup)) block = `Choose where ${lead.pdb} goes first (Decide on its card); then approve it with its related entries.`;
     else if (lead && ld && ld.status !== "approved") block = `${lead.pdb} was ${ld.status}: the related entries go under it, so approve them one by one if they should stay.`;
     const noPlace = kids.filter((c) => !c.subgroup);
-    const approve = block ? [] : [...(lead && free(lead) ? [lead] : []), ...kids.filter((c) => c.subgroup)];
-    return { und, kids, approve, noPlace, block, leadIn: Boolean(lead && approve[0] === lead) };
+    const approve = [], held = [];
+    if (!block) {
+      if (lead && free(lead)) approve.push(lead);
+      const walk = (nodes, ownerOk) => nodes.forEach((n) => {
+        const c = n.c, d = decisionOf(c);
+        let ok = Boolean((d && d.status === "approved") || optimistic.has(c.pdb));
+        if (free(c) && c.subgroup) {
+          if (ownerOk) { approve.push(c); ok = true; } else held.push(c);
+        }
+        walk(n.kids, ok);
+      });
+      walk(s.kids, true);
+    }
+    return { und, kids, approve, noPlace, held, block, leadIn: Boolean(lead && approve[0] === lead) };
   }
 
   // The study's own buttons (on the lead's card, or on the header row).
@@ -1490,19 +1529,23 @@ links.addEventListener("click", (event) => {
     const plan = studyPlan(s), can = signedIn();
     if (!plan.und.length) return "";
     const n = plan.approve.length - (plan.leadIn ? 1 : 0);
-    const label = plan.leadIn ? `Approve all (${s.lead.pdb} + ${n} related)` : `Approve all ${n} related`;
-    const title = plan.block || (plan.noPlace.length ? `${listIds(plan.noPlace.map((c) => c.pdb))} ${plan.noPlace.length === 1 ? "has" : "have"} no subfamily yet: use Change on ${plan.noPlace.length === 1 ? "it" : "each"}.` : "");
-    const k = esc(s.key);
-    return `<span class="mp-study-acts" role="group" aria-label="Whole study">
+    const rel = (k) => `${k} related ${k === 1 ? "entry" : "entries"}`;
+    const label = plan.leadIn ? (n ? `Approve ${s.lead.pdb} and its ${rel(n)}` : `Approve ${s.lead.pdb}`) : `Approve the ${rel(n)}`;
+    const notes = [];
+    if (plan.noPlace.length) notes.push(`${listIds(plan.noPlace.map((c) => c.pdb))} ${plan.noPlace.length === 1 ? "has" : "have"} no subfamily yet: use Change on ${plan.noPlace.length === 1 ? "it" : "each"}.`);
+    if (plan.held.length) notes.push(`${listIds(plan.held.map((c) => c.pdb))} ${plan.held.length === 1 ? "is" : "are"} left out: the entry ${plan.held.length === 1 ? "it goes" : "they go"} under is not approved.`);
+    const title = plan.block || notes.join(" ");
+    const k = esc(s.key), who = s.lead ? s.lead.pdb : s.ext.pdb;
+    return `<span class="mp-study-acts" role="group" aria-label="${esc(s.lead ? `${who} and its related entries` : `Related entries of ${who}`)}">
       ${plan.kids.length || !plan.leadIn ? `<button class="mp-btn" type="button" id="g-approve-${k}" data-gact="approve" data-group="${k}"${!can || !plan.approve.length ? " disabled" : ""}${title ? ` title="${esc(title)}"` : ""}>${esc(plan.approve.length ? label : "Approve all")}</button>` : ""}
       ${plan.und.length > 1 ? `<button class="mp-btn secondary" type="button" id="g-reject-${k}" data-gact="reject" data-group="${k}"${can ? "" : " disabled"}>Reject all ${plan.und.length}</button>` : ""}
-    </span>${plan.block && can ? `<p class="mp-study-block">${esc(plan.block)}</p>` : ""}`;
+    </span>${can && (plan.block || plan.held.length) ? `<p class="mp-study-block">${esc(plan.block || notes[notes.length - 1])}</p>` : ""}`;
   }
 
   function studyRejectForm(s) {
     if (auto.groupRejecting !== s.key || !signedIn()) return "";
     const plan = studyPlan(s), k = esc(s.key);
-    return `<form class="mp-edit mp-greject" data-group="${k}" novalidate aria-label="Reject the whole study">
+    return `<form class="mp-edit mp-greject" data-group="${k}" novalidate aria-label="${esc(s.lead ? `Reject ${s.lead.pdb} and its related entries` : `Reject the related entries of ${s.ext.pdb}`)}">
         <p class="mp-greject-what">Reject ${esc(listIds(plan.und.map((c) => c.pdb)))} (${plan.und.length} ${plan.und.length === 1 ? "structure" : "structures"}) in one save.</p>
         <label>Why reject? (required)<select name="reason" id="grej-reason-${k}" required aria-describedby="grej-err-${k}">${reasonOptions("", true)}</select></label>
         <label>Note (optional)<input name="note" maxlength="200" autocomplete="off" placeholder="For example: only the soluble domain"></label>
@@ -1530,7 +1573,7 @@ links.addEventListener("click", (event) => {
     return `<li class="mp-relnode">
       <div class="mp-relitem${miss ? " dim" : ""}${d ? ` decided ${d.status}` : ""}" id="${open ? "rr" : "c"}-${id}">
         <div class="mp-relitem-head">
-          <a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a>
+          <h5 class="mp-relitem-id"><a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a></h5>
           ${status}${who}${saving ? '<span class="mp-saving">Saving…</span>' : ""}
           ${c.awaiting ? '<span class="mp-badge related">Awaiting paper</span>' : ""}
         </div>
@@ -1543,7 +1586,7 @@ links.addEventListener("click", (event) => {
           ${d?.status === "rejected" ? "" : `<button class="mp-btn secondary" type="button" id="rel-reject-${id}" data-act="reject" data-pdb="${id}"${off}>Reject</button>`}
           <button class="mp-btn secondary" type="button" id="rel-edit-${id}" data-act="edit" data-pdb="${id}"${off}>${ap ? "Edit entry" : "Change"}</button>
           ${d ? `<button class="mp-btn secondary" type="button" id="rel-undo-${id}" data-act="undo" data-pdb="${id}"${off}>Undo</button>` : ""}`}
-          <button class="mp-btn secondary mp-relitem-more" type="button" id="rel-open-${id}" data-act="details" data-pdb="${id}" aria-expanded="${open}" aria-controls="rc-${id}">${open ? "Hide details" : "Details"}</button>
+          <button class="mp-btn secondary mp-relitem-more" type="button" id="rel-open-${id}" data-act="details" data-pdb="${id}" aria-expanded="${open}"${open ? ` aria-controls="rc-${id}"` : ""}>${open ? "Hide details" : "Details"}</button>
         </div>
       </div>
       ${open ? `<div class="mp-relitem-card" id="rc-${id}">${candidateCard(c)}</div>` : ""}
@@ -1559,8 +1602,8 @@ links.addEventListener("click", (event) => {
       const sg = e && e.sg;
       return `<div class="mp-study-head" id="sh-${esc(s.key)}">
         ${sg ? `<nav class="mp-study-crumbs" aria-label="Where these go in mpstruc"><ol><li>${esc(sg.group.topology)}</li><li><a href="#/sg/${esc(sg.k)}">${safeMarkup(sg.name)}</a></li>${e.parent ? `<li><a href="#/entry/${esc(e.parent.k)}">${esc(e.parent.pdb)}</a></li>` : ""}<li><b aria-current="location">${esc(s.ext.pdb)}</b></li></ol></nav>` : ""}
-        <p class="mp-study-title">Related to ${e ? `<a href="#/entry/${esc(e.k)}">${esc(s.ext.pdb)}</a> – ${safeMarkup(e.name || "")}` : `<a href="#/pdb/${esc(s.ext.pdb)}">${esc(s.ext.pdb)}</a>`}
-          <span class="mp-badge in-db">Already in mpstruc</span></p>
+        <h3 class="mp-study-title" id="gt-${esc(s.key)}">Related to ${e ? `<a href="#/entry/${esc(e.k)}">${esc(s.ext.pdb)}</a> – ${safeMarkup(e.name || "")}` : `<a href="#/pdb/${esc(s.ext.pdb)}">${esc(s.ext.pdb)}</a>`}
+          <span class="mp-badge in-db">Already in mpstruc</span></h3>
         <p class="mp-study-note">These would be added as related lines to ${esc(s.ext.pdb)}'s entry in mpstruc.</p>
         <div class="mp-actions">${studyActions(s)}</div>${studyRejectForm(s)}
       </div>`;
@@ -1572,9 +1615,9 @@ links.addEventListener("click", (event) => {
     const m = safeMp(effectiveMp(d && d.status === "approved" ? d : null, c) || {});
     return `<div class="mp-study-head" id="sh-${esc(s.key)}">
       ${studyCrumbs(c)}
-      <p class="mp-study-title">Related to <a href="${rcsb(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a> – ${m.name || esc(c.title || "")}
+      <h3 class="mp-study-title" id="gt-${esc(s.key)}">Related to <a href="${rcsb(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a> – ${m.name || esc(c.title || "")}
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : ""}">${esc(PLACEMENT_LABEL[c.placement] || c.placement)}</span>
-        ${d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "related"}">${esc(d.status === "approved" ? "Approved" : d.status === "deleted" ? "Deleted" : "Rejected")}</span>` : ""}</p>
+        ${d ? `<span class="mp-badge ${d.status === "approved" ? "daughter" : "related"}">${esc(d.status === "approved" ? "Approved" : d.status === "deleted" ? "Deleted" : "Rejected")}</span>` : ""}</h3>
       <p class="mp-study-note">${esc(why)}. The related entries below go under it.</p>
       <div class="mp-actions">
         ${d && d.status === "deleted" ? "" : `<button class="mp-btn secondary" type="button" id="g-lead-${esc(s.key)}" data-gact="lead" data-group="${esc(s.key)}">Show ${esc(c.pdb)}'s card</button>`}
@@ -1586,15 +1629,22 @@ links.addEventListener("click", (event) => {
   // then its related entries as a tree, in mpstruc order.
   function studyBlock({ s, hit }) {
     const lead = s.lead, d = lead && decisionOf(lead);
-    const showLead = lead && !(d && d.status === "deleted") && (hit.has(lead.pdb) || auto.open.has(lead.pdb));
+    const live = lead && !(d && d.status === "deleted");
+    const forced = live && !hit.has(lead.pdb) && auto.open.has(lead.pdb);
+    const showLead = live && (hit.has(lead.pdb) || forced);
     const rows = s.kids.map((n) => relRow(n, hit, 1)).join("");
     const nRel = s.members.filter((c) => c !== lead && decisionOf(c)?.status !== "deleted").length;
-    const top = showLead ? `${studyCrumbs(lead)}${candidateCard(lead, rows ? studyActions(s) : "")}${rows ? studyRejectForm(s) : ""}` : studyHead(s, hit);
-    return `<section class="mp-study${rows ? " has-rel" : ""}" id="g-${esc(s.key)}" aria-label="${esc(lead ? `${lead.pdb}${nRel ? ` and ${nRel} related ${nRel === 1 ? "entry" : "entries"}` : ""}` : `Related entries of ${s.ext.pdb}`)}">
+    const k = esc(s.key);
+    // A lead shown on request (the filters hide it) can be hidden again.
+    const hide = forced ? `<p class="mp-study-forced">${esc(lead.pdb)}'s card is shown on request: the filters would hide it.
+        <button class="mp-btn secondary" type="button" id="g-hide-${k}" data-gact="hide" data-group="${k}">Hide ${esc(lead.pdb)}'s card</button></p>` : "";
+    const top = showLead ? `${studyCrumbs(lead)}${hide}${candidateCard(lead, rows ? studyActions(s) : "")}${rows ? studyRejectForm(s) : ""}` : studyHead(s, hit);
+    // A group, not a landmark: a long list would otherwise fill the landmark list.
+    return `<div class="mp-study${rows ? " has-rel" : ""}" id="g-${k}" role="group" aria-label="${esc(lead ? `${lead.pdb}${nRel ? ` and ${nRel} related ${nRel === 1 ? "entry" : "entries"}` : ""}` : `Related entries of ${s.ext.pdb}`)}">
       ${top}
-      ${rows ? `<div class="mp-rel-tree"><p class="mp-rel-tree-h">Related entries (${nRel})${lead ? ` <span class="mp-of">· lines in ${esc(lead.pdb)}'s mpstruc entry</span>` : ""}</p>
+      ${rows ? `<div class="mp-rel-tree"><h4 class="mp-rel-tree-h">Related entries (${nRel})${lead ? ` <span class="mp-of">· lines in ${esc(lead.pdb)}'s mpstruc entry</span>` : ""}</h4>
         <ul class="mp-rel-list" aria-label="Related entries${lead ? ` of ${esc(lead.pdb)}` : ""}">${rows}</ul></div>` : ""}
-    </section>`;
+    </div>`;
   }
 
   function latestRelease() {
@@ -1641,6 +1691,10 @@ links.addEventListener("click", (event) => {
       }
     }
     const c = auto.cands, v = auto.view;
+    // Cards opened only to show a Change or Reject form close with the form.
+    for (const pdb of auto.formOpened) {
+      if (auto.editing !== pdb && auto.rejecting !== pdb) { auto.open.delete(pdb); auto.formOpened.delete(pdb); }
+    }
     const list = filteredStudies();
     const shown = list.slice(0, state.limit);
     const nStructs = list.reduce((n, x) => n + x.hit.size, 0);
@@ -1676,7 +1730,8 @@ links.addEventListener("click", (event) => {
       </form>
       ${v.status === "rejected" ? `<p class="mp-summary mp-rej-pointer">${signedIn() ? `Sort, change the reason, move back to 'To decide' or delete rejected structures in
         <a href="#/rejected">Decisions › Rejected</a>.` : "Curators manage rejected structures in Decisions › Rejected once signed in."} Only rejections from this week's suggestions are listed here.</p>` : ""}
-      <div class="mp-toolbar"><p class="mp-summary">${list.length.toLocaleString()} ${list.length === 1 ? "study" : "studies"} (${nStructs.toLocaleString()} ${nStructs === 1 ? "structure" : "structures"})</p>
+      <div class="mp-toolbar"><p class="mp-summary">${list.length.toLocaleString()} ${list.length === 1 ? "entry" : "entries"} with their related entries
+        (${nStructs.toLocaleString()} ${nStructs === 1 ? "structure matches" : "structures match"} the filters)</p>
         <span><button type="button" class="mp-btn secondary" id="mp-dl-csv">Download decisions (CSV)</button>
         <button type="button" class="mp-btn secondary" id="mp-dl-xml">Download approved as mpstruc XML</button></span></div>
       <p class="mp-summary mp-dl-note" id="mp-dl-note" role="status"></p>
@@ -1692,9 +1747,9 @@ links.addEventListener("click", (event) => {
       ${signedIn() ? "" : `<p class="mp-flags mp-signin-banner">Anyone can read these suggestions. To approve, change or reject them,
         <a href="#/curators">sign in on the Curators tab</a>.</p>`}
       ${c.snapshotAgeDays > 56 ? `<p class="mp-flags">The mpstruc data used here is ${Math.round(c.snapshotAgeDays / 7)} weeks old (${esc(c.snapshot || "")}), so some suggestions may already be in mpstruc.</p>` : ""}
-      ${shown.length ? `<p class="mp-summary mp-study-intro">Each study is listed once: the structure that gets its own mpstruc entry, with its
-        related entries (the lines mpstruc adds to that entry) nested under it. Related entries that the filters would hide stay listed, dimmed,
-        while their study is shown.</p>` : ""}
+      ${shown.length ? `<p class="mp-summary mp-study-intro">Each new parent or daughter is listed once, with its related entries (the lines
+        mpstruc adds to its entry) nested under it. Related entries that the filters would hide stay listed, dimmed, with the reason,
+        while their entry is shown.</p>` : ""}
       ${shown.map(studyBlock).join("") || '<p class="mp-empty">Nothing to show with these filters.</p>'}
       ${more(shown.length, list.length)}
     </div>`;
@@ -1924,7 +1979,12 @@ links.addEventListener("click", (event) => {
         for (const el of form.elements) {
           if (el.name && auto.view[el.name] !== el.value) { auto.view[el.name] = el.value; changed = true; }
         }
-        if (changed) { state.limit = PAGE; render(); }
+        // New filters: cards shown on request close again.
+        if (changed) {
+          state.limit = PAGE;
+          for (const p of [...auto.open]) if (p !== auto.editing && p !== auto.rejecting) { auto.open.delete(p); auto.formOpened.delete(p); }
+          render();
+        }
       };
       form.addEventListener("change", update);
       form.addEventListener("submit", (ev) => { ev.preventDefault(); update(); });
@@ -1951,15 +2011,16 @@ links.addEventListener("click", (event) => {
       if (act === "details") {
         if (auto.open.has(pdb) || auto.editing === pdb || auto.rejecting === pdb) {
           auto.open.delete(pdb);
+          auto.formOpened.delete(pdb);
           if (auto.editing === pdb) auto.editing = null;
           if (auto.rejecting === pdb) auto.rejecting = null;
-        } else auto.open.add(pdb);
+        } else { auto.open.add(pdb); auto.formOpened.delete(pdb); }
         rerender();
         const t = document.getElementById(`rel-open-${pdb}`);
         if (t) focusEl(t);
         return;
       }
-      if (btn.closest(".mp-relitem") && (act === "edit" || act === "reject")) auto.open.add(pdb);
+      if (btn.closest(".mp-relitem") && (act === "edit" || act === "reject") && !auto.open.has(pdb)) { auto.open.add(pdb); auto.formOpened.add(pdb); }
       if (act === "cancel") {
         auto.editing = null;
         auto.rejecting = null;
@@ -2009,6 +2070,13 @@ links.addEventListener("click", (event) => {
         auto.open.add(s.lead.pdb);
         rerender();
         const t = document.getElementById(`act-edit-${s.lead.pdb}`) || document.getElementById(`c-${s.lead.pdb}`);
+        if (t) focusEl(t);
+        return;
+      }
+      if (act === "hide") {
+        auto.open.delete(s.lead.pdb);
+        rerender();
+        const t = document.getElementById(`g-lead-${s.key}`) || document.getElementById(`g-${s.key}`);
         if (t) focusEl(t);
         return;
       }
@@ -2665,7 +2733,7 @@ links.addEventListener("click", (event) => {
     });
     const nRel = changes.filter((ch) => ch.entry.placement === "related").length;
     mutate({ changes, action: "approve", what: `approve ${subject(ids)}`,
-             message: `Curator ${cur.user.login}: approve ${listIds(ids)}${lead ? ` (study of ${lead})` : ""}`,
+             message: `Curator ${cur.user.login}: approve ${listIds(ids)}${lead ? ` (${lead} and related entries)` : ""}`,
              done: (ok, miss, before, held = []) => {
                const okLead = lead && ok.includes(lead);
                const text = `Approved ${subject(ok)}${okLead ? `: ${lead} and ${ok.length - 1} related ${ok.length - 1 === 1 ? "entry" : "entries"}` : nRel ? " as related entries" : ""}.`
@@ -2695,26 +2763,45 @@ links.addEventListener("click", (event) => {
   }
 
   // Approve one suggestion. A related entry goes under its owner; when that is
-  // a new structure this week that is not approved, ask first: approve both in
-  // one save, or this one alone (it cannot be pushed before its owner).
+  // a new structure this week that is not approved, ask first: approve it too
+  // in one save, or this one alone (it cannot be pushed before its owner).
+  // When the owner is itself a related entry, the chain is followed up to the
+  // first approved entry (or the lead), and all of it is offered together.
   async function approveOne(c, opener) {
     const choice = { placement: c.placement, subgroup: c.subgroup, owner: c.ownerPdb || "" };
-    const o = c.placement === "related" && c.ownerPdb ? candIndex().get(c.ownerPdb) : null;
-    const od = o && (curation.entries[o.pdb] || null);
-    if (!o || (od && od.status === "approved") || optimistic.has(o.pdb)) { approve(c, choice); return; }
-    const canBoth = !od && o.placement !== "review" && o.subgroup;
+    const by = candIndex(), chain = [];
+    // chain: the owner, its owner, ... while not approved (nearest first).
+    for (let x = c.placement === "related" && c.ownerPdb ? by.get(c.ownerPdb) : null; x && !chain.includes(x) && x !== c;
+         x = x.placement === "related" && x.ownerPdb ? by.get(x.ownerPdb) : null) {
+      const xd = curation.entries[x.pdb];
+      if ((xd && xd.status === "approved") || optimistic.has(x.pdb)) break;
+      chain.push(x);
+    }
+    if (!chain.length) { approve(c, choice); return; }
+    const o = chain[0], od = curation.entries[o.pdb] || null;
+    // The first entry up the chain that cannot be approved here, and why.
+    const stuck = chain.find((x) => curation.entries[x.pdb] || x.placement === "review" || !x.subgroup);
+    const sd = stuck && curation.entries[stuck.pdb];
+    const stuckWhy = !stuck ? "" : sd ? `was ${sd.status === "deleted" ? "deleted" : "rejected"}`
+      : `still needs a decision on where it goes (Decide on its card)`;
+    const canAll = !stuck;
+    const ups = chain.slice().reverse(); // owners first
+    const upText = chain.length > 1
+      ? ` ${o.pdb} is itself a related entry of ${chain[1].pdb}${chain.length > 2 ? `, which goes under ${listIds(chain.slice(2).map((x) => x.pdb))}` : ""}; ${chain.length > 2 ? "none of them is" : `${chain[1].pdb} is not`} approved yet either.`
+      : "";
     const ans = await confirmDialog({
-      title: canBoth ? `Approve ${o.pdb} too?` : `${o.pdb} is not approved`,
+      title: canAll ? `Approve ${listIds(chain.map((x) => x.pdb))} too?` : `${o.pdb} is not approved`,
       text: `${c.pdb} is a related entry: in mpstruc it is a line in ${o.pdb}'s entry, and ${o.pdb} is a new structure this week that `
-        + (canBoth ? `is not approved yet. Approve both in one save, or only ${c.pdb}` : od ? `was ${od.status === "deleted" ? "deleted" : "rejected"}. You can still approve ${c.pdb}`
-          : `still needs a decision on where it goes (Decide on its card). You can still approve ${c.pdb}`)
-        + `; it cannot be pushed to the database until ${o.pdb} is approved and pushed.`,
-      confirm: canBoth ? `Approve ${o.pdb} and ${c.pdb}` : `Approve ${c.pdb} anyway`,
-      alt: canBoth ? `Only ${c.pdb}` : "", opener, danger: false,
+        + (od ? `was ${od.status === "deleted" ? "deleted" : "rejected"}.` : `is not approved yet.`) + upText
+        + (canAll ? ` Approve ${chain.length > 1 ? "them" : "both"} in one save, or only ${c.pdb}`
+          : `${stuck !== o || !od ? ` ${stuck.pdb} ${stuckWhy}.` : ""} You can still approve ${c.pdb}`)
+        + `; it cannot be pushed to the database until ${listIds(chain.map((x) => x.pdb))} ${chain.length > 1 ? "are" : "is"} approved and pushed.`,
+      confirm: canAll ? `Approve ${listIds([...ups, c].map((x) => x.pdb))}` : `Approve ${c.pdb} anyway`,
+      alt: canAll ? `Only ${c.pdb}` : "", opener, danger: false,
     });
     if (!ans || !signedIn() || curation.entries[c.pdb] || optimistic.has(c.pdb)) return;
-    if (ans === "alt" || !canBoth) approve(c, choice);
-    else approveStudy(studies().find((s) => s.members.includes(o)) || null, [o, c]);
+    if (ans === "alt" || !canAll) approve(c, choice);
+    else approveStudy(studies().find((s) => s.members.includes(o)) || null, [...ups, c]);
   }
 
   // deps: pushed structures listed under pdb in the database (undoApproval asked
@@ -3796,7 +3883,7 @@ links.addEventListener("click", (event) => {
     const n = (function count(x) { return x.kids.reduce((k, y) => k + 1 + count(y), 0); })(g);
     return `<div class="mp-appr-group has-rel">${apprRow(g.r)}
       <div class="mp-appr-kids" role="group" aria-label="Related entries of ${esc(g.r.pdb)}">
-        <p class="mp-rel-tree-h">Related entries (${n}) <span class="mp-of">· lines in ${esc(g.r.pdb)}'s mpstruc entry</span></p>
+        <h4 class="mp-rel-tree-h">Related entries (${n}) <span class="mp-of">· lines in ${esc(g.r.pdb)}'s mpstruc entry</span></h4>
         ${g.kids.map(apprGroup).join("")}
       </div></div>`;
   }
