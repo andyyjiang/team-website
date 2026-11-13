@@ -769,6 +769,7 @@ def add_listings(props: list[dict], db: Database | None = None,
     from . import listing
     db = db or load(source_xml())
     known = {e.pdbCode.upper(): e for e in db.entries()}
+    sg_parents = {sg.key: sg.parents for g in db.groups for sg in g.subgroups}
     by_owner = defaultdict(list)
     for p in props:
         if p["placement"] == "related" and p.get("ownerPdb"):
@@ -823,7 +824,8 @@ def add_listings(props: list[dict], db: Database | None = None,
             names = [(e.name, e.bibliography.year) for e in family]
         if not names and core:
             names = [(e.name, e.bibliography.year) for e in same_core().get(frozenset(core), [])]
-        ctx = {"family_names": names, "group": [(x, det.get(x)) for x in group]}
+        ctx = {"family_names": names, "group": [(x, det.get(x)) for x in group],
+               "subgroup_names": [e.name for e in sg_parents.get(p.get("subgroup"), [])]}
         mp = listing.build(det.get(p["pdb"]), core, [(r, det.get(r)) for r in sorted(by_owner.get(p["pdb"], []))], ctx)
         if not mp:
             continue
