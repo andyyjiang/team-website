@@ -18206,13 +18206,13 @@
   },
   "9TGP": {
    "status": "approved",
-   "placement": "related",
+   "placement": "daughter",
    "subgroup": "G02-S006",
-   "owner": "9TGS",
+   "owner": "4C00",
    "edited": true,
    "by": "andyyjiang",
    "byName": "andyyjiang",
-   "at": "2026-11-13T01:06:13.451Z",
+   "at": "2026-11-13T01:09:24.204Z",
    "title": "Cryo-EM structure of TamAB-tail-engaged intermediate",
    "released": "2026-11-11",
    "organism": "Escherichia coli",
@@ -22030,6 +22030,14 @@
    "action": "approve",
    "pdb": "9TGP",
    "detail": "Added 9TGP as a related entry of 9TGS in Outer Membrane Autotransporters (G02-S006) (suggested: curator to decide); changed Placement, Parent or owner PDB ID"
+  },
+  {
+   "at": "2026-11-13T01:09:24.205Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "edit",
+   "pdb": "9TGP",
+   "detail": "Edited 9TGP as a daughter of 4C00 in Outer Membrane Autotransporters (G02-S006) (was a related entry of 9TGS in Outer Membrane Autotransporters (G02-S006)): changed Placement, Parent or owner PDB ID"
   }
  ]
 }
