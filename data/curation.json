@@ -18285,6 +18285,46 @@
    "suggestedSubgroup": null,
    "suggestedOwner": "",
    "membrane": 0.868
+  },
+  "9TIB": {
+   "status": "rejected",
+   "reasonCode": "not_membrane",
+   "reason": "Not a membrane protein",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T06:51:12.305Z",
+   "title": "Cryo-EM structure of the y LAT1/CD98hc heteromeric complex bound to L-glutamine",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 3.5,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "4F2 cell-surface antigen heavy chain / Y+L amino acid transporter 1",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.5",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Aparicio D, Palacin M, Llorca O, &amp; Martinez M",
+     "year": "2026",
+     "title": "Membrane Protein Transporter",
+     "journal": "Nat Commun",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of the y LAT1/CD98hc heteromeric complex bound to L-glutamine",
+    "relatedLine": "y LAT1/CD98hc heteromeric complex bound to L-glutamine, 3.50 &Aring;: 9TIB"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9I1Z",
+   "membrane": 0.945
   }
  },
  "log": [
@@ -22087,6 +22127,14 @@
    "action": "approve",
    "pdb": "21FS",
    "detail": "Added 21FS as a new parent in Cyclooxygenases (G01-S001) (suggested: curator to decide); changed Placement, Subfamily"
+  },
+  {
+   "at": "2026-11-13T06:51:12.305Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "reject",
+   "pdb": "9TIB",
+   "detail": "Rejected 9TIB: Not a membrane protein"
   }
  ]
 }
