@@ -18709,6 +18709,47 @@
    "suggestedSubgroup": "G03-S102",
    "suggestedOwner": "36XE",
    "membrane": 0.926
+  },
+  "38AQ": {
+   "status": "approved",
+   "placement": "daughter",
+   "subgroup": "G02-S010",
+   "owner": "5FQ8",
+   "edited": true,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T23:37:26.110Z",
+   "title": "Bacteroides SusCD Unliganded - Closed w/ Plug Domain",
+   "released": "2026-11-04",
+   "organism": "Bacteroides thetaiotaomicron VPI-5482",
+   "res": 3.3,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": "42914029",
+   "doi": "10.1016/j.jbc.2026.113672",
+   "mp": {
+    "name": "TonB-dependent receptor SusC with bound 3-decanoyloxypropyl decanoate, closed state",
+    "species": "Bacteroides thetaiotaomicron VPI-5482",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Bacteroides thetaiotaomicron VPI-5482",
+    "resolution": "3.3",
+    "description": "cryo-EM structure<br /> with bound 3-decanoyloxypropyl decanoate, 2.30 &Aring;: 38FE<br /> Unliganded Closed w/o, 3.10 &Aring;: 38FH<br /> open state, 3.20 &Aring;: 38FI",
+    "bibliography": {
+     "pubMedId": "42914029",
+     "authors": "Cadigan MC, Fuentes NR, Salmen W, Roberts JR, Ruotolo B, Ohi MD, &amp; Koropatkin NM",
+     "year": "2026",
+     "title": "Structural analyses of a heterodimeric SusCD complex captures intermediate states of maltooligosaccharide transport.",
+     "journal": "J.Biol.Chem.",
+     "volume": null,
+     "issue": null,
+     "pages": "113672",
+     "doi": "10.1016/j.jbc.2026.113672"
+    },
+    "pdbTitle": "Bacteroides SusCD Unliganded - Closed w/ Plug Domain"
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G02-S010",
+   "suggestedOwner": "",
+   "membrane": 0.869
   }
  },
  "log": [
@@ -22591,6 +22632,14 @@
    "action": "approve",
    "pdb": "36XI",
    "detail": "Added 36XI as a related entry of 36XE in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (approved together with 36XE, 36XF, 36XH)"
+  },
+  {
+   "at": "2026-11-13T23:37:26.110Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "38AQ",
+   "detail": "Added 38AQ as a daughter of 5FQ8 in Polysaccharide Utilization Proteins (G02-S010) (suggested: a new parent in Polysaccharide Utilization Proteins (G02-S010)); changed Placement, Parent or owner PDB ID"
   }
  ]
 }
