@@ -1204,19 +1204,43 @@ def family_base(names: list[tuple[str | None, str | None]]) -> str | None:
     return _cap(best) if re.match(r"[a-z]{4,}\b", best) else best
 
 
+def _chain_of_same(a: str, b: str) -> bool:
+    """Whether two entity names are one protein and a chain of it ('Botulinum
+    neurotoxin type A' and 'Botulinum neurotoxin A heavy chain'): one names a
+    chain and both start with the same two words."""
+    if not (re.search(r"\bchain\b", a, re.I) or re.search(r"\bchain\b", b, re.I)):
+        return False
+    wa, wb = a.lower().split()[:2], b.lower().split()[:2]
+    return len(wa) == 2 and wa == wb
+
+
 def pdb_name(mine: list[dict]) -> str | None:
     """Protein name from the PDB entity names, mpstruc-style: 'SLC16A7
     Monocarboxylate transporter 2' (gene symbol first when the name does not
     already contain it, as mpstruc does for new proteins)."""
     names = []
+    by_protein: dict[frozenset, int] = {}  # UniProt set -> index of its name in `names`
     for e in mine:
         if SEQUENCE.fullmatch(_desc(e).upper()):
             continue  # a bare residue sequence is not a protein name
         d = _clean_name(_desc(e))
         # 'Calcium-transporting ATPase 8, plasma membrane-type' -> 'Calcium-transporting ATPase 8'
         d = re.sub(r",\s+(?=[a-z])[^,]*$", "", d)
-        if d and d not in names:
-            names.append(d)
+        if not d or d in names:
+            continue
+        # Chains of one protein (BoNT/A: 'Botulinum neurotoxin type A' and its 'heavy chain')
+        # are one name, the protein's own rather than a chain's.
+        # Only names of one protein merge: a polyprotein's parts (flavivirus prM and E share
+        # a UniProt entry) are different proteins and both stay.
+        ups = frozenset(_uniprots(e))
+        i = by_protein.get(ups) if ups else None
+        if i is not None and _chain_of_same(names[i], d):
+            if re.search(r"\bchain\b", names[i], re.I) and not re.search(r"\bchain\b", d, re.I):
+                names[i] = d
+            continue
+        if ups:
+            by_protein[ups] = len(names)
+        names.append(d)
     if not names:
         return None
     name = " / ".join(names[:2])

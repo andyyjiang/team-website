@@ -516,3 +516,38 @@ def test_between_is_not_a_detergent():
     from mpstruc.listing import LIPIDISH
     assert not LIPIDISH.search("linker between domains")
     assert LIPIDISH.search("tween 20") and LIPIDISH.search("triton x-100")
+
+
+def test_chains_of_one_protein_are_one_name_but_polyprotein_parts_are_not():
+    # 24VA: BoNT/A and its heavy chain are one protein (one UniProt entry).
+    bont = [entity("Botulinum neurotoxin type A", ["P0DPI1"]), entity("Botulinum neurotoxin A heavy chain", ["P0DPI1"])]
+    assert pdb_name(bont) == "Botulinum neurotoxin type A"
+    assert pdb_name(bont[::-1]) == "Botulinum neurotoxin type A"
+    # Flavivirus prM and E share the polyprotein's UniProt entry but are different proteins.
+    assert pdb_name([entity("PrM protein", ["P17763"]), entity("Envelope protein E", ["P17763"])]) == \
+        "PrM protein / Envelope protein E"
+
+
+def test_add_listings_skips_a_name_about_the_binding_partner(monkeypatch):
+    # 24VA (BoNT/A alone) goes under 9F1R, SV2B in complex with the toxin: 9F1R's name is
+    # SV2B's, so it is not reused for the toxin; the PDB's own name is.
+    from mpstruc import automation, listing, rcsb
+    from mpstruc.model import load
+    db = load(str(automation.ROOT / "fixtures" / "mpstruc_2026-10-02.xml"))
+    owner = next(e for e in db.entries() if e.pdbCode.upper() == "9F1R")
+    toxin = entity("Botulinum neurotoxin type A", ["P0DPI1"], 1296)
+    new = entry("24VA", "Cryo-EM structure of recombinant Botulinum neurotoxin A",
+                [toxin, entity("Botulinum neurotoxin A heavy chain", ["P0DPI1"], 848)])
+    sv2b = entry("9F1R", "Cryo-EM structure of SV2B-Hc-A1 complex",
+                 [entity("Synaptic vesicle glycoprotein 2B", ["Q7L1I2"], 683, gene="SV2B"),
+                  entity("Botulinum neurotoxin type A", ["P0DPI1"], 420)])
+    details = {"24VA": new, "9F1R": sv2b}
+    monkeypatch.setattr(rcsb, "entry_details", lambda ids: {i: details.get(i) for i in ids})
+    monkeypatch.setattr(rcsb, "entry_extras", lambda ids: {
+        i: {"kw": {"Q7L1I2": ["KW-0812"], "P0DPI1": ["KW-0812"]}} for i in ids})
+    monkeypatch.setattr(listing, "enrich", lambda d: d)
+    family = [owner] + list(owner.daughters)
+    monkeypatch.setattr(db, "entries", lambda: family)
+    props = [{"pdb": "24VA", "placement": "daughter", "ownerPdb": "9F1R", "uniprot": ["P0DPI1"]}]
+    automation.add_listings(props, db, {})
+    assert props[0]["mp"]["name"] == "Botulinum neurotoxin type A"

@@ -748,6 +748,18 @@ def backtest_md(tune: dict, test: dict, later: dict, conf: dict, model: dict, th
     return "\n".join(L) + "\n"
 
 
+_GENERIC_WORDS = {"protein", "proteins", "subunit", "chain", "heavy", "light", "complex", "structure", "of", "the",
+                  "and", "in", "with", "type", "family", "domain", "membrane", "human", "form", "state", "bound",
+                  "apo", "putative", "uncharacterized", "fragment", "precursor", "alpha", "beta", "gamma", "delta"}
+
+
+def _name_words(text: str) -> set[str]:
+    """The telling words of a protein name, lower case: markup, entities and
+    generic words ('protein', 'subunit', 'chain') left out."""
+    text = re.sub(r"<[^>]+>|&\w+;", " ", text)
+    return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 1 and w not in _GENERIC_WORDS}
+
+
 def add_listings(props: list[dict], db: Database | None = None,
                  summaries: dict[str, dict | None] | None = None) -> None:
     """Attach a draft mpstruc entry to each suggestion (see listing.py).
@@ -806,6 +818,19 @@ def add_listings(props: list[dict], db: Database | None = None,
                     by_core.setdefault(frozenset(s["core"]), []).append(e)
         return by_core
 
+    kw_cache: dict[str, dict] = {}
+
+    def membrane_uniprots(e) -> set[str]:
+        """UniProt accessions in an mpstruc entry whose UniProt entry is transmembrane."""
+        pdb = e.pdbCode.upper()
+        if pdb not in kw_cache:
+            try:
+                kw_cache[pdb] = (rcsb.entry_extras([pdb]).get(pdb) or {}).get("kw") or {}
+            except Exception as err:  # unknown: treat the entry as having no other membrane protein
+                print(f"listing: could not look up UniProt keywords of {pdb} ({err})")
+                kw_cache[pdb] = {}
+        return {u for u, ks in kw_cache[pdb].items() if TM_KEYWORDS & set(ks or ())}
+
     for p in props:
         core = set(p.get("uniprot") or []) - FUSION_UNIPROT
         family, group = plan[p["pdb"]]
@@ -814,12 +839,33 @@ def add_listings(props: list[dict], db: Database | None = None,
             d = det.get(e.pdbCode.upper()) or {}
             return {u for x in d.get("polymer_entities") or []
                     for u in (x.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []}
+
+        def words_of(pdb, keep):
+            return _name_words(" ".join(
+                listing._desc(x) + " " + " ".join(listing._genes(x))
+                for x in (det.get(pdb) or {}).get("polymer_entities") or [] if keep(listing._uniprots(x))))
+        mine_words = words_of(p["pdb"], lambda u: u & core)
+
+        def about_other(e):
+            # The entry's name is about another membrane protein in it, not this
+            # structure's (24VA, BoNT/A alone, is in 9F1R only as SV2B's binding
+            # partner, and 9F1R's name is SV2B's): its name must not be reused.
+            # The name must name that other protein and not this one, so
+            # subcomplexes and abbreviated names ('Photosystem II', 'Na<sub>V</sub>1.6') keep it.
+            other = (membrane_uniprots(e) - FUSION_UNIPROT) - core if proteins(e) - core else set()
+            if not other or not mine_words:
+                return False
+            name = _name_words(e.name or "")
+            return bool(name & words_of(e.pdbCode.upper(), lambda u: u & other)) and not name & mine_words
         # Reuse mpstruc's name only from entries of the same protein: all of its
         # membrane proteins if any entry has them, else any of them (a review
         # case shares just part of it, so its family name may not fit).
-        names = [(e.name, e.bibliography.year) for e in family if core and core <= proteins(e)] or \
-                [(e.name, e.bibliography.year) for e in family if core & proteins(e)]
-        if not names and p["placement"] in ("daughter", "related"):
+        holders = [e for e in family if core and core <= proteins(e)]
+        names = [(e.name, e.bibliography.year) for e in holders if not about_other(e)]
+        if not names and not holders:
+            names = [(e.name, e.bibliography.year) for e in family if core & proteins(e) and not about_other(e)]
+        if not names and not holders and p["placement"] in ("daughter", "related") \
+                and not any(core & proteins(e) for e in family):
             names = [(e.name, e.bibliography.year) for e in family]
         if not names and core:
             names = [(e.name, e.bibliography.year) for e in same_core().get(frozenset(core), [])]
