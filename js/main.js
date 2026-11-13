@@ -2602,34 +2602,47 @@ links.addEventListener("click", (event) => {
   const COPY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
   const COPY_DONE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   const COPY_FONT = "font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.35; color: #000";
-  // related: the entry is listed under another one, so Shift-click copies just its related line.
+  // The decision and the mpstruc fields a copy uses: the curator's edit when there is one.
+  function copySource(pdb) {
+    const c = candOf(pdb), d = curation.entries[pdb] || (c && decisionOf(c)) || null;
+    return { c, d, raw: effectiveMp(d, c) };
+  }
+  // related: the entry is listed under another one, so Shift-click copies just its
+  // related line (offered only when it has one).
   function copyBtn(pdb, related = false) {
     const id = esc(pdb), label = `Copy ${id} as an mpstruc entry`;
-    return `<button class="mp-copy" type="button" data-copy="${id}"${related ? ' data-copy-related="1"' : ""} aria-label="${label}" title="${label}${related ? " (Shift-click: only the line for its owner's entry)" : ""}">${COPY_ICON}</button>`;
+    const line = related && isObj(copySource(pdb).raw) && plain(copySource(pdb).raw.relatedLine).trim();
+    return `<button class="mp-copy" type="button" data-copy="${id}"${line ? ' data-copy-related="1"' : ""} aria-label="${label}" title="${label}${line ? " (Shift-click: only the line for its owner's entry)" : ""}">${COPY_ICON}</button>`;
   }
-  const SUB_CHARS = { 0: "₀", 1: "₁", 2: "₂", 3: "₃", 4: "₄", 5: "₅", 6: "₆", 7: "₇", 8: "₈", 9: "₉", "+": "₊", "-": "₋", "−": "₋" };
-  const SUP_CHARS = { 0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴", 5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹", "+": "⁺", "-": "⁻", "−": "⁻" };
-  const copyTidy = (t) => t.replace(/ /g, " ").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).join("\n");
-  // mpstruc markup as plain text: entities as characters, <br> as newlines,
-  // sub/superscripts as Unicode ones where every character has one (Ca²⁺), else flat (5-HT2A).
+  const copyTidy = (t) => t.replace(/ /g, " ").split("\n").map((l) => l.replace(/\s+/g, " ").trim()).join("\n");
+  // mpstruc markup as plain text: entities as characters, <br> as newlines, and
+  // sub/superscripts flat (PIP2, Ca2+) so the text does not depend on the font
+  // having ₂ or ⁺. Real sub/superscripts are in the HTML flavour.
   function copyPlain(markup) {
-    const t = safeMarkup(markup).replace(/<br \/>/g, "\n")
-      .replace(/<(sub|sup)>([^<]*)<\/\1>/g, (all, tag, inner) => {
-        const txt = decodeEntities(inner), map = tag === "sub" ? SUB_CHARS : SUP_CHARS;
-        return [...txt].every((ch) => ch in map) ? [...txt].map((ch) => map[ch]).join("") : inner;
-      }).replace(/<\/?(?:sub|sup|em|i|b)>/g, "");
+    const t = safeMarkup(markup).replace(/<br \/>/g, "\n").replace(/<\/?(?:sub|sup|em|i|b)>/g, "");
     return copyTidy(decodeEntities(t).replace(/&(?:lt|#0*60|#x0*3c);/gi, "<").replace(/&(?:gt|#0*62|#x0*3e);/gi, ">").replace(/&(?:amp|#0*38|#x0*26);/gi, "&"));
   }
   // The same markup for the HTML flavour: still sanitised, entities as characters (Å), on one line.
-  const copyHtml = (markup) => decodeEntities(safeMarkup(safeMarkup(markup).replace(/<br \/>/g, " "))).replace(/ /g, " ").replace(/\s+/g, " ").trim();
+  const copyHtml = (markup) => decodeEntities(safeMarkup(safeMarkup(markup).replace(/<br \/>/g, " "))).replace(/ /g, " ").replace(/\s+/g, " ").trim();
   const copyLines = (markup) => safeMarkup(markup).split("<br />").map((l) => l.trim()).filter(Boolean);
   const COPY_METHOD = [[/NMR/i, "NMR structure"], [/ELECTRON MICROSCOPY/i, "cryo-EM structure"], [/X-RAY/i, "x-ray structure"], [/ELECTRON CRYSTALLOGRAPHY/i, "electron crystallography structure"]];
-  const isRelLine = (line) => /:\s*[0-9][A-Za-z0-9]{3}(?:\s*[,;/]\s*[0-9][A-Za-z0-9]{3})*\s*$/.test(copyPlain(line));
+  // The PDB IDs a related-structure line ends with ("..., 3.10 Å: 9ABC, 9ABD"); none for any other line.
+  const relIds = (line) => {
+    const m = /:\s*([0-9][A-Za-z0-9]{3}(?:\s*[,;/]\s*[0-9][A-Za-z0-9]{3})*)\s*$/.exec(copyPlain(line));
+    return m ? m[1].toUpperCase().split(/\s*[,;/]\s*/) : [];
+  };
+  const isRelLine = (line) => relIds(line).length > 0;
+  // Species or host for the HTML flavour: only the genus and species are italic
+  // (not the strain or cell line); markup a curator typed is kept as it is, and
+  // names that are not binomials (viruses, phages, vectors) are left upright.
+  function copyItalic(html) {
+    if (!html || /<(?:i|em)>/i.test(html) || /virus|phage|vector|sample|construct/i.test(html)) return html;
+    return html.replace(/^[A-Z][a-z]+(?: (?!sp\b|subsp\b|str\b|cf\b)[a-z]{2,}(?![\w.-]))?(?![\w-])/, (bin) => `<i>${bin}</i>`);
+  }
   // What the button copies for one structure: { plain, html } or { error }.
   // relatedOnly: just the line the structure adds to its owner's entry.
   function copyEntry(pdb, relatedOnly = false) {
-    const c = candOf(pdb), d = curation.entries[pdb] || (c && decisionOf(c)) || null;
-    const raw = effectiveMp(d, c);
+    const { c, d, raw } = copySource(pdb);
     if (!c || !isObj(raw)) return { error: `${pdb} has no drafted mpstruc entry to copy.` };
     const wrap = (rows) => `<div style="${COPY_FONT}">${rows.map((r) => `<div>${r}</div>`).join("")}</div>`;
     if (relatedOnly) {
@@ -2637,38 +2650,54 @@ links.addEventListener("click", (event) => {
       return { plain: copyPlain(raw.relatedLine), html: wrap([copyHtml(raw.relatedLine)]) };
     }
     // Line 2 is the method (the description's first line); the rest are related structures.
-    const lines = copyLines(raw.description);
+    let lines = copyLines(raw.description);
     let method = lines.length && !isRelLine(lines[0]) ? lines.shift() : "";
     if (!method) method = (COPY_METHOD.find(([re]) => re.test(plain(c.method))) || [])[1] || "";
     const related = placeOf(c).placement === "related";
-    if (related) lines.length = 0; // a related entry is copied in its own entry form
+    // A related entry is copied in its own entry form: what it says about itself, not its owner's list.
+    if (related) lines = lines.filter((l) => !isRelLine(l));
     else if (auto.cands) {
       // A lead: every related suggestion nested under it, in the Automation tab's order.
+      // The curators' decisions on those win over the drafted description, unless the
+      // lead's own description was edited after them. (A lead that was itself turned
+      // down keeps its drafted list: the whole study was set aside together.)
       const study = studies().find((s) => s.lead && s.lead.pdb === pdb);
+      const mine = d && d.status === "approved" && isObj(d.mpEdited) && plain(d.mpEdited.description) !== plain(c.mp && c.mp.description) ? plain(d.at) : "";
       for (const k of study ? study.members.slice(1) : []) {
-        const kd = decisionOf(k);
-        if (kd && kd.status !== "approved") continue; // rejected or deleted
-        if (lines.some((l) => new RegExp(`\\b${k.pdb}\\b`).test(copyPlain(l)))) continue;
+        const kd = decisionOf(k), newer = kd && !(mine && mine >= plain(kd.at));
+        if (kd && kd.status !== "approved") { // rejected or deleted: not listed
+          if (newer && !(d && d.status !== "approved")) lines = lines.filter((l) => { const ids = relIds(l); return !ids.length || !ids.every((id) => { const x = candOf(id), xd = x && decisionOf(x); return id === k.pdb || (study.members.includes(x) && xd && xd.status !== "approved"); }); });
+          continue;
+        }
         const km = effectiveMp(kd, k) || {}, kres = copyRes(km.resolution);
-        lines.push(safeMarkup(plain(km.relatedLine).trim()
-          || `${plain(km.name || k.title).replace(/<br\s*\/?>/gi, " ")}${kres ? `, ${kres} &Aring;` : ""}: ${k.pdb}`));
+        const kline = plain(km.relatedLine).trim();
+        const at = lines.findIndex((l) => new RegExp(`\\b${k.pdb}\\b`, "i").test(copyPlain(l)));
+        if (at >= 0) {
+          // Already in the description: a line the curator has since corrected replaces the drafted one.
+          const ids = relIds(lines[at]);
+          if (newer && kline && kline !== plain(k.mp && k.mp.relatedLine).trim() && ids.length === 1 && ids[0] === k.pdb) lines[at] = safeMarkup(kline);
+          continue;
+        }
+        lines.push(safeMarkup(kline
+          || `${plain(km.name || k.title).replace(/<br\s*\/?>/gi, " ")}${kres ? `, ${esc(kres)} &Aring;` : ""}: ${k.pdb}`));
       }
     }
     const nmr = /NMR/i.test(copyPlain(method)) || /NMR/i.test(plain(c.method));
     const res = nmr ? "" : copyRes(raw.resolution);
     const dom = { eukaryota: "E", bacteria: "B", archaea: "A", viruses: "V" }[copyPlain(raw.taxonomicDomain).toLowerCase()] || "";
     const name = plain(raw.name).trim() ? raw.name : esc(c.title || pdb);
-    const first = (f, b, i) => {
+    // f: a field as text for this flavour; t: plain text (the resolution) made safe for it.
+    const first = (f, t, b, i) => {
       const sp = f(raw.species), host = f(raw.expressedInSpecies);
       const src = [sp && i(sp), dom].filter(Boolean).join(" ") + (host ? `${sp || dom ? " " : ""}(expressed in ${i(host)})` : "");
-      return `${b(f(name))}${src ? ` : ${src}` : ""}${res ? `, ${res} Å` : ""}`;
+      return `${b(f(name))}${src ? ` : ${src}` : ""}${res ? `, ${t(res)} Å` : ""}`;
     };
     const same = (x) => x;
     const seen = new Set();
     const rest = [method, ...lines].filter((l) => l && !seen.has(copyPlain(l)) && seen.add(copyPlain(l)));
     return {
-      plain: [first(copyPlain, same, same), ...rest.map(copyPlain)].join("\n"),
-      html: wrap([first(copyHtml, (x) => `<b>${x}</b>`, (x) => `<i>${x}</i>`), ...rest.map(copyHtml)]),
+      plain: [first(copyPlain, same, same, same), ...rest.map(copyPlain)].join("\n"),
+      html: wrap([first(copyHtml, esc, (x) => `<b>${x}</b>`, copyItalic), ...rest.map(copyHtml)]),
     };
   }
   // Resolution with two decimals, as mpstruc lists it ("3.1" is 3.10).
@@ -2693,7 +2722,7 @@ links.addEventListener("click", (event) => {
       box.contentEditable = "true";
       box.setAttribute("aria-hidden", "true");
       box.style.cssText = "position: fixed; left: -9999px; top: 0; opacity: 0; white-space: pre-wrap";
-      box.innerHTML = html; // sanitised by copyEntry (safeMarkup)
+      box.innerHTML = html; // sanitised by copyEntry (safeMarkup, esc)
       document.body.appendChild(box);
       const range = document.createRange();
       range.selectNodeContents(box);
