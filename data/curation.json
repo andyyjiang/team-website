@@ -18546,6 +18546,169 @@
     "pdbTitle": "Membrane Protein Transporter",
     "related": []
    }
+  },
+  "36XE": {
+   "status": "approved",
+   "placement": "daughter",
+   "subgroup": "G03-S102",
+   "owner": "6M18",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T07:30:32.509Z",
+   "title": "Cryo-EM structure of SLC6A19-ACE2 complex with cinromide",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 3,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1021/acs.jmedchem.6c02154",
+   "mp": {
+    "name": "B<sup>0</sup>AT1 (SLC6A19) with bound cinromide",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3",
+    "description": "cryo-EM structure<br /> with bound CB3, 3.01 &Aring;: 36XF<br /> Compound 6, 2.95 &Aring;: 36XH<br /> Compound 20, 2.75 &Aring;: 36XI",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang T, Dowling MS, Zhou D, Wasilko DJ, Tu M, Feliers D, Bernardo B, Tillotson J, Ma W, Brown J, Johnson Z, Lees JA, Fensome A, Shavnya A, Clemens J, Coffey S, Blakemore CA, Avery M, Tuttle JB, Hudson P, Korczynska M, Murray J, Williams J, Xiao J, Dutra J, Hernandez D, Hesp KD, Mascitti V, Jagarlapudi S, Keenan R, Ward J, Barnes R, Jordan E, Ochocki N, Callahan D, Steen K, Kalgutkar AS, Fonseca KR, Sharma R, Ferguson N, King-Ahmad A, Bessire AJ, Moody A, Maurer TS, Stock IA, Sommese R, Phillips T, Loria PM, Wu H, Hepworth D, Sammons MF, Zhang L, &amp; Zhang Y",
+     "year": "2026",
+     "title": "Structure-Guided Discovery of Orally Bioavailable Allosteric SLC6A19 Inhibitors that Promote Urinary Amino Acid Excretion In Vivo",
+     "journal": "J.Med.Chem.",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1021/acs.jmedchem.6c02154"
+    },
+    "pdbTitle": "Cryo-EM structure of SLC6A19-ACE2 complex with cinromide"
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "6M18",
+   "membrane": 0.926
+  },
+  "36XF": {
+   "status": "approved",
+   "placement": "related",
+   "subgroup": "G03-S102",
+   "owner": "36XE",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T07:30:32.509Z",
+   "title": "Cryo-EM structure of SLC6A19-ACE2 complex with CB3",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 3.01,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1021/acs.jmedchem.6c02154",
+   "mp": {
+    "name": "B<sup>0</sup>AT1 (SLC6A19) with bound CB3",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.01",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang T, Dowling MS, Zhou D, Wasilko DJ, Tu M, Feliers D, Bernardo B, Tillotson J, Ma W, Brown J, Johnson Z, Lees JA, Fensome A, Shavnya A, Clemens J, Coffey S, Blakemore CA, Avery M, Tuttle JB, Hudson P, Korczynska M, Murray J, Williams J, Xiao J, Dutra J, Hernandez D, Hesp KD, Mascitti V, Jagarlapudi S, Keenan R, Ward J, Barnes R, Jordan E, Ochocki N, Callahan D, Steen K, Kalgutkar AS, Fonseca KR, Sharma R, Ferguson N, King-Ahmad A, Bessire AJ, Moody A, Maurer TS, Stock IA, Sommese R, Phillips T, Loria PM, Wu H, Hepworth D, Sammons MF, Zhang L, &amp; Zhang Y",
+     "year": "2026",
+     "title": "Structure-Guided Discovery of Orally Bioavailable Allosteric SLC6A19 Inhibitors that Promote Urinary Amino Acid Excretion In Vivo",
+     "journal": "J.Med.Chem.",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1021/acs.jmedchem.6c02154"
+    },
+    "pdbTitle": "Cryo-EM structure of SLC6A19-ACE2 complex with CB3",
+    "relatedLine": "with bound CB3, 3.01 &Aring;: 36XF"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "36XE",
+   "membrane": 0.926
+  },
+  "36XH": {
+   "status": "approved",
+   "placement": "related",
+   "subgroup": "G03-S102",
+   "owner": "36XE",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T07:30:32.509Z",
+   "title": "Cryo-EM structure of SLC6A19-ACE2 complex with Compound 6",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 2.95,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1021/acs.jmedchem.6c02154",
+   "mp": {
+    "name": "B<sup>0</sup>AT1 (SLC6A19)",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.95",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang T, Dowling MS, Zhou D, Wasilko DJ, Tu M, Feliers D, Bernardo B, Tillotson J, Ma W, Brown J, Johnson Z, Lees JA, Fensome A, Shavnya A, Clemens J, Coffey S, Blakemore CA, Avery M, Tuttle JB, Hudson P, Korczynska M, Murray J, Williams J, Xiao J, Dutra J, Hernandez D, Hesp KD, Mascitti V, Jagarlapudi S, Keenan R, Ward J, Barnes R, Jordan E, Ochocki N, Callahan D, Steen K, Kalgutkar AS, Fonseca KR, Sharma R, Ferguson N, King-Ahmad A, Bessire AJ, Moody A, Maurer TS, Stock IA, Sommese R, Phillips T, Loria PM, Wu H, Hepworth D, Sammons MF, Zhang L, &amp; Zhang Y",
+     "year": "2026",
+     "title": "Structure-Guided Discovery of Orally Bioavailable Allosteric SLC6A19 Inhibitors that Promote Urinary Amino Acid Excretion In Vivo",
+     "journal": "J.Med.Chem.",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1021/acs.jmedchem.6c02154"
+    },
+    "pdbTitle": "Cryo-EM structure of SLC6A19-ACE2 complex with Compound 6",
+    "relatedLine": "Compound 6, 2.95 &Aring;: 36XH"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "36XE",
+   "membrane": 0.926
+  },
+  "36XI": {
+   "status": "approved",
+   "placement": "related",
+   "subgroup": "G03-S102",
+   "owner": "36XE",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-13T07:30:32.509Z",
+   "title": "Cryo-EM structure of SLC6A19-ACE2 complex with Compound 20",
+   "released": "2026-11-11",
+   "organism": "Homo sapiens",
+   "res": 2.75,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1021/acs.jmedchem.6c02154",
+   "mp": {
+    "name": "B<sup>0</sup>AT1 (SLC6A19)",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.75",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang T, Dowling MS, Zhou D, Wasilko DJ, Tu M, Feliers D, Bernardo B, Tillotson J, Ma W, Brown J, Johnson Z, Lees JA, Fensome A, Shavnya A, Clemens J, Coffey S, Blakemore CA, Avery M, Tuttle JB, Hudson P, Korczynska M, Murray J, Williams J, Xiao J, Dutra J, Hernandez D, Hesp KD, Mascitti V, Jagarlapudi S, Keenan R, Ward J, Barnes R, Jordan E, Ochocki N, Callahan D, Steen K, Kalgutkar AS, Fonseca KR, Sharma R, Ferguson N, King-Ahmad A, Bessire AJ, Moody A, Maurer TS, Stock IA, Sommese R, Phillips T, Loria PM, Wu H, Hepworth D, Sammons MF, Zhang L, &amp; Zhang Y",
+     "year": "2026",
+     "title": "Structure-Guided Discovery of Orally Bioavailable Allosteric SLC6A19 Inhibitors that Promote Urinary Amino Acid Excretion In Vivo",
+     "journal": "J.Med.Chem.",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1021/acs.jmedchem.6c02154"
+    },
+    "pdbTitle": "Cryo-EM structure of SLC6A19-ACE2 complex with Compound 20",
+    "relatedLine": "Compound 20, 2.75 &Aring;: 36XI"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "36XE",
+   "membrane": 0.926
   }
  },
  "log": [
@@ -22396,6 +22559,38 @@
    "action": "approve",
    "pdb": "9I1Z",
    "detail": "Added 9I1Z as a daughter of 9KH5 in Solute Carrier (SLC) Transporter Superfamily (G03-S102); changed Description"
+  },
+  {
+   "at": "2026-11-13T07:30:32.510Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "36XE",
+   "detail": "Added 36XE as a daughter of 6M18 in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (approved together with 36XF, 36XH, 36XI)"
+  },
+  {
+   "at": "2026-11-13T07:30:32.510Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "36XF",
+   "detail": "Added 36XF as a related entry of 36XE in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (approved together with 36XE, 36XH, 36XI)"
+  },
+  {
+   "at": "2026-11-13T07:30:32.510Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "36XH",
+   "detail": "Added 36XH as a related entry of 36XE in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (approved together with 36XE, 36XF, 36XI)"
+  },
+  {
+   "at": "2026-11-13T07:30:32.510Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "36XI",
+   "detail": "Added 36XI as a related entry of 36XE in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (approved together with 36XE, 36XF, 36XH)"
   }
  ]
 }
