@@ -277,7 +277,15 @@ def test_names_from_pdb_entities_are_clean():
     assert facets(e, {"Q1"})["mut"] == ["I4657M", "G4819E"]
 
 
-def test_ligand_names_as_curators_write_them():
+def test_ligand_names_as_curators_write_them(monkeypatch):
+    # How names are written, whatever the learned usage says about naming them: here
+    # small molecules are always named and cofactors never.
+    always = {"n": 100, "named": 100, "n_title": 50, "named_title": 50}
+    never = {"n": 100, "named": 0, "n_title": 50, "named_title": 0}
+    usage = {"rule": {"threshold": 0.5, "prior": 2.0}, "overall": always, "comps": {},
+             "classes": {"drug": {"all": always, "rare": always}, "additive": {"all": always, "rare": always},
+                         "cofactor": {"all": never, "rare": never}, "lipid": {"all": never, "rare": never}}}
+    monkeypatch.setattr("mpstruc.ligands.load_usage", lambda path=None: usage)
     e = entry("9DDB", "TIR1 dimer with auxin", [entity("TIR1", ["Q1"])],
               [ligand("IAC", "1H-INDOL-3-YLACETIC ACID", ["INDOLE ACETIC ACID"])])
     # The title's own word wins over the chemical name.
@@ -513,6 +521,6 @@ def test_maltose_binding_protein_is_a_real_partner_of_malfgk2():
 
 
 def test_between_is_not_a_detergent():
-    from mpstruc.listing import LIPIDISH
-    assert not LIPIDISH.search("linker between domains")
-    assert LIPIDISH.search("tween 20") and LIPIDISH.search("triton x-100")
+    from mpstruc.ligands import classify
+    assert classify({"name": "linker between domains"}) != "detergent"
+    assert classify({"name": "tween 20"}) == "detergent" and classify({"name": "triton x-100"}) == "detergent"
