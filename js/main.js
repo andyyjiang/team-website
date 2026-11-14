@@ -855,7 +855,8 @@ links.addEventListener("click", (event) => {
     return m ? `${REASON_LABEL[code]} ${m[1]}` : REASON_LABEL[code];
   }
   const reasonText = (code, note) => (note ? `${REASON_LABEL[code]}: ${note}` : REASON_LABEL[code]);
-  const unpublishedText = (c) => `${REASON_LABEL.unpublished} (${c.awaiting && c.awaiting.reason === "preprint only" ? "preprint only" : "PDB lists it as 'To be published'"})`;
+  const AWAIT_SHORT = { "preprint only": "preprint only", "accepted, not out yet": "accepted, not out yet" };
+  const unpublishedText = (c) => `${REASON_LABEL.unpublished} (${(c.awaiting && AWAIT_SHORT[c.awaiting.reason]) || "PDB lists it as 'To be published'"})`;
   const reasonOptions = (sel, blank) => (blank ? `<option value=""${sel ? "" : " selected"}>Choose a reason…</option>` : "")
     + REASONS.map((r) => `<option value="${r.code}"${r.code === sel ? " selected" : ""}>${esc(r.label)}</option>`).join("");
   const DECISIONS_KEY = "mpstruc-decisions-v1";
@@ -909,7 +910,9 @@ links.addEventListener("click", (event) => {
   const shortDay = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   function awaitingNote(c) {
     const a = c.awaiting;
-    const what = a.reason === "preprint only" ? "PDB lists only a preprint for this structure" : "PDB lists this as 'To be published'";
+    const what = a.reason === "preprint only" ? "PDB lists only a preprint for this structure"
+      : a.reason === "accepted, not out yet" ? "PDB names a journal, but the paper is not out yet (no DOI, PubMed record or Crossref record found by its title)"
+      : "PDB lists this as 'To be published'";
     return `<p class="mp-flags mp-await-note">${what} - mpstruc lists structures once the paper is out. The weekly check moves it to
       Decisions › Rejected under 'Not published yet' (or use the button below), and brings it back to 'To decide' by itself when the paper
       is published.${a.since ? ` <span class="mp-of">Waiting since ${esc(shortDay(a.since))}.</span>` : ""}</p>`;

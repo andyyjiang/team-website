@@ -70,12 +70,16 @@ def now_iso() -> str:
 def reason_text(why: str | None) -> str:
     if why == awaiting.PREPRINT_ONLY:
         return f"{LABEL} (preprint only)"
+    if why == awaiting.ACCEPTED:
+        return f"{LABEL} (accepted, not out yet)"
     return f"{LABEL} (PDB lists it as 'To be published')"
 
 
 def _why_phrase(why: str | None) -> str:
     if why == awaiting.PREPRINT_ONLY:
         return "not published yet (only a preprint so far)"
+    if why == awaiting.ACCEPTED:
+        return "not published yet (accepted, but not out yet)"
     return "not published yet (PDB lists it as 'To be published')"
 
 
@@ -119,7 +123,8 @@ def track_unpublished(rec: dict, curation: dict | None, today: str) -> tuple[dic
         start = str(e.get("released") or e.get("at") or "")[:10]
         if start and start < cutoff:
             continue
-        why = awaiting.PREPRINT_ONLY if "preprint" in str(e.get("reason") or "").lower() else awaiting.TO_BE_PUBLISHED
+        r = str(e.get("reason") or "").lower()
+        why = awaiting.PREPRINT_ONLY if "preprint" in r else awaiting.ACCEPTED if "accepted" in r else awaiting.TO_BE_PUBLISHED
         wait[pdb] = {"since": str(e.get("at") or today)[:10], "released": e.get("released"), "reason": why,
                      "unconfirmed": True}
         added.append(pdb)
