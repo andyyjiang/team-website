@@ -933,9 +933,14 @@ def main() -> None:
     # Citations first: any cached entry whose paper turns out to be out now is
     # dropped from the cache, so the draft listing below cites that paper.
     cits = awaiting.citations_for(props, fresh_cits)
+    # A citation naming only a journal is checked by title: published papers the
+    # PDB has no DOI for yet count as out; the rest wait as 'accepted, not out yet'.
+    all_cits = {**fresh_cits, **cits}
+    stats["papers found by title"] = awaiting.resolve_titles(all_cits)
     add_listings(props)
+    awaiting.fill_found(props, all_cits)
     run_day = dt.datetime.now(dt.timezone.utc).date().isoformat()
-    wait_rec, wait_stats = awaiting.update(props, {**fresh_cits, **cits}, wait_rec, run_day, hold=unpub_rejected)
+    wait_rec, wait_stats = awaiting.update(props, all_cits, wait_rec, run_day, hold=unpub_rejected)
     wait_stats["given_up"] = len(given_up)
     awaiting.save(wait_path, wait_rec)
     # Record suggestions still waiting for their paper as rejected by the
