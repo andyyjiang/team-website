@@ -1,0 +1,125 @@
+# Version label: the small "v1.12 · updated 13 Nov 2026" at the top of every page.
+# Each time a pull request is merged into main, this writes data/version.json:
+#   { "version": "1.<pull request number>", "pr": <number>, "title": "<its title>",
+#     "mergedAt": "<merge time>", "sha": "<merge commit>" }
+# and commits it to main as mpstruc-bot. js/main.js reads the file on every page load.
+#
+# Safety notes:
+# - The pull request's title is text written by a person. It only ever reaches the
+#   scripts through the environment (never pasted into a script with ${{ }}), and
+#   Python's json module writes it into the file.
+# - Only main is checked out; nothing from the pull request's branch is run.
+# - Curators (from the site) and the weekly job also commit to main, so a rejected
+#   push takes their commits (git pull --rebase) and tries again.
+# - A pull request that only changes files under data/ leaves the version alone.
+name: Version label
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+# One at a time, in the order the pull requests were merged.
+concurrency:
+  group: version-label
+  cancel-in-progress: false
+
+jobs:
+  version:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      MERGED_AT: ${{ github.event.pull_request.merged_at }}
+      MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Skip pull requests that only change data/
+        id: scope
+        run: |
+          set -euo pipefail
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*) echo "::error::Unexpected pull request number"; exit 1 ;;
+          esac
+          if files=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" --jq '.[].filename'); then
+            if [ -n "$files" ] && ! grep -qv '^data/' <<< "$files"; then
+              echo "Only files under data/ changed: the version stays as it is."
+              echo "bump=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            echo "::warning::Could not list the files of the pull request; updating the version anyway"
+          fi
+          echo "bump=true" >> "$GITHUB_OUTPUT"
+
+      - name: Write data/version.json and push it
+        if: steps.scope.outputs.bump == 'true'
+        run: |
+          set -euo pipefail
+          case "$PR_NUMBER" in
+            ''|*[!0-9]*) echo "::error::Unexpected pull request number"; exit 1 ;;
+          esac
+          git config user.name "mpstruc-bot"
+          git config user.email "mpstruc-bot@users.noreply.github.com"
+
+          write_version() {
+            python3 - <<'PY'
+          import datetime, json, os, re, sys
+
+          path = "data/version.json"
+          pr = int(os.environ["PR_NUMBER"])
+          title = re.sub(r"[\x00-\x1f\x7f]+", " ", os.environ.get("PR_TITLE", ""))
+          title = re.sub(r"\s+", " ", title).strip()[:200]
+          merged = os.environ.get("MERGED_AT", "")
+          if not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", merged):
+              merged = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+          sha = os.environ.get("MERGE_SHA", "")
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              sha = ""
+          try:
+              with open(path, encoding="utf-8") as f:
+                  old = json.load(f)
+          except (OSError, ValueError):
+              old = {}
+          # A pull request merged earlier whose run comes late must not put the label back.
+          if isinstance(old, dict) and isinstance(old.get("mergedAt"), str) \
+                  and old.get("pr") != pr and old["mergedAt"] > merged:
+              print(f"data/version.json already names a later merge ({old.get('version')}): left as it is")
+              sys.exit(0)
+          new = {"version": f"1.{pr}", "pr": pr, "title": title, "mergedAt": merged, "sha": sha}
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(new, f, indent=1, ensure_ascii=False)
+              f.write("\n")
+          print(json.dumps(new, ensure_ascii=False))
+          PY
+          }
+
+          for attempt in 1 2 3 4 5; do
+            write_version
+            git add data/version.json
+            if git diff --cached --quiet; then
+              echo "data/version.json needs no change"
+              exit 0
+            fi
+            git commit -q -m "Version 1.${PR_NUMBER} (pull request #${PR_NUMBER})"
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "The push was rejected (someone else committed to main): taking their commits and trying again"
+            git reset -q --hard HEAD~1
+            git pull -q --rebase origin main
+            sleep $((attempt * 5))
+          done
+          echo "::error::Could not push data/version.json after 5 attempts"
+          exit 1
