@@ -62,7 +62,9 @@ DATA_FILES = ["data/candidates.json", "data/mpstruc.json", "data/import_log.json
               "data/vercel_snapshot.json", "data/vercel_compare.json",
               # The curators' rules for the site, and the official entries that contradict
               # one (automation.write_rule_files).
-              "data/curator_rules.json", "mpstruc/reports/rule_conflicts.md", "mpstruc/reports/rule_conflicts.json"]
+              "data/curator_rules.json", "mpstruc/reports/rule_conflicts.md", "mpstruc/reports/rule_conflicts.json",
+              # Bookmark anchors of the listings on the official mpstruc site (mpstruc.anchors).
+              "data/mpstruc_links.json"]
 
 
 def now_iso() -> str:

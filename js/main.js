@@ -256,8 +256,33 @@ links.addEventListener("click", (event) => {
                     sent: ["sent", "Submitted, waiting for mpstruc", "Sent to the mpstruc maintainers; marked In mpstruc once the official file lists it"],
                     // A weekly suggestion: a new PDB release the official mpstruc does not list.
                     sug: ["out", "Not in mpstruc", "A new PDB release that the official mpstruc does not list (as an entry, a related entry or in a description)"] };
-  function mpMark(kind) {
+  // Where the official mpstruc site lists a structure. data/mpstruc_links.json
+  // (written by mpstruc/mpstruc/anchors.py from mpstruc's own page) holds the
+  // bookmark anchor of every parent and daughter listing; a related structure
+  // has no listing of its own, so it opens the listing it is a line of.
+  const MP_HOME = "https://blanco.biomol.uci.edu/mpstruc/";
+  let mpLinks = null;
+  fetch("data/mpstruc_links.json").then((r) => (r.ok ? r.json() : null)).then((v) => {
+    if (v && typeof v === "object" && v.entries && typeof v.entries === "object") { mpLinks = v.entries; if (state.data) render(); }
+  }).catch(() => {});
+  function officialUrl(id) {
+    const k = String(id || "").toUpperCase();
+    const at = (p) => (mpLinks && isPdbId(p) && Object.prototype.hasOwnProperty.call(mpLinks, p) && /^\d+_\d+$/.test(String(mpLinks[p]))
+      ? `${MP_HOME}#id_${p}_${mpLinks[p]}` : null);
+    if (at(k)) return at(k);
+    for (const r of state.byPdb.get(k) || []) {
+      const e = r.entry;
+      if (e && !e.isNew && at(String(e.pdb).toUpperCase())) return at(String(e.pdb).toUpperCase());
+    }
+    return MP_HOME;
+  }
+  // The marker; "In mpstruc" for a given structure is a link to its listing on the official mpstruc site.
+  function mpMark(kind, pdb) {
     const [cls, label, tip] = MP_MARK[kind];
+    if (kind === "in" && pdb && isPdbId(pdb)) {
+      const id = esc(String(pdb).toUpperCase());
+      return `<a class="mp-mark in" href="${esc(officialUrl(pdb))}" target="_blank" rel="noopener" title="Open the official mpstruc listing that has ${id} (new tab)" aria-label="In mpstruc: open the official mpstruc listing that has ${id} (new tab)">${esc(label)}<span aria-hidden="true"> ↗</span></a>`;
+    }
     return `<span class="mp-mark ${cls}" title="${esc(tip)}">${esc(label)}</span>`;
   }
   const markOf = (e) => (!e.isNew ? "in" : isSubmitted(e.pdb) ? "sent" : "out");
@@ -277,8 +302,7 @@ links.addEventListener("click", (event) => {
   // The label on a suggestion: 'Not in mpstruc', or 'In mpstruc' (a link to its listing) once the official file lists it.
   function candMark(pdb) {
     const to = officialHash(pdb);
-    return to ? `<a class="mp-mark in" href="${esc(to)}" title="The official mpstruc now lists ${esc(pdb)} (its file is newer than this week's suggestions): see where">In mpstruc</a>`
-      : mpMark("sug");
+    return to ? mpMark("in", pdb) : mpMark("sug");
   }
   const filtersActive = () => Object.values(state.filters).some(Boolean);
 
@@ -459,7 +483,7 @@ links.addEventListener("click", (event) => {
       <div class="mp-entry-head">
         <span class="mp-badge${isD ? " daughter" : ""}">${isD ? "Daughter" : "Parent"}</span>
         ${newBadge(e)}
-        ${mpMark(markOf(e))}
+        ${mpMark(markOf(e), e.pdb)}
         <a class="mp-pdb" href="#/entry/${e.k}">${esc(e.pdb)}</a>
         <a href="${rcsb(e.pdb)}" rel="noopener" class="mp-of">RCSB ↗</a>
         ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a></span>` : ""}
@@ -702,7 +726,7 @@ links.addEventListener("click", (event) => {
       const where = `${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>`;
       const role = r.type === "related" ? `Related entry of <a href="#/entry/${e.k}">${esc(e.pdb)}</a> (${e.kind === "p" ? "parent" : "daughter"})`
         : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}`;
-      return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e))}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
+      return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e), id)}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
     }).join("");
     // One of this week's suggestions: how likely it is a membrane protein, and which of its proteins to check.
     if (!refs.length && !auto.cands && !auto.error) loadAutomation();
@@ -823,7 +847,7 @@ links.addEventListener("click", (event) => {
       const what = r.type === "parent" ? "a parent"
         : r.type === "daughter" ? `a daughter of <a href="#/entry/${x.parent.k}">${esc(x.parent.pdb)}</a>`
         : `a related entry of <a href="#/entry/${x.k}">${esc(x.pdb)}</a>${x.parent ? ` (a daughter of ${esc(x.parent.pdb)})` : ""}`;
-      return `${what} in ${sg} ${mpMark(r.type === "related" ? relMark(x, focus) : markOf(x))}`;
+      return `${what} in ${sg} ${mpMark(r.type === "related" ? relMark(x, focus) : markOf(x), r.type === "related" ? focus : x.pdb)}`;
     };
     return `<nav class="mp-placed" aria-label="Where ${esc(focus)} is placed"><span class="mp-of">Where it is placed:</span>
       <b class="mp-pdb">${esc(focus)}</b> is ${refs.map(one).join("; also ")}.
@@ -838,7 +862,7 @@ links.addEventListener("click", (event) => {
       const hit = focus === id.toUpperCase() ? ' class="mp-hit"' : "";
       return `<tr id="rel-${esc(id.toUpperCase())}"${hit}><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}/about">${esc(id)}</a></td>
         <td>${x ? esc(x.title || "") : '<span class="mp-frompdb">Not found in the PDB</span>'}</td>
-        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td><td>${mpMark(relMark(e, id))}</td></tr>`;
+        <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td><td>${mpMark(relMark(e, id), id)}</td></tr>`;
     }).join("");
     const daughters = e.kind === "p" && e.d && e.d.length
       ? `<h3>Daughter structures described in full (${e.d.length})</h3>${e.d.map((d) => entryCard(d)).join("")}` : "";
@@ -2146,7 +2170,7 @@ links.addEventListener("click", (event) => {
   function alreadyRow(r) {
     const id = esc(r.pdb), title = pdbTitle(r.pdb);
     return `<li class="mp-inmp-row" id="im-${id}">
-      <span class="mp-inmp-id"><a class="mp-pdb" href="#/pdb/${id}">${id}</a>${mpMark("in")}</span>
+      <span class="mp-inmp-id"><a class="mp-pdb" href="#/pdb/${id}">${id}</a>${mpMark("in", r.pdb)}</span>
       <span class="mp-inmp-where">${alreadyWhere(r)}${r.late ? ' <span class="mp-of">(listed since this week\'s suggestions were made)</span>' : ""}</span>
       ${title ? `<span class="mp-inmp-title">${esc(title)}</span>` : ""}
     </li>`;
@@ -4694,7 +4718,7 @@ links.addEventListener("click", (event) => {
           ${copyBtn(r.pdb, d.placement === "related")}
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${r.pushed ? '<span class="mp-badge in-db">In the database</span>' : '<span class="mp-badge staged">Not yet pushed</span>'}
-          ${r.official ? mpMark("in") : r.pushed ? mpMark(isObj(d.submitted) ? "sent" : "out") : ""}
+          ${r.official ? mpMark("in", r.pdb) : r.pushed ? mpMark(isObj(d.submitted) ? "sent" : "out") : ""}
           ${r.edited ? '<span class="mp-badge edited">Edited</span>' : ""}
           ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
         </div>
