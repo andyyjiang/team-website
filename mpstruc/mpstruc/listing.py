@@ -89,7 +89,8 @@ SPD SPM PUT DTT TCE EDT EGT AZI SCN FLC MLI MLA PGO PG0 BU3 2PE 12P 15P PE3 XPE 
 # Cofactors and pigments that every structure of a complex carries: named only when the title names them.
 COFACTORS = set("""HEM HEC HEA HEB CLA CHL BCL BPH BCR CRT LUT NEX XAT PQN PL9 FAD FMN NAD NAP NDP NAI SF4
 FES F3S MQ7 MQ8 UQ8 UQ1 UQ2 UQ6 UQ9 DGA OEX BCB A86 KC1 ECH LMU CU1 RET FE2 MQ9 3PH WRA CHL ZEX
-PHO BCT CUA CU HEO HAS 3PE SMA DMV MQ9 CYC PEB PUB BLA FDA FAD CMO""".split())
+PHO BCT CUA CU HEO HAS 3PE SMA DMV MQ9 CYC PEB PUB BLA FDA FAD CMO
+PER PEO OXY""".split())  # peroxide, H2O2, O2: oxidase active-site ligands
 # Other spellings of common ligands, so the title's own spelling is used ('AMPPNP' vs 'AMP-PNP').
 COMMON_ALT = {"ANP": ["AMPPNP", "AMP-PNP", "AppNHp", "ANP"], "ACP": ["AMPPCP", "AMP-PCP", "AppCp"],
               "AGS": ["ATPgammaS", "ATP-gamma-S", "ATPγS"], "GSP": ["GTPgammaS", "GTPγS"],
@@ -1204,6 +1205,47 @@ def family_base(names: list[tuple[str | None, str | None]]) -> str | None:
     return _cap(best) if re.match(r"[a-z]{4,}\b", best) else best
 
 
+# Words that do not make a protein name on their own.
+_GENERIC = set("""protein proteins subunit subunits chain chains polypeptide domain family putative
+uncharacterized transmembrane membrane complex fragment precursor probable isoform like""".split())
+_EDGE = set("""of from the a an in with and bound by to at for on structure""".split())
+
+
+def complex_name(title: str | None, mine: list[dict], known: list[str] = ()) -> str | None:
+    """The name of a complex of several proteins, as its PDB title writes it: the
+    longest title phrase that enough of its chains' names contain ('Toxoplasma gondii
+    cytochrome c oxidase from the respiratory supercomplex III2-IV', with chains
+    'Cytochrome c oxidase subunit 3', 'Cytochrome c oxidase polypeptide II', ... ->
+    'cytochrome c oxidase'). None unless at least two chains and a third of them
+    share it. When an mpstruc name in `known` (the subfamily's parents) is the same
+    phrase, its spelling is used ('Cytochrome C Oxidase')."""
+    names = list(dict.fromkeys(_desc(e).lower() for e in mine if _desc(e)))
+    words = re.findall(r"[A-Za-z0-9][\w()'+-]*", title or "")
+    best = None
+    for n in range(min(6, len(words)), 1, -1):  # one word ('Flagellar', 'ATP') is not a name
+        for i in range(len(words) - n + 1):
+            ws = words[i:i + n]
+            if ws[0].lower() in _EDGE or ws[-1].lower() in _EDGE:
+                continue
+            if len(ws[-1]) == 1 and ws[-1] != "I":  # 'cytochrome c' of 'cytochrome c reductase'
+                continue
+            if not any(w.lower() not in _GENERIC and w.lower() not in _EDGE and len(w) > 2 for w in ws):
+                continue
+            phrase = " ".join(ws)
+            pat = re.compile(r"(?<![\w-])" + re.escape(phrase.lower()) + r"(?![\w-])")
+            hits = sum(bool(pat.search(x)) for x in names)
+            if hits >= 2 and 3 * hits >= len(names) and (best is None or (n, hits) > (best[1], best[0])):
+                best = (hits, n, phrase)
+    if not best:
+        return None
+    phrase = best[2]
+    for k in known:
+        b = base_name(k)
+        if b and _norm(re.sub(r"<[^>]+>", "", b)) == _norm(phrase):
+            return b
+    return _cap(phrase)
+
+
 def pdb_name(mine: list[dict]) -> str | None:
     """Protein name from the PDB entity names, mpstruc-style: 'SLC16A7
     Monocarboxylate transporter 2' (gene symbol first when the name does not
@@ -1275,6 +1317,8 @@ def build(det: dict | None, core: set[str], related: list[tuple[str, dict | None
     `context` (optional) carries what mpstruc already holds:
       family_names  [(name, year)] of mpstruc entries with the same protein:
                     their protein name is reused instead of the PDB's;
+      subgroup_names  names of the parents in the suggested subfamily: a
+                    complex named from its title takes their spelling;
       group         [(pdb, details)] of the entry this one would be listed
                     under and its related structures: used to write
                     `relatedLine`, the line to add to that entry.
@@ -1296,6 +1340,16 @@ def build(det: dict | None, core: set[str], related: list[tuple[str, dict | None
 
     fam = family_base(context.get("family_names") or [])
     base = fam or pdb_name(mine)
+    # A complex of several proteins (or chains with only generic names) goes by the
+    # complex's name in the title, not its first two chains ('Transmembrane protein /
+    # Cg8 family protein' for 9I4Y, a cytochrome c oxidase).
+    named = list(dict.fromkeys(_desc(e) for e in mine if _desc(e)))
+    plain = base and not fam and not (set(_norm(base).split()) - _GENERIC)
+    cplx = None
+    if not fam and (len(named) >= 3 or plain):
+        cplx = complex_name((det.get("struct") or {}).get("title"), mine, context.get("subgroup_names") or [])
+    if cplx:
+        base, fam = cplx, cplx if "<" in cplx or "&" in cplx else None
     aliases = [html.unescape(re.sub(r"<[^>]+>", "", base))] if base else []
     name = None
     if base:

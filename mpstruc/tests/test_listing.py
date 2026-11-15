@@ -1,6 +1,6 @@
 """Drafted mpstruc listings: names, related lines that name only what differs,
 and mpstruc's sub/superscripts (mpstruc/listing.py)."""
-from mpstruc.listing import (base_name, build, differences, facets, family_base, ligands, pdb_name,
+from mpstruc.listing import (base_name, build, complex_name, differences, facets, family_base, ligands, pdb_name,
                              title_facets, title_names, _clean_name, _distinct_title, _esc, _merge, _said)
 
 
@@ -516,3 +516,23 @@ def test_between_is_not_a_detergent():
     from mpstruc.listing import LIPIDISH
     assert not LIPIDISH.search("linker between domains")
     assert LIPIDISH.search("tween 20") and LIPIDISH.search("triton x-100")
+
+
+def test_a_complex_is_named_from_its_title():
+    # 9I4Y: a Toxoplasma cytochrome c oxidase whose chains have obscure names.
+    chains = [entity(d, [f"A0A{i}"]) for i, d in enumerate([
+        "Putative cytochrome C oxidase subunit IIa", "Cytochrome c oxidase polypeptide II",
+        "Cytochrome C family oxidase subunit II, transmembrane domain protein", "Cytochrome c oxidase subunit 3",
+        "Cg8 family protein", "Putative cytochrome c oxidase subunit", "Transmembrane protein",
+        "Cytochrome c oxidase subunit 6B"])]
+    e = entry("9I4Y", "Toxoplasma gondii cytochrome c oxidase from the respiratory supercomplex III2-IV", chains,
+              [ligand("PER", "PEROXIDE ION")])
+    core = {f"A0A{i}" for i in range(8)}
+    assert build(e, core)["name"] == "Cytochrome c oxidase"
+    # The subfamily's own spelling wins, and the active-site peroxide is not a bound ligand.
+    known = ["Cytochrome C Oxidase, aa<sub>3</sub>", "Cytochrome bd-type oxidase"]
+    assert build(e, core, context={"subgroup_names": known})["name"] == "Cytochrome C Oxidase"
+    # One shared word is not a name: 'Flagellar' stays the chains' own names.
+    fl = [entity("Flagellar biosynthetic protein FliQ", ["Q1"]), entity("Flagellar biosynthetic protein FliR", ["Q2"]),
+          entity("Flagellar biosynthesis protein FlhA", ["Q3"])]
+    assert complex_name("Flagellar export apparatus FliPQR-FlhA", fl) is None
