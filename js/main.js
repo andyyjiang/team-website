@@ -1096,7 +1096,12 @@ links.addEventListener("click", (event) => {
     return out;
   }
   // What a decision shows and exports: the curator's edited copy if there is one.
-  const effectiveMp = (d, c) => (d && d.status === "approved" && isObj(d.mpEdited) ? d.mpEdited : (c && c.mp) || (d && d.mp) || null);
+  // An approved entry reads the text that was saved with the approval (as the database
+  // does), not this week's suggestion, so Approved, the XML export and the database
+  // always show the same text, whatever happens to the suggestion or its draft later.
+  const effectiveMp = (d, c) => (d && d.status === "approved"
+    ? (isObj(d.mpEdited) ? d.mpEdited : isObj(d.mp) ? d.mp : (c && c.mp) || null)
+    : (c && c.mp) || (d && d.mp) || null);
 
   function seedDraft(c) {
     // The editor is only drawn for approved entries (Decisions › Approved); should the
@@ -3313,6 +3318,8 @@ links.addEventListener("click", (event) => {
     const alsoDone = [];
     const prev = curation.entries[pdb] || null;
     const expect = prev ? prev.at || null : null;
+    // A first decision is made on the draft the card shows: it must still be the one in the file.
+    const draftWas = prev ? null : rgDraftSig(curation.drafts, pdb);
     const event = { at: new Date().toISOString(), by: cur.user.login, byName: cur.user.name, action, pdb, detail };
     optimistic.set(pdb, entry);
     also.forEach((a) => optimistic.set(a.pdb, a.entry));
@@ -3321,6 +3328,7 @@ links.addEventListener("click", (event) => {
     commit(message, (raw, view) => {
       const now = view.entries[pdb] || null;
       if ((now ? now.at || null : null) !== expect) throw staleError(pdb, now, prev);
+      if (!prev && entry && rgDraftSig(view.drafts, pdb) !== draftWas) throw rgStaleDraft([pdb]);
       // Pushing and removing from the database do not change an entry's time
       // stamp, so an edit of an approved entry takes the push state from the
       // repository as it is now: saving an edit never puts a structure into
@@ -4179,24 +4187,29 @@ links.addEventListener("click", (event) => {
   function mutate({ changes, action, message, what, done }) {
     const before = new Map(changes.map((ch) => [ch.pdb, curation.entries[ch.pdb] || null]));
     const expect = new Map(changes.map((ch) => [ch.pdb, ch.expect ?? JSON.stringify(before.get(ch.pdb))]));
+    // A first decision is made on the draft the page shows (see decide()).
+    const draftWas = new Map(changes.filter((ch) => ch.entry && !before.get(ch.pdb)).map((ch) => [ch.pdb, rgDraftSig(curation.drafts, ch.pdb)]));
     const who = { by: cur.user.login, byName: cur.user.name }, at = new Date().toISOString();
     changes.forEach((ch) => optimistic.set(ch.pdb, ch.entry));
     refreshView();
     rerender();
     let applied = [], skipped = [], held = [];
-    commit(message, (raw) => {
+    commit(message, (raw, view) => {
       applied = [];
       skipped = [];
       held = [];
+      const redrafted = [];
       for (const ch of changes) {
         // needs: structures this one goes under, saved in the same commit (listed before it).
         if ((ch.needs || []).some((o) => skipped.includes(o) || held.includes(o))) { held.push(ch.pdb); continue; }
         if (JSON.stringify(raw.entries[ch.pdb] ?? null) !== expect.get(ch.pdb)) { skipped.push(ch.pdb); continue; }
+        if (draftWas.has(ch.pdb) && rgDraftSig(view.drafts, ch.pdb) !== draftWas.get(ch.pdb)) { skipped.push(ch.pdb); redrafted.push(ch.pdb); continue; }
         if (ch.entry) raw.entries[ch.pdb] = ch.entry; else delete raw.entries[ch.pdb];
         raw.log.push({ at, ...who, action, pdb: ch.pdb, detail: ch.detail });
         applied.push(ch.pdb);
       }
       if (!applied.length) {
+        if (redrafted.length === skipped.length) throw rgStaleDraft(redrafted);
         const now = raw.entries[skipped[0]];
         throw skipped.length === 1 ? staleError(skipped[0], isObj(now) ? now : null, before.get(skipped[0]))
           : new GhError(-1, "Another curator changed all of these structures a moment ago; the list now shows their changes.", { code: "stale" });
@@ -6400,10 +6413,12 @@ links.addEventListener("click", (event) => {
                    "bibliography.pubMedId": 12, "bibliography.authors": 3000, "bibliography.year": 4, "bibliography.title": 600,
                    "bibliography.journal": 200, "bibliography.volume": 40, "bibliography.issue": 40, "bibliography.pages": 60, "bibliography.doi": 200 };
   const RG_NOTES_MAX = 600, RG_PASTE_MAX = 400000, RG_MANY_MAX = 200;
+  const RG_NOTES_HINT = "One or two sentences on what was changed and why.";
   const RG_ICON = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg>';
   // open: the structure whose panel is open (one at a time); text: what is pasted there; result: the checked answer.
   // pending: PDB -> draft (or null for a revert) while its save is in flight. all: the same for #/feedback.
-  const rg = { open: null, text: "", error: "", result: null, manual: "", copied: false, pending: new Map(),
+  // sent: PDB -> the ids of the feedback that was in the last request copied for it (this session).
+  const rg = { open: null, text: "", error: "", result: null, manual: "", copied: false, pending: new Map(), sent: new Map(),
                all: { open: false, text: "", error: "", results: null, manual: "", copied: 0 } };
   const rgSet = (m, path, v) => {
     if (!path.startsWith("bibliography.")) { m[path] = v; return; }
@@ -6432,6 +6447,12 @@ links.addEventListener("click", (event) => {
     }
     return out;
   }
+  // The draft of a structure exactly as the file has it, as text (for "is it still the same?").
+  // A drafts entry this page cannot use counts as no draft.
+  const rgDraftSig = (drafts, pdb) => JSON.stringify((isObj(drafts) && Object.hasOwn(drafts, pdb) && isObj(drafts[pdb]) && drafts[pdb].src) || null);
+  const rgStaleDraft = (pdbs) => new GhError(-1, pdbs.length === 1
+    ? `The draft of ${pdbs[0]} was re-generated or reverted by another curator a moment ago, so nothing was saved; the page now shows that draft. Read it, then decide again.`
+    : `The drafts of ${listIds(pdbs)} were re-generated or reverted by another curator a moment ago, so nothing was saved; the page now shows those drafts. Read them, then decide again.`, { code: "stale" });
   // A suggestion with its re-generated draft laid over it. Only the fields the draft
   // changed are taken from it, so anything the weekly job updates later (the paper,
   // once it is out) still comes through. regenBase: the suggestion as the job wrote it.
@@ -6456,16 +6477,39 @@ links.addEventListener("click", (event) => {
     }
     return c;
   }
-  // auto.cands = the weekly file with the drafts laid over it (rebuilt only when the drafts changed).
+  // auto.cands = the weekly file with the drafts laid over it (rebuilt only when something changed).
+  // A draft belongs to an undecided suggestion: once a structure is decided, the text saved
+  // with the decision is what counts, so its draft is not laid over it any more.
+  // An entry listed under another of this week's structures is in that structure's subfamily:
+  // when its owner is moved (by a draft, or by the curator who approved it), it moves with it.
   function rgApplyDrafts() {
     if (!auto.base || !state.data) return;
-    const drafts = curation.drafts || {};
-    const used = auto.base.candidates.filter((c) => Object.hasOwn(drafts, c.pdb));
-    const sig = JSON.stringify(used.map((c) => [c.pdb, drafts[c.pdb]]), (k, v) => (k === "src" ? undefined : v));
+    const drafts = curation.drafts || {}, ent = curation.entries, list = auto.base.candidates;
+    const used = list.filter((c) => Object.hasOwn(drafts, c.pdb) && !ent[c.pdb]);
+    const owners = new Set(list.map((c) => c.ownerPdb).filter(Boolean));
+    const decided = list.filter((c) => ent[c.pdb] && (owners.has(c.pdb) || c.ownerPdb)).map((c) => [c.pdb, ent[c.pdb].status, ent[c.pdb].subgroup]);
+    const sig = JSON.stringify([used.map((c) => [c.pdb, drafts[c.pdb]]), decided], (k, v) => (k === "src" ? undefined : v));
     if (rgApplyDrafts.base === auto.base && rgApplyDrafts.sig === sig) return;
     rgApplyDrafts.base = auto.base;
     rgApplyDrafts.sig = sig;
-    auto.cands = used.length ? { ...auto.base, candidates: auto.base.candidates.map((c) => (Object.hasOwn(drafts, c.pdb) ? rgOverlay(c, drafts[c.pdb]) : c)) } : auto.base;
+    let cands = list.map((c) => (used.includes(c) ? rgOverlay(c, drafts[c.pdb]) : c)), any = used.length > 0;
+    const by = new Map(cands.map((c) => [c.pdb, c]));
+    for (let pass = 0; pass < 5; pass++) { // a related entry of a related entry follows on the next pass
+      let moved = false;
+      cands = cands.map((c) => {
+        if (ent[c.pdb] || c.regenPlaced || !c.ownerPdb || c.ownerPdb === c.pdb || (c.placement !== "related" && c.placement !== "daughter")) return c;
+        const o = by.get(c.ownerPdb), od = o && ent[o.pdb];
+        const key = !o ? "" : od ? (od.status === "approved" ? od.subgroup : "") : o.placement === "review" ? "" : o.subgroup;
+        if (!key || key === c.subgroup || !state.sgOf.has(key)) return c;
+        const sg = state.sgOf.get(key), n = { ...c, subgroup: key, subgroupName: strip(sg.name), group: sg.group.topology, followed: o.pdb };
+        by.set(c.pdb, n);
+        moved = true;
+        return n;
+      });
+      if (!moved) break;
+      any = true;
+    }
+    auto.cands = any ? { ...auto.base, candidates: cands } : auto.base;
   }
 
   // The structure as it stands: the approved entry (with the curator's edits) or the suggestion (with its draft).
@@ -6487,6 +6531,94 @@ links.addEventListener("click", (event) => {
     return "";
   }
   const rgWhere = (p) => `${PLACEMENT_LABEL[p.placement] || "Not decided"}${p.placement !== "parent" && p.owner ? ` of ${p.owner}` : ""} in ${p.subgroup ? `${sgName(p.subgroup)} (${p.subgroup})` : "no subfamily"}`;
+
+  // The feedback a kept answer may mark done: what was in the request that was copied for
+  // this structure, or (no request copied in this session) what is open right now.
+  const rgIdsFor = (pdb) => { const sent = rg.sent.get(pdb); return rgOpenFor(pdb).map((i) => i.id).filter((id) => !sent || sent.has(id)); };
+  const rgNoteSent = (pdbs) => pdbs.forEach((p) => rg.sent.set(p, new Set(rgOpenFor(p).map((i) => i.id))));
+  // Of the feedback an answer was read for, what is still open (ids), and how many open suggestions are newer than it (left).
+  function rgDoneIds(res) {
+    const open = rgOpenFor(res.pdb).map((i) => i.id), ids = (res.fbIds || []).filter((id) => open.includes(id));
+    return { ids, left: res.synced ? 0 : open.length - ids.length };
+  }
+  const rgLeftText = (n, pdb) => (n ? ` ${n} newer ${n === 1 ? "suggestion" : "suggestions"} on ${pdb} ${n === 1 ? "was" : "were"} not in the request the AI answered and ${n === 1 ? "stays" : "stay"} open.` : "");
+
+  // A related structure's line is in two places: its own relatedLine and one line of its
+  // owner's description. These find that line so that a change to one is carried to the other.
+  const rgLines = (desc) => cleanField("description", desc).split("<br /> ");
+  function rgFindLine(lines, pdb, exact) {
+    if (exact) { const i = lines.indexOf(exact); if (i >= 0 && lines.lastIndexOf(exact) === i) return i; }
+    const re = new RegExp(`(?:&Aring;|Å)[\\s:;,]*${pdb}\\b`), hits = lines.map((l, i) => (re.test(l) ? i : -1)).filter((i) => i >= 0);
+    return hits.length === 1 ? hits[0] : -1;
+  }
+  // This week's structures that are related entries of pdb (not the rejected ones).
+  function rgKids(pdb) {
+    const out = [];
+    for (const x of candIndex().values()) {
+      const d = Object.hasOwn(curation.entries, x.pdb) ? curation.entries[x.pdb] : null;
+      if (x.pdb === pdb || (d ? plain(d.owner).toUpperCase() : x.ownerPdb) !== pdb) continue;
+      const xs = rgCurrent(x.pdb);
+      if (xs && !(xs.d && !xs.ap) && xs.placement === "related" && xs.owner === pdb) out.push(xs);
+    }
+    return out;
+  }
+  const rgNorm = (t) => decodeEntities(strip(t)).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  // Subfamilies a curator's words name: by key, by full name, or by the first words that no other subfamily has ("Omp85-TpsB").
+  const RG_COMMON = new Set(["bacterial", "eukaryotic", "archaeal", "membrane", "proteins", "protein", "channels", "transporters", "receptors", "enzymes",
+                             "miscellaneous", "unclassified", "superfamily", "family", "complexes", "structures", "monotopic", "transmembrane", "related"]);
+  function rgNamedSubgroups(text) {
+    if (rgNamedSubgroups.src !== state.data) {
+      const all = [...state.sgOf.values()].map((sg) => ({ k: sg.k, n: rgNorm(sg.name) })).filter((x) => x.n);
+      for (const x of all) {
+        const w = x.n.split(" ");
+        x.short = x.n;
+        for (let k = 1; k < w.length; k++) {
+          const ph = w.slice(0, k).join(" ");
+          if (ph.length < 5 || (k === 1 && (RG_COMMON.has(ph) || (ph.length < 7 && !/\d/.test(ph))))) continue;
+          if (all.some((o) => o !== x && ` ${o.n} `.includes(` ${ph} `))) continue;
+          x.short = ph;
+          break;
+        }
+      }
+      rgNamedSubgroups.src = state.data;
+      rgNamedSubgroups.all = all;
+    }
+    const t = ` ${rgNorm(text)} `, out = [];
+    for (const m of String(text).matchAll(/\bG\d{2}-S\d{3}\b/gi)) if (state.sgOf.has(m[0].toUpperCase())) out.push(m[0].toUpperCase());
+    for (const x of rgNamedSubgroups.all) if (t.includes(` ${x.short} `)) out.push(x.k);
+    return [...new Set(out)];
+  }
+  // The official parents of a subfamily, as PDB IDs for a message.
+  function rgParentHint(sgKey) {
+    const sg = state.sgOf.get(sgKey), ps = sg ? sg.parents.filter((e) => !e.isNew).map((e) => e.pdb) : [];
+    return ps.length ? ` (its parents: ${ps.slice(0, 8).join(", ")}${ps.length > 8 ? ` and ${ps.length - 8} more` : ""})` : " (it has no entries yet)";
+  }
+  const rgDecided = (pl) => ["parent", "daughter", "related"].includes(pl);
+  const rgWantsPlace = (pdb) => { const s = rgCurrent(pdb); return !rgDecided(s.placement) || !s.subgroup || rgOpenFor(pdb).some((i) => ["placement", "unwanted", "other"].includes(i.category)); };
+  // The parents an owner can be chosen from: those of the structure's subfamily, of the ones the
+  // automation considered and of the ones the suggestions name (the likeliest by name first).
+  function rgParentLines(pdb) {
+    const s = rgCurrent(pdb), c = s.c, keys = [];
+    const add = (k) => { if (k && state.sgOf.has(k) && !keys.includes(k) && keys.length < 6) keys.push(k); };
+    rgOpenFor(pdb).forEach((i) => rgNamedSubgroups(i.text).slice(0, 3).forEach(add));
+    add(s.subgroup);
+    (Array.isArray(c.alternatives) ? c.alternatives : []).filter(isObj).slice(0, 5).forEach((a) => add(plain(a.subgroup).toUpperCase()));
+    if (!keys.length) return [];
+    const words = new Set(rgNorm(`${c.title || ""} ${s.mp.name} ${(Array.isArray(c.entities) ? c.entities : []).join(" ")}`).split(" ").filter((w) => w.length > 3));
+    const L = ["", "PARENT ENTRIES of the subfamilies this structure may belong to (PDB ID: name | species)",
+               "   A daughter's \"owner\" must be one of the parents of the subfamily you choose; a related entry goes under a parent or",
+               "   daughter of that subfamily, or under another structure of its own study. If no parent is the same protein, the",
+               "   structure is a new \"parent\" (owner null)."];
+    for (const k of keys) {
+      const sg = state.sgOf.get(k), ps = sg.parents.filter((e) => !e.isNew && e.pdb);
+      const score = (e) => rgNorm(e.name).split(" ").filter((w) => words.has(w)).length;
+      L.push(`   ${sgName(k)} (key ${k}): ${ps.length ? `${ps.length} ${ps.length === 1 ? "parent" : "parents"}` : "no entries yet"}`);
+      ps.map((e, i) => [e, score(e), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).slice(0, 40)
+        .forEach(([e]) => L.push(`      ${e.pdb}: ${rgOne(strip(e.name), 160)} | ${rgOne(strip(e.species), 80) || "-"}`));
+      if (ps.length > 40) L.push(`      (and ${ps.length - 40} more that look less like this structure)`);
+    }
+    return L;
+  }
 
   // ---- the request ----
   const rgMk = (v, n = 6000) => fbStr(v, n).replace(/\s+/g, " ").trim(); // one line, markup kept
@@ -6570,9 +6702,13 @@ links.addEventListener("click", (event) => {
     L.push("", `CURRENT DRAFT${s.ap ? " (approved by a curator; it includes the curator's own edits)" : c.regen ? " (already re-generated once from earlier suggestions)" : " (written by the automation)"}`);
     for (const k of MP_TEXT) L.push(`   ${k}: ${rgMk(mp[k]) || "(empty)"}`);
     for (const k of MP_BIB) L.push(`   bibliography.${k}: ${rgMk(b[k], 3000) || "(empty)"}`);
-    L.push(`   placement: ${["parent", "daughter", "related"].includes(s.placement) ? s.placement : "not decided (the automation could not choose parent, daughter or related)"}`,
-           `   subfamily: ${s.subgroup ? `${sgName(s.subgroup)} (key ${s.subgroup}${groupOf(s.subgroup) ? `; group: ${groupOf(s.subgroup)}` : ""})` : "none found"}`,
-           `   owner: ${s.placement !== "parent" && s.owner ? s.owner : "none"}`);
+    const decided = rgDecided(s.placement), kids = rgKids(pdb).map((x) => x.c.pdb);
+    L.push(s.placement === "related" && s.owner
+      ? `   (relatedLine is the single line this structure adds to the description of its owner, ${s.owner}: see rule 4. Change that line here, in relatedLine; the same line in ${s.owner}'s description is changed with it.)`
+      : `   (relatedLine is only used by a related entry: leave it alone here.${kids.length ? ` The lines after "<br /> " in the description are the lines of its related structures (${kids.slice(0, 12).join(", ")}${kids.length > 12 ? " and more" : ""}); when you change one of them there, that structure's own relatedLine is changed with it.` : ""})`);
+    L.push(`   placement: ${decided ? s.placement : "not decided (the automation could not choose parent, daughter or related)"}`,
+           `   subfamily: ${s.subgroup ? `${sgName(s.subgroup)} (key ${s.subgroup}${groupOf(s.subgroup) ? `; group: ${groupOf(s.subgroup)}` : ""})` : "none found"}${decided ? "" : " (the automation's guess)"}`,
+           `   owner: ${decided ? (s.placement !== "parent" && s.owner ? s.owner : "none") : `none yet${s.owner ? ` (the automation's guess: ${s.owner})` : ""}`}`);
     const why = list(c.membraneWhy, 300, 6);
     L.push(`   membrane protein: ${typeof c.membrane === "number" && c.membrane >= 0 && c.membrane <= 1 ? `${pct(c.membrane)} likely, by the automation's score` : "no score"}${
       c.regen && c.regen.membrane ? ` (an earlier re-generation answered "${c.regen.membrane}")` : ""}`);
@@ -6584,6 +6720,7 @@ links.addEventListener("click", (event) => {
     L.push("", `WORDING EXAMPLES: real mpstruc entries in the same subfamily${s.subgroup ? ` (${sgName(s.subgroup)})` : ""}`,
            "   (PDB ID (kind): name | species (domain) | expressed in | resolution, then the description)");
     L.push(...(ex.length ? ex : ["   (none: this structure has no subfamily yet, or its subfamily has no entries)"]));
+    if (rgWantsPlace(pdb)) L.push(...rgParentLines(pdb));
     L.push("", "THE CURATOR'S SUGGESTIONS FOR THIS STRUCTURE (open; quoted as written)");
     rgOpenFor(pdb).forEach((i, k) => {
       L.push(`   ${k + 1}. [${FB_CAT[i.category]}] from ${i.byName || i.by || "a curator"}${i.at ? `, ${i.at.slice(0, 10)}` : ""}${i.similar ? " (applies to similar structures too)" : ""}:`,
@@ -6605,7 +6742,7 @@ links.addEventListener("click", (event) => {
       "  \"fields\": { \"name\": \"...\", \"description\": \"...\" },",
       "  \"placement\": { \"placement\": \"parent|daughter|related\", \"subgroup\": \"<subfamily name or key>\", \"owner\": \"<PDB ID or null>\" },",
       "  \"membrane\": \"yes|no\",",
-      "  \"notes\": \"One or two sentences on what was changed and why.\"",
+      `  "notes": "${RG_NOTES_HINT}"`,
       "}",
     ];
     return [
@@ -6620,9 +6757,12 @@ links.addEventListener("click", (event) => {
       "  Allowed keys: name, species, taxonomicDomain (Eukaryota, Bacteria, Archaea or Viruses), expressedInSpecies,",
       "  resolution (a number of Å as text, such as \"3.10\"), description, relatedLine, and bibliography: an object with any of",
       "  pubMedId, authors, year, title, journal, volume, issue, pages, doi. Use \"\" to empty a field. Leave out every field that stays as it is.",
+      "  \"relatedLine\" is only for a structure whose placement is \"related\": the one line it adds to its owner's description (rule 4).",
       "- \"placement\" (optional): include it only if where the entry goes should change. \"subgroup\" must be an existing mpstruc",
-      "  subfamily (its name, or its key such as G02-S010); \"owner\" is the PDB ID of the parent (for a daughter) or of the entry it is",
-      "  listed under (for related), and null for a parent.",
+      "  subfamily (its key such as G02-S010, or its name); \"owner\" is the PDB ID of the parent (for a daughter) or of the entry it is",
+      "  listed under (for related), and null for a parent. The owner must be in the subfamily you name: pick it from the parents listed",
+      "  for that subfamily above, and when the subfamily changes, change the owner with it (or make the entry a parent). Inside",
+      "  \"placement\", the \"placement\" word itself may be left out when parent/daughter/related stays as it is.",
       "- \"membrane\" (optional): \"yes\" or \"no\", only when a suggestion questions whether this is a membrane protein by rule 1.",
       "- \"notes\" (required): one or two plain sentences on what was changed and why (or why nothing was).",
       "- Plain JSON: straight double quotes, no comments, no trailing commas, no other keys. Text may use only the markup of rule 6.",
@@ -6633,7 +6773,7 @@ links.addEventListener("click", (event) => {
   // The whole request, for one structure or several (plain text).
   function rgRequest(pdbs) {
     const many = pdbs.length > 1;
-    const wantsPlace = pdbs.some((p) => { const s = rgCurrent(p); return !["parent", "daughter", "related"].includes(s.placement) || !s.subgroup || rgOpenFor(p).some((i) => ["placement", "unwanted", "other"].includes(i.category)); });
+    const wantsPlace = pdbs.some(rgWantsPlace);
     const out = [
       `Request to re-draft ${many ? `${pdbs.length} mpstruc entries` : "an mpstruc entry"} (format ${RG_FORMAT})`,
       `Made ${new Date().toISOString().slice(0, 10)} on the mpstruc curation page of ${REPO} for: ${pdbs.join(", ")}`,
@@ -6707,18 +6847,25 @@ links.addEventListener("click", (event) => {
     if (!src) throw new Error("Paste the AI's answer into the box first.");
     if (src.length > RG_PASTE_MAX) throw new Error("That is too much text to be an answer. Paste only the AI's reply (the code block with the JSON).");
     const straight = (t) => t.replace(/[“”„‟″«»]/g, '"').replace(/[‘’‚‛′]/g, "'").replace(/ /g, " ");
-    let sawJson = false, cutOff = false, detail = "";
+    let sawJson = false, cutOff = false, detail = "", example = false;
+    const objs = (v) => (Array.isArray(v) ? v.filter(isObj) : [v]);
+    // The example from the request, repeated by the AI before its real answer.
+    const isExample = (v) => objs(v).every((o) => (typeof o.notes === "string" && o.notes.trim() === RG_NOTES_HINT)
+      || (isObj(o.fields) && Object.values(o.fields).length > 0 && Object.values(o.fields).every((x) => x === "..." || x === "…"))
+      || (isObj(o.placement) && /\|/.test(String(o.placement.placement))));
     for (const t of straight(src) === src ? [src] : [src, straight(src)]) {
       const chunks = [...t.matchAll(/```[^\n`]*\n?([\s\S]*?)```/g)].map((m) => m[1]);
+      const fences = chunks.length, found = [];
       chunks.push(t);
-      for (const chunk of chunks) {
+      for (const [ci, chunk] of chunks.entries()) {
+        if (ci === fences && found.length) break; // the text around the code blocks is read only when they hold no answer
         for (let at = chunk.search(/[{[]/), tries = 0; at >= 0 && tries < 60; tries++) {
           const body = rgBalanced(chunk, at);
           if (body == null) { if (chunk[at] === "{" || /^\[\s*\{/.test(chunk.slice(at, at + 200))) { sawJson = true; cutOff = true; } break; }
           for (const attempt of [body, rgNoTrailingCommas(body)]) {
             try {
               const v = JSON.parse(attempt);
-              if (isObj(v) || (Array.isArray(v) && v.some(isObj))) return v;
+              if (isObj(v) || (Array.isArray(v) && v.some(isObj))) { if (isExample(v)) example = true; else found.push(v); break; }
             } catch (e) {
               if (/^[{[]\s*["{}\]]/.test(body)) { sawJson = true; detail = String(e.message || "").replace(/\s+/g, " ").slice(0, 120); }
             }
@@ -6727,7 +6874,11 @@ links.addEventListener("click", (event) => {
           at = next < 0 ? -1 : at + body.length + next;
         }
       }
+      // Several blocks: the last one that says which structure it is for (an AI that repeats or corrects itself ends with its answer).
+      const named = found.filter((v) => objs(v).some((o) => rgPdbOf(o)));
+      if (found.length) return named.length ? named[named.length - 1] : found[0];
     }
+    if (example) throw new Error("What you pasted holds only the example from the end of the request (its values are still “...”), not an answer. Paste the AI's own reply; if it sent nothing else, ask it to answer in that format.");
     if (cutOff) throw new Error("The answer is cut off: its JSON starts but never ends (a closing } or ] is missing). Copy the AI's whole code block again, to its last line, and paste it here.");
     if (sawJson) throw new Error(`The answer has a JSON block, but it has a mistake in it and cannot be read${detail ? ` (${detail})` : ""}. Ask the AI to send its answer again as one valid JSON code block, then paste that.`);
     throw new Error("No answer was found in what you pasted. The AI's reply must contain a block that starts with { and ends with } (it was asked for one code block). Copy its whole reply, or ask it to answer again in the format at the end of the request.");
@@ -6740,9 +6891,16 @@ links.addEventListener("click", (event) => {
     if (state.sgOf.has(raw.toUpperCase())) return raw.toUpperCase();
     const key = /\bG\d{2}-S\d{3}\b/i.exec(raw);
     if (key && state.sgOf.has(key[0].toUpperCase())) return key[0].toUpperCase();
-    const norm = (t) => decodeEntities(strip(t)).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const hits = [...state.sgOf.values()].filter((sg) => norm(sg.name) === norm(raw));
+    const q = rgNorm(raw), all = [...state.sgOf.values()];
+    let hits = all.filter((sg) => rgNorm(sg.name) === q);
     if (hits.length === 1) return hits[0].k;
+    // Not the whole name: the start of exactly one name ("Omp85-TpsB"), else words inside exactly one.
+    if (!hits.length && q.length >= 4) {
+      hits = all.filter((sg) => `${rgNorm(sg.name)} `.startsWith(`${q} `));
+      if (!hits.length) hits = all.filter((sg) => ` ${rgNorm(sg.name)} `.includes(` ${q} `));
+      if (hits.length === 1) return hits[0].k;
+      if (hits.length) rgFail(`${rgQuote(raw)} fits ${hits.length} mpstruc subfamilies (${hits.slice(0, 4).map((sg) => `${sg.k}: ${rgOne(decodeEntities(strip(sg.name)), 60)}`).join("; ")}${hits.length > 4 ? "; …" : ""}). Ask the AI to give the key of the one it means.`);
+    }
     return rgFail(hits.length ? `More than one mpstruc subfamily is called ${rgQuote(raw)}. Ask the AI to give its key instead (for example ${hits[0].k}).`
       : `The placement names a subfamily that does not exist in mpstruc: ${rgQuote(raw)}. Ask the AI to use the exact name or key of an existing subfamily, or to leave the placement out.`);
   }
@@ -6763,6 +6921,7 @@ links.addEventListener("click", (event) => {
     if (extra.length) rgFail(`The answer has ${extra.length === 1 ? "a part" : "parts"} this page does not accept: ${extra.slice(0, 5).map(rgQuote).join(", ")}. Only "pdb", "fields", "placement", "membrane" and "notes" are allowed. Ask the AI to answer again in the format at the end of the request.`);
     if (ans.notes != null && typeof ans.notes !== "string") rgFail("\"notes\" must be a sentence or two of text in quotes.");
     let notes = rgOne(ans.notes, RG_NOTES_MAX + 1);
+    if (notes === RG_NOTES_HINT) notes = ""; // the example's sentence, not the AI's
     if (notes.length > RG_NOTES_MAX) notes = `${notes.slice(0, RG_NOTES_MAX - 1)}…`;
 
     const fields = new Map(), rows = [];
@@ -6779,7 +6938,11 @@ links.addEventListener("click", (event) => {
         const tag = /<\s*\/?\s*([a-z][a-z0-9]*)/i.exec(tidy.replace(/<\/?(?:br|sub|sup|em|i|b)\s*\/?>/gi, ""));
         rgFail(`${label}: the new text has markup that mpstruc does not allow${tag ? ` (a <${tag[1].toLowerCase().slice(0, 20)}> tag)` : ""}. Only <sub>, <sup>, <i> and <br /> can be used, each one closed, and a < sign is written &lt;. Ask the AI to send the answer again without it.`);
       }
+      if (/^(?:\.{3}|…)$/.test(tidy)) rgFail(`${label}: the answer still has the placeholder “...” from the request instead of a text. Ask the AI for its real answer.`);
+      if (/\*\*[^*\n]+\*\*|`[^`\n]+`|\[[^\]\n]+\]\([^)\s]+\)/.test(tidy)) rgFail(`${label}: the new text uses Markdown (**bold**, \`code\` or a [link](…)), which mpstruc shows as it is typed. Ask the AI to send the answer again as plain text with only <sub>, <sup>, <i> and <br />.`);
       v = cleanField(path, v);
+      // Nothing to see (only tags, spaces, &nbsp; or zero-width characters) is an empty field.
+      if (!decodeEntities(strip(v)).replace(/&nbsp;|&#0*160;|&#x0*a0;|&(?:zwnj|zwj|ZeroWidthSpace|shy);/gi, "").replace(/[\s\u00a0\u00ad\u180e\u200b-\u200f\u2028-\u202f\u2060-\u2064\ufeff]/g, "")) v = "";
       if (path === "name" && !v) rgFail("The answer empties the name, and an mpstruc entry needs one.");
       if (path === "taxonomicDomain" && v && !DOMAINS.includes(v)) rgFail(`${label} must be one of ${DOMAINS.join(", ")} (the answer says ${rgQuote(v)}).`);
       if (path === "resolution" && v && !/^\d{1,3}(\.\d{1,3})?$/.test(v)) rgFail(`${label} must be a number of Å such as 2.85, with no other text (the answer says ${rgQuote(v)}).`);
@@ -6806,17 +6969,38 @@ links.addEventListener("click", (event) => {
       if (!isObj(p)) rgFail("\"placement\" must be an object in curly brackets with \"placement\", \"subgroup\" and \"owner\".");
       const odd = Object.keys(p).filter((k) => !["placement", "subgroup", "owner"].includes(k));
       if (odd.length) rgFail(`"placement" has ${rgQuote(odd[0])}, which this page does not accept. It may hold only "placement", "subgroup" and "owner".`);
-      const pl = typeof p.placement === "string" ? p.placement.trim().toLowerCase() : "";
-      if (!["parent", "daughter", "related"].includes(pl)) rgFail(`The placement must be "parent", "daughter" or "related" (the answer says ${rgQuote(p.placement ?? "nothing")}).`);
+      // "placement" left out inside the object: parent/daughter/related stays as it is.
+      const said = p.placement == null || p.placement === "" ? "" : typeof p.placement === "string" ? p.placement.trim().toLowerCase() : "?";
+      if (!said && !rgDecided(s.placement)) rgFail(`The placement must say "parent", "daughter" or "related" in "placement": where ${pdb} goes is not decided yet.`);
+      const pl = said || s.placement;
+      if (!rgDecided(pl)) rgFail(`The placement must be "parent", "daughter" or "related" (the answer says ${rgQuote(p.placement ?? "nothing")}).`);
       let sg = p.subgroup == null || p.subgroup === "" ? "" : rgSubgroup(p.subgroup), owner = "";
+      const wrongSg = (o, has) => rgFail(`The placement cannot be used: ${o} is in ${sgName(has)}, not in ${sgName(sg)}, and an entry must be in the same subfamily as the entry it goes under. `
+        + `Ask the AI for an owner in ${sgName(sg)}${rgParentHint(sg)}, or for "parent" with owner null if ${pdb} is the first structure of its protein there.`);
       if (pl !== "parent") {
-        owner = typeof p.owner === "string" ? p.owner.trim().toUpperCase() : "";
+        const given = p.owner != null && p.owner !== "";
+        owner = given ? (typeof p.owner === "string" ? p.owner.trim().toUpperCase() : "") : !said && s.placement !== "parent" ? s.owner : "";
         if (!PDB_RE.test(owner)) rgFail(`A ${pl === "daughter" ? "daughter" : "related entry"} needs an "owner": the 4-character PDB ID of ${pl === "daughter" ? "its parent" : "the entry it is listed under"}.`);
         if (owner === pdb) rgFail(`The placement lists ${pdb} under itself, which cannot be.`);
-        const chk = checkOwner(owner, pl, sg || s.subgroup);
-        if (chk.error) rgFail(`The placement cannot be used: ${chk.error}`);
-        if (chk.moved && sg) rgFail(`The placement cannot be used: ${owner} is in ${sgName(chk.subgroup)}, not in ${sgName(sg)}, and an entry must be in the same subfamily as the entry it goes under.`);
-        sg = chk.subgroup || sg || s.subgroup;
+        // The owner as it stands on this page: in mpstruc, decided this week, or still a suggestion.
+        const od = (Object.hasOwn(curation.entries, owner) && curation.entries[owner]) || null, oc = candIndex().get(owner) || null;
+        const listed = (state.byPdb.get(owner) || []).some((r) => r.type === "parent" || (pl === "related" && r.type === "daughter"));
+        if (!listed && od && od.status !== "approved") rgFail(`The placement cannot be used: ${owner} was ${od.status === "deleted" ? "deleted" : "rejected"}, so nothing can be listed under it.`);
+        if (!listed && (od ? od.placement !== "parent" && plain(od.owner).toUpperCase() === pdb : oc && oc.placement !== "parent" && oc.ownerPdb === pdb)) {
+          rgFail(`The placement cannot be used: ${owner} is itself listed under ${pdb}, so ${pdb} cannot go under it.`);
+        }
+        if (!listed && pl === "related" && oc) {
+          // One of this week's structures: the entry goes into the subfamily that structure is in now.
+          const own = od ? plain(od.subgroup) : oc.placement === "review" ? "" : plain(oc.subgroup);
+          if (!own || !state.sgOf.has(own)) rgFail(`The placement cannot be used: where ${owner} goes is not decided yet, so nothing can be listed under it. Decide ${owner} first.`);
+          if (sg && sg !== own) wrongSg(owner, own);
+          sg = own;
+        } else {
+          const chk = checkOwner(owner, pl, sg || s.subgroup);
+          if (chk.error) rgFail(`The placement cannot be used: ${chk.error}`);
+          if (chk.moved && sg) wrongSg(owner, chk.subgroup);
+          sg = chk.subgroup || sg || s.subgroup;
+        }
       } else {
         if (p.owner != null && p.owner !== "") rgFail("A parent has no owner: \"owner\" must be null when the placement is \"parent\".");
         sg = sg || s.subgroup;
@@ -6825,6 +7009,36 @@ links.addEventListener("click", (event) => {
       if (pl !== s.placement || sg !== s.subgroup || owner !== (s.placement === "parent" ? "" : s.owner)) {
         placement = { placement: pl, subgroup: sg, owner: owner || null };
         rows.push({ key: "placement", label: "Where it goes", before: esc(rgWhere(s)), after: esc(rgWhere(placement)) });
+      }
+    }
+    // A related line is in two places (the structure's relatedLine, a line of its owner's
+    // description): a change to one is carried to the other when it is kept, or the curator is told.
+    const also = [], sync = [], warn = [];
+    if (!placement && fields.has("relatedLine") && s.placement === "related" && s.owner) {
+      const o = rgCurrent(s.owner), now = fields.get("relatedLine");
+      if (o && !(o.d && !o.ap)) {
+        const lines = rgLines(o.mp.description), i = rgFindLine(lines, pdb, cleanField("relatedLine", s.mp.relatedLine));
+        if (i >= 0 && lines[i] !== now) {
+          also.push({ pdb: s.owner, path: "description", was: lines[i], now });
+          sync.push(`The line for ${pdb} in the description of ${s.owner} is changed with it.`);
+        } else if (i < 0 && now && !lines.includes(now)) {
+          warn.push(`This page could not find the line for ${pdb} in the description of ${s.owner}, so that description stays as it is. After keeping, check that it says the same as this line.`);
+        }
+      }
+    } else if (placement && (s.placement === "related" || placement.placement === "related")) {
+      warn.push(`${pdb} changes place, and a related entry's line is part of its owner's description. After keeping, check the description of ${[s.placement === "related" ? s.owner : "", placement.placement === "related" ? placement.owner : ""].filter(Boolean).join(" and ") || "its owner"}.`);
+    }
+    if (fields.has("description")) {
+      const before = rgLines(s.mp.description), after = rgLines(fields.get("description"));
+      for (const x of rgKids(pdb)) {
+        const id = x.c.pdb, own = cleanField("relatedLine", x.mp.relatedLine), i = rgFindLine(before, id, own);
+        if (i < 0 || after.includes(before[i])) continue;
+        const j = rgFindLine(after, id, "");
+        if (j < 0) warn.push(`The new description has no line for ${id} any more, but ${id} is still a related entry of ${pdb} with its own line. After keeping, check ${id}.`);
+        else if (after[j] !== own) {
+          also.push({ pdb: id, path: "relatedLine", now: after[j] });
+          sync.push(`The related line of ${id} itself is changed to the new line in this description.`);
+        }
       }
     }
     let membrane = "";
@@ -6845,7 +7059,7 @@ links.addEventListener("click", (event) => {
       const bad = Object.keys(errs).find((k) => fields.has(k) || (placement && (k === "subgroup" || k === "owner")));
       if (bad) rgFail(`With these changes the entry could not be saved. ${rgLabel(CHANGE_LABEL[bad] || bad)}: ${errs[bad]}`);
     }
-    return { pdb, approved: Boolean(s.ap), fields, placement, membrane, notes, rows };
+    return { pdb, approved: Boolean(s.ap), fields, placement, membrane, notes, rows, also, sync, warn };
   }
 
   // ---- keeping an answer ----
@@ -6866,13 +7080,13 @@ links.addEventListener("click", (event) => {
     if (place) original.placement = { placement: o.placement ?? null, subgroup: o.subgroup ?? null, owner: o.ownerPdb ?? null };
     const membrane = res.membrane || (prev && prev.membrane) || "";
     if (!rgPathsOf(original).length && !place && !membrane) return null;
-    return { mp, ...(place ? { placement: place } : {}), ...(membrane ? { membrane } : {}), notes: res.notes, ...stamp(),
+    return { mp, ...(place ? { placement: place } : {}), ...(membrane ? { membrane } : {}), notes: res.synced && prev ? prev.notes : res.notes, ...stamp(),
              fromFeedback: [...new Set([...(prev ? prev.fromFeedback : []), ...fbIds])], original };
   }
   // Save drafts (draft: null removes one) in one commit, each only if nobody decided or
   // re-generated that structure meanwhile. changes: [{ pdb, draft, action, detail }].
   function rgSaveDrafts(changes, message, what, done) {
-    const expect = new Map(changes.map((ch) => [ch.pdb, JSON.stringify(((curation.drafts || {})[ch.pdb] || {}).src ?? null)]));
+    const expect = new Map(changes.map((ch) => [ch.pdb, rgDraftSig(curation.drafts, ch.pdb)]));
     const at = new Date().toISOString(), who = { by: cur.user.login, byName: cur.user.name };
     for (const ch of changes) rg.pending.set(ch.pdb, ch.draft ? rgNormaliseDrafts({ [ch.pdb]: ch.draft })[ch.pdb] || null : null);
     refreshView();
@@ -6885,7 +7099,9 @@ links.addEventListener("click", (event) => {
       if (raw.drafts !== undefined && !isObj(raw.drafts)) throw new GhError(0, `"drafts" in ${CUR_PATH} in the repository is not an object; fix it by hand before saving a re-generated draft.`);
       raw.drafts ||= {};
       for (const ch of changes) {
-        if (view.entries[ch.pdb] || JSON.stringify(raw.drafts[ch.pdb] ?? null) !== expect.get(ch.pdb)) { skipped.push(ch.pdb); continue; }
+        // Compared as the page reads it: a drafts entry the page cannot use (hand-edited by
+        // mistake) counts as no draft and is replaced, instead of blocking the save for good.
+        if (view.entries[ch.pdb] || rgDraftSig(view.drafts, ch.pdb) !== expect.get(ch.pdb)) { skipped.push(ch.pdb); continue; }
         if (ch.draft) raw.drafts[ch.pdb] = ch.draft; else delete raw.drafts[ch.pdb];
         raw.log.push({ at, ...who, action: ch.action, pdb: ch.pdb, detail: ch.detail });
         applied.push(ch.pdb);
@@ -6919,12 +7135,13 @@ links.addEventListener("click", (event) => {
     });
   }
   const rgWhat = (res) => [...res.rows.map((r) => r.label), ...(res.membrane ? [`membrane protein: ${res.membrane}`] : [])].join(", ");
-  const rgDetail = (res, n) => `${res.notes || "No notes from the AI."} (re-generated with the AI from ${n} ${n === 1 ? "suggestion" : "suggestions"}; changed: ${rgWhat(res)})`;
+  const rgDetail = (res, n) => (res.synced ? `${res.notes} (changed: ${rgWhat(res)})`
+    : `${res.notes || "No notes from the AI."} (re-generated with the AI from ${n} ${n === 1 ? "suggestion" : "suggestions"}; changed: ${rgWhat(res)})`);
   // An approved entry: the changes become an edit of the entry (mpEdited), saved the way the editor saves.
   function rgKeepApproved(res) {
     const s = rgCurrent(res.pdb);
     if (!s || !s.ap) return false;
-    const ids = rgOpenFor(res.pdb).map((i) => i.id), typed = JSON.parse(JSON.stringify(s.mp));
+    const { ids, left } = rgDoneIds(res), typed = JSON.parse(JSON.stringify(s.mp));
     for (const [path, v] of res.fields) rgSet(typed, path, v);
     const choice = res.placement ? { placement: res.placement.placement, subgroup: res.placement.subgroup, owner: res.placement.owner || "" }
       : { placement: s.ap.placement, subgroup: s.ap.subgroup, owner: s.ap.owner || "" };
@@ -6932,31 +7149,62 @@ links.addEventListener("click", (event) => {
     const mp = choice.placement === "related" ? typed : { ...typed, relatedLine: s.mp.relatedLine };
     const saved = approve(s.c, choice, { mp: savedMp(s.c, mp), note: plain(s.ap.note),
       more: [{ action: "regenerate", detail: rgDetail(res, ids.length) }],
-      saved: () => rgMarkDone([{ pdb: res.pdb, ids, notes: res.notes }]) });
-    if (saved === false) toast(`Nothing in the approved entry of ${res.pdb} would change, so nothing was saved.`);
+      saved: () => { rgMarkDone([{ pdb: res.pdb, ids, notes: res.notes }]); if (left) toast(rgLeftText(left, res.pdb).trim()); } });
+    if (saved === false && !res.synced) toast(`Nothing in the approved entry of ${res.pdb} would change, so nothing was saved.`);
     return saved !== false;
+  }
+  // The other place of a changed related line (res.also), as changes to keep in the same go:
+  // merged into that structure's own answer when there is one, else as a change of its own.
+  function rgWithSynced(results) {
+    const all = [...results];
+    for (const res of results) for (const a of res.also || []) {
+      const t = rgCurrent(a.pdb);
+      if (!t || (t.d && !t.ap)) continue;
+      let hit = all.find((r) => r.pdb === a.pdb);
+      if (hit && !hit.synced && hit.fields.has(a.path)) continue; // its own answer already says what this field becomes
+      let value = a.now;
+      if (a.path === "description") {
+        const lines = rgLines(hit && hit.fields.has("description") ? hit.fields.get("description") : t.mp.description), i = lines.indexOf(a.was);
+        if (i < 0) continue;
+        if (a.now) lines[i] = a.now; else lines.splice(i, 1);
+        value = lines.join("<br /> ");
+      }
+      if (!hit) {
+        hit = { pdb: a.pdb, approved: Boolean(t.ap), fields: new Map(), placement: null, membrane: "", rows: [], fbIds: [], synced: true,
+                notes: a.path === "description" ? `Its line for ${res.pdb} follows the re-generated related line of ${res.pdb}.` : `Its related line follows the re-generated description of ${res.pdb}.` };
+        all.push(hit);
+      }
+      hit.fields.set(a.path, value);
+      if (!hit.rows.some((r) => r.label === rgLabel(a.path))) hit.rows.push({ key: a.path, label: rgLabel(a.path), before: "", after: "" });
+    }
+    return all;
   }
   function rgKeep(results) {
     if (!signedIn()) { toast("Sign in on the Curators tab to decide.", { kind: "error" }); return; }
     const und = [];
-    for (const res of results) {
+    for (const res of rgWithSynced(results)) {
       const s = rgCurrent(res.pdb);
       if (!s || (s.d && !s.ap) || optimistic.has(res.pdb) || rg.pending.has(res.pdb)) continue;
       if (s.ap) rgKeepApproved(res); else und.push(res);
     }
     if (!und.length) return;
-    const ids = new Map(und.map((res) => [res.pdb, rgOpenFor(res.pdb).map((i) => i.id)]));
+    // Done: only the feedback the answer was read for (what the request held), never what was added since.
+    const done = new Map(und.map((res) => [res.pdb, rgDoneIds(res)])), ids = new Map(und.map((res) => [res.pdb, done.get(res.pdb).ids]));
     const changes = und.map((res) => {
       const draft = rgDraftFor(res, ids.get(res.pdb));
       return { pdb: res.pdb, draft, action: draft ? "regenerate" : "revert-draft",
                detail: draft ? rgDetail(res, ids.get(res.pdb).length) : `${res.notes || "No notes from the AI."} (re-generated with the AI: the draft is back to the original)` };
     });
-    const pdbs = und.map((r) => r.pdb);
-    rgSaveDrafts(changes, `Curator ${cur.user.login}: re-generate ${listIds(pdbs)} with the AI`, `the re-generated ${pdbs.length === 1 ? `draft of ${pdbs[0]}` : "drafts"}`, (ok, miss) => {
+    const pdbs = und.map((r) => r.pdb), mine = und.filter((r) => !r.synced).map((r) => r.pdb);
+    rgSaveDrafts(changes, `Curator ${cur.user.login}: re-generate ${listIds(mine.length ? mine : pdbs)} with the AI`, `the re-generated ${pdbs.length === 1 ? `draft of ${pdbs[0]}` : "drafts"}`, (ok, miss) => {
       rgMarkDone(und.filter((r) => ok.includes(r.pdb)).map((r) => ({ pdb: r.pdb, ids: ids.get(r.pdb), notes: r.notes })));
       const one = ok.length === 1 ? und.find((r) => r.pdb === ok[0]) : null;
+      // A lead that moved takes the structures listed under it along (see rgApplyDrafts).
+      const kids = one && one.placement ? rgKids(one.pdb).length : 0;
       toast(`Kept the re-generated ${ok.length === 1 ? `draft of ${ok[0]}` : `drafts of ${listIds(ok)}`}: ${ok.length === 1 ? "its card shows" : "their cards show"} it now, and Approve uses it.`
+        + (kids ? ` Its ${kids === 1 ? "related entry moves" : `${kids} related entries move`} to the same subfamily with it.` : "")
         + (one && one.membrane === "no" ? " The AI says it is not a membrane protein: reject it on its card if you agree." : "")
+        + ok.map((p) => rgLeftText(done.get(p).left, p)).join("")
         + (miss.length ? ` ${listIds(miss)} ${miss.length === 1 ? "was" : "were"} decided or re-generated by another curator meanwhile and left alone.` : ""),
         { kind: "success", actions: ok.length === 1 ? [{ label: "Open the card", run: () => { location.hash = `#/find/${ok[0]}`; } }] : [] });
     });
@@ -6997,10 +7245,12 @@ links.addEventListener("click", (event) => {
     return `${res.notes ? `<p class="mp-rg-notes"><span class="mp-of">The AI's notes:</span> ${esc(res.notes)}</p>` : '<p class="mp-rg-notes"><span class="mp-of">The AI gave no notes.</span></p>'}
       ${res.membrane ? `<p class="mp-rg-mem${res.membrane === "no" ? " no" : ""}"><b>${rgMemNote(res.membrane)}.</b> ${res.membrane === "no"
         ? (res.approved ? "Nothing is rejected for you: use Undo approval on this row and reject it if you agree." : "Nothing is rejected for you: after keeping, its card offers ‘Reject: not a membrane protein’.") : ""}</p>` : ""}
-      ${res.rows.length ? rgTable(res.rows, `What would change in ${res.pdb}: before and after`) : '<p class="mp-summary">No text or placement changes.</p>'}`;
+      ${res.rows.length ? rgTable(res.rows, `What would change in ${res.pdb}: before and after`) : '<p class="mp-summary">No text or placement changes.</p>'}
+      ${(res.sync || []).map((t) => `<p class="mp-summary mp-rg-sync">${esc(t)}</p>`).join("")}${(res.warn || []).map((t) => `<p class="mp-form-note mp-rg-warn">${esc(t)}</p>`).join("")}`;
   }
   function rgPanel(pdb) {
     const id = esc(pdb), n = rgOpenFor(pdb).length, res = rg.result && rg.result.pdb === pdb ? rg.result : null, s = rgCurrent(pdb);
+    const dn = res ? rgDoneIds(res) : { ids: [], left: 0 }, nd = dn.ids.length;
     return `<section class="mp-rg" id="rg-${id}" aria-labelledby="rg-h-${id}">
       <h4 class="mp-rg-h" id="rg-h-${id}">Re-generate ${id} with the AI</h4>
       <ol class="mp-rg-steps">
@@ -7020,7 +7270,9 @@ links.addEventListener("click", (event) => {
         <h5 class="mp-rg-h" id="rg-res-h-${id}" tabindex="-1">What would change in ${id}</h5>
         ${rgResultBody(res)}
         <p class="mp-summary">${s && s.ap ? "Keeping saves these as an edit of the approved entry (it shows as Edited, with the same before and after)."
-          : "Keeping saves this as the draft the card shows and Approve uses. The original draft stays one click away."} Your ${n === 1 ? "open suggestion is" : `${n} open suggestions are`} then marked done.</p>
+          : "Keeping saves this as the draft the card shows and Approve uses. The original draft stays one click away."} ${
+          nd ? `${nd === 1 ? "The suggestion the AI answered is" : `The ${nd} suggestions the AI answered are`} then marked done.` : ""}${
+          dn.left ? ` <b>${dn.left} newer ${dn.left === 1 ? "suggestion was" : "suggestions were"} not in the request you copied and ${dn.left === 1 ? "stays" : "stay"} open:</b> copy the request again to have ${dn.left === 1 ? "it" : "them"} answered.` : ""}</p>
         <div class="mp-actions"><button class="mp-btn" type="button" id="rg-keep-${id}" data-rg="keep" data-pdb="${id}">Keep these changes</button>
           <button class="mp-btn secondary" type="button" id="rg-discard-${id}" data-rg="discard" data-pdb="${id}">Discard</button></div>
       </div>` : ""}
@@ -7106,6 +7358,7 @@ links.addEventListener("click", (event) => {
         const why = rgBlocked(pdb);
         if (why) rgFail(why === "Add a suggestion for the AI first" ? `${pdb} has no open feedback, so it was not part of the request.` : `${why}.`);
         row.res = rgCheck(pdb, ans);
+        row.res.fbIds = rgIdsFor(pdb);
         row.selected = true;
       } catch (e) { row.error = e.message; row.nothing = Boolean(e.nothing); }
       return row;
@@ -7131,6 +7384,7 @@ links.addEventListener("click", (event) => {
     } else if (act === "copy") {
       if (rgBlocked(pdb)) { rgClose(true); return; }
       const text = rgRequest([pdb]), ok = await fbCopyText(text);
+      rgNoteSent([pdb]); // also when the clipboard is blocked: the text is then copied by hand
       rg.copied = ok;
       rg.manual = ok ? "" : text;
       rerender();
@@ -7146,6 +7400,7 @@ links.addEventListener("click", (event) => {
           if (!v) rgFail(`The answer is a list for several structures, and none of them is ${pdb}. Paste the answer to the request you copied here; a list for all open feedback goes into ‘Paste the AI's answers’ in Decisions › Feedback for the AI.`);
         }
         rg.result = rgCheck(pdb, v);
+        rg.result.fbIds = rgIdsFor(pdb);
       } catch (e) { rg.error = e.message; }
       rerender();
       fbFocus(rg.result ? `rg-res-h-${pdb}` : `rg-text-${pdb}`);
@@ -7156,6 +7411,7 @@ links.addEventListener("click", (event) => {
       let fresh;
       try { fresh = rgCheck(pdb, { pdb, fields: Object.fromEntries(res.fields), ...(res.placement ? { placement: res.placement } : {}), ...(res.membrane ? { membrane: res.membrane } : {}), notes: res.notes }); }
       catch (e) { rg.result = null; rg.error = `${pdb} changed since the answer was read. ${e.message}`; rerender(); fbFocus(`rg-text-${pdb}`); return; }
+      fresh.fbIds = res.fbIds;
       Object.assign(rg, { open: null, text: "", error: "", result: null, manual: "", copied: false });
       rgKeep([fresh]);
       fbFocus(`rg-open-${pdb}`);
@@ -7175,6 +7431,7 @@ links.addEventListener("click", (event) => {
       const t = rgTargets();
       if (!t.ok.length) { toast("No structure with open feedback can be re-generated right now."); return; }
       const text = rgRequest(t.ok), ok = await fbCopyText(text);
+      rgNoteSent(t.ok);
       a.copied = ok ? t.ok.length : 0;
       a.manual = ok ? "" : text;
       if (ok) a.open = true;
@@ -7201,7 +7458,7 @@ links.addEventListener("click", (event) => {
       if (!rows.length) return;
       const keep = [];
       for (const r of rows) {
-        try { keep.push(rgCheck(r.pdb, { pdb: r.pdb, fields: Object.fromEntries(r.res.fields), ...(r.res.placement ? { placement: r.res.placement } : {}), ...(r.res.membrane ? { membrane: r.res.membrane } : {}), notes: r.res.notes })); }
+        try { keep.push(Object.assign(rgCheck(r.pdb, { pdb: r.pdb, fields: Object.fromEntries(r.res.fields), ...(r.res.placement ? { placement: r.res.placement } : {}), ...(r.res.membrane ? { membrane: r.res.membrane } : {}), notes: r.res.notes }), { fbIds: r.res.fbIds })); }
         catch { /* changed since it was read: left out, its feedback stays open */ }
       }
       const left = rows.length - keep.length;

@@ -107,7 +107,14 @@ answers directly.
    copy for an approved entry; placement, subfamily, owner; membrane score and reasons),
    up to five real mpstruc entries of the same subfamily as **WORDING EXAMPLES**, the
    curator's open **SUGGESTIONS** for it, and open "similar" suggestions from other
-   structures in the same subfamily.
+   structures in the same subfamily. The draft says what `relatedLine` is (the one line a
+   related entry adds to its owner's description) and, on a lead, which lines of its
+   description belong to which related structures. When the placement may change (it is
+   not decided, or a suggestion is about placement), **PARENT ENTRIES** follow: the
+   parents (PDB ID, name, species) of the structure's subfamily, of the subfamilies the
+   automation considered and of any subfamily the suggestions name, so that an owner can
+   be chosen in the target subfamily. An undecided placement shows `owner: none yet`, with
+   the automation's guess in brackets.
 3. The list of mpstruc subfamilies (key: name) when a placement may change.
 4. **HOW TO ANSWER**.
 
@@ -135,16 +142,30 @@ a JSON array with one object per structure):
   `expressedInSpecies`, `resolution` (digits, e.g. `"3.10"`), `description`, `relatedLine`,
   and `bibliography` with any of `pubMedId`, `authors`, `year`, `title`, `journal`,
   `volume`, `issue`, `pages`, `doi`. `""` empties a field (the name cannot be emptied).
-- `placement` (optional): `placement` is `parent`, `daughter` or `related`; `subgroup` is an
-  existing subfamily (name or key); `owner` is a PDB ID that is a parent in mpstruc (for a
+- `placement` (optional): `placement` is `parent`, `daughter` or `related` (it may be left
+  out when that stays as it is and the structure's placement is already decided);
+  `subgroup` is an existing subfamily (its key, its name, or the start or a part of a name
+  that fits only one subfamily); `owner` is a PDB ID that is a parent in mpstruc (for a
   daughter), or a parent or daughter there or among this week's suggestions (for related),
-  and `null` for a parent. The entry must be in its owner's subfamily.
+  and `null` for a parent. The entry must be in its owner's subfamily. An owner that is one
+  of this week's structures must not be rejected or deleted, must have a decided placement,
+  and gives the entry its own subfamily (as it stands now, with its draft).
+- A related line lives in two places: the related structure's `relatedLine` and one line of
+  its owner's `description`. When a kept answer changes one, the site changes the other in
+  the same save (the owner's draft or approved entry, or the related structure's), and says
+  so before Keep; when it cannot match the line, it warns instead.
+- When a draft moves a structure to another subfamily, the entries listed under it among
+  this week's suggestions are shown, and approved, in that subfamily too.
 - `membrane` (optional): `"yes"` or `"no"`. `no` never rejects anything by itself: the card
   shows "AI now says: not a membrane protein" with a one-click reject for the curator.
 - `notes`: plain text, at most 600 characters.
 - Markup in text: `<sub>`, `<sup>`, `<i>`, `<br />` and entities only. Nothing else is
   accepted: the site refuses an answer with other keys, another PDB ID, an unknown
-  subfamily, over-long text or other tags, and tells the curator what to fix.
+  subfamily, over-long text, other tags, Markdown (`**bold**`, backticks, `[text](url)`),
+  a value that is still the `...` of the example, or a name with nothing visible in it,
+  and tells the curator what to fix. When a reply holds several JSON blocks (the example
+  repeated, then the answer), the last one that names a structure is read and the example
+  is never taken for an answer.
 
 ### Where a kept answer is saved: `"drafts"` in `data/curation.json`
 
@@ -167,16 +188,25 @@ For a structure **not decided yet**, the site writes
 next to `"entries"` and `"log"` (`placement` and `membrane` only when the answer gave them).
 `original` lists exactly the fields that were changed, with their text before. The site
 lays each draft over that structure in `data/candidates.json` (only the fields named in
-`original`), so the card, Approve (`mp` = the re-generated draft; `mpEdited` stays for
-curator edits) and the exports all use it. **Revert to the original draft** removes the
-key. The log gets `regenerate` and `revert-draft` lines.
+`original`) **while the structure is undecided**, so the card and Approve use it (`mp` =
+the re-generated draft; `mpEdited` stays for curator edits). Once a structure is decided,
+its draft is no longer laid over it: Decisions › Approved, the XML export and the database
+all read the text saved with the approval (`mpEdited`, else `entries[PDB].mp`). A first
+decision (approve or reject) is saved only if `drafts[PDB]` in the repository is still the
+draft the page was showing; otherwise the save is refused and the card shows the newer
+draft. **Revert to the original draft** removes the key. The log gets `regenerate` and
+`revert-draft` lines. A `drafts` entry the site cannot use (not the shape above) is treated
+as no draft and is replaced by the next Keep.
 
 For an **approved** entry there is no draft: the changes are saved as a curator edit
 (`entries[PDB].mpEdited`, and its placement), exactly as the editor in Decisions › Approved
 saves them.
 
 In both cases the feedback items used are marked done in `data/feedback.json` with
-`resolution` = the notes and `"resolvedVia": "regenerate"`.
+`resolution` = the notes and `"resolvedVia": "regenerate"`. "Used" means the items that
+were in the request the curator copied (or, when an answer is pasted without copying a
+request in that session, the items open when the answer was read): a suggestion added
+after that stays open, and the site says so.
 
 **`"drafts"` is curator-side data.** The weekly job must never write, rebuild or drop it:
 `mpstruc.autoreject` changes `data/curation.json` in place and writes every other key back

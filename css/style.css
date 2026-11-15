@@ -1736,6 +1736,7 @@ a.mp-mark:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mp-rg-item { padding: 10px 12px; display: grid; gap: 8px; min-width: 0; background: var(--color-bg-alt); border: 1px solid var(--color-border); border-radius: 8px; }
 .mp-rg-item.bad { border-color: color-mix(in srgb, var(--color-error-text) 40%, transparent); }
 .mp-rg-item .mp-form-note, .mp-rg-item .mp-summary { margin: 0; overflow-wrap: anywhere; }
+.mp-rg-result .mp-rg-sync, .mp-rg-result .mp-rg-warn, .mp-rg-item .mp-rg-sync, .mp-rg-item .mp-rg-warn { margin: 8px 0 0; overflow-wrap: anywhere; }
 .mp-rg-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .mp-rg-item-head .mp-badge { text-transform: none; letter-spacing: 0.02em; }
 .mp-rg-item .mp-rg-notes { background: var(--color-surface); }
