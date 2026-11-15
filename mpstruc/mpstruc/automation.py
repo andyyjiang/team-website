@@ -1367,6 +1367,40 @@ def reapply_rules(path: Path | None = None, db: Database | None = None) -> dict:
     return out
 
 
+def relist(path: Path | None = None, db: Database | None = None) -> dict:
+    """Re-draft the mpstruc listing (`mp`: name, description, relatedLine,
+    ligandNotes, ...) of every candidate in data/candidates.json with the
+    current listing.py, from the caches (the PDB is asked only for what they
+    lack). Nothing is re-scored or re-placed: every other field of the file,
+    and its compact JSON format, stay as they are. A candidate whose PDB
+    details cannot be had keeps its old draft. Returns what changed."""
+    path = path or SITE_DATA / "candidates.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    cands = doc.get("candidates") or []
+    # add_listings only reads pdb, placement, ownerPdb and uniprot; drafts go to copies.
+    fresh = [{k: p.get(k) for k in ("pdb", "placement", "ownerPdb", "uniprot")} for p in cands]
+    add_listings(fresh, db)
+    out = {"candidates": len(cands), "redrafted": 0, "names": 0, "descriptions": 0, "relatedLines": 0, "changed": []}
+    for p, f in zip(cands, fresh):
+        new = f.get("mp")
+        if not new:
+            continue
+        old = p.get("mp") or {}
+        merged = {**old, **new}
+        if "relatedLine" not in new:
+            merged.pop("relatedLine", None)
+        out["redrafted"] += 1
+        diff = [k for k in ("name", "description", "relatedLine") if old.get(k) != merged.get(k)]
+        out["names"] += "name" in diff
+        out["descriptions"] += "description" in diff
+        out["relatedLines"] += "relatedLine" in diff
+        if diff:
+            out["changed"].append({"pdb": p["pdb"], **{k: [old.get(k), merged.get(k)] for k in diff}})
+        p["mp"] = merged
+    path.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1375,6 +1409,8 @@ def main() -> None:
     r.add_argument("--until")
     sub.add_parser("backtest")
     sub.add_parser("apply-rules", aliases=["replace-rules"])
+    rl = sub.add_parser("relist", help="re-draft the listings in data/candidates.json; nothing is re-scored or re-placed")
+    rl.add_argument("--file", help="candidates file to rewrite (default: data/candidates.json)")
     args = ap.parse_args()
     if args.cmd in ("apply-rules", "replace-rules"):
         res = reapply_rules()
@@ -1382,6 +1418,12 @@ def main() -> None:
         return
     db = load(source_xml())
     SITE_DATA.mkdir(exist_ok=True)
+
+    if args.cmd == "relist":
+        r = relist(Path(args.file) if args.file else None, db)
+        print(f"relist: re-drafted {r['redrafted']} of {r['candidates']} candidates; changed: {r['names']} names, "
+              f"{r['descriptions']} descriptions, {r['relatedLines']} related lines")
+        return
 
     if args.cmd == "backtest":
         tune = evaluate(db, "2025-01-01", "2025-06-30", {})
