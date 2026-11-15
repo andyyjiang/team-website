@@ -1,0 +1,23 @@
+{
+ "about": "Rules the curators gave for placing structures in a subfamily. Each rule names a subfamily exactly as mpstruc does (it is matched by name; the key is recorded for reference) and quotes the curator's sentence. 'barrelStrands' is the number of strands of the membrane beta-barrel a member typically has; 'tolerance' is how far a counted number may be from it and still fit. Add a rule by adding an item; other criteria can be added as new fields. Used by mpstruc/automation.py (placement) and shown on the site (data/curator_rules.json is a copy).",
+ "rules": [
+  {
+   "subgroup": "Outer Membrane Autotransporters",
+   "subgroupKey": "G02-S006",
+   "note": "Typically 12-stranded beta-barrel.",
+   "barrelStrands": 12,
+   "tolerance": 1,
+   "addedBy": "curator",
+   "addedOn": "2026-11-13"
+  },
+  {
+   "subgroup": "Omp85-TpsB Outer Membrane Transporter Superfamily",
+   "subgroupKey": "G02-S007",
+   "note": "Typically 16-stranded beta-barrel.",
+   "barrelStrands": 16,
+   "tolerance": 1,
+   "addedBy": "curator",
+   "addedOn": "2026-11-13"
+  }
+ ]
+}

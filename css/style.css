@@ -864,6 +864,21 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-like meter::-webkit-meter-even-less-good-value { background: var(--color-related); border-radius: 4px; }
 .mp-like b { color: var(--color-text); font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
 .mp-suggest { margin: 8px 0; }
+/* Curators' rules: the rule note on a subfamily page, the barrel line on a suggestion. */
+.mp-rule { border: 1px solid var(--color-border); border-left: 3px solid var(--color-daughter); border-radius: var(--radius-sm);
+  background: var(--color-surface); padding: 10px 14px; margin: 0 0 16px; font-size: 0.9rem; max-width: 80ch; }
+.mp-rule p { margin: 0; }
+.mp-rule-odd { margin-top: 6px; }
+.mp-rule-odd summary { cursor: pointer; color: var(--color-muted); min-height: 24px; }
+.mp-rule-odd ul { margin: 6px 0; padding-left: 20px; }
+.mp-rule-odd li { margin: 2px 0; overflow-wrap: anywhere; }
+.mp-rule-name { color: var(--color-muted); }
+.mp-rule .mp-rule-how { color: var(--color-muted); font-size: 0.82rem; }
+.mp-barrel { margin: 8px 0 0; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.mp-rule-tag { border: 1px solid var(--color-border-strong); border-radius: 999px; padding: 0 8px; font-size: 0.78rem;
+  line-height: 1.6; white-space: nowrap; }
+.mp-rule-tag.moved, .mp-rule-tag.differs, .mp-rule-tag.no-barrel { background: var(--color-warn-bg); color: var(--color-warn-text); border-color: transparent; }
+@media (max-width: 480px) { .mp-rule-tag { white-space: normal; } }
 .mp-memwhy { font-size: 0.88rem; color: var(--color-muted); margin: -2px 0 8px; max-width: 75ch; }
 /* 'Check it yourself': the proteins in a suggested structure and their membrane segments. */
 .mp-tm { margin: 4px 0 12px; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-alt); font-size: 0.85rem; max-width: 760px; }

@@ -580,7 +580,7 @@ links.addEventListener("click", (event) => {
     </div>`;
   }
 
-  function listView(title, crumbs, summary, pool, filename, groupParents) {
+  function listView(title, crumbs, summary, pool, filename, groupParents, note = "") {
     const shown = pool.filter(matches);
     const toRender = groupParents
       ? pool.filter((e) => e.kind === "p" && (matches(e) || (e.d || []).some(matches)))
@@ -592,11 +592,52 @@ links.addEventListener("click", (event) => {
     return `<div class="mp-view">
       ${crumbs ? `<p class="mp-crumbs">${crumbs}</p>` : ""}
       <h2>${title}</h2>
+      ${note}
       ${filterBar(pool)}
       <div class="mp-toolbar"><p class="mp-summary">${summary}${filtersActive() ? ` · ${shown.length} of ${pool.length} structures match the filters` : ""}</p>${csvButton()}</div>
       ${cards || '<p class="mp-empty">No entries match.</p>'}
       ${more(Math.min(limit, toRender.length), toRender.length)}
     </div>`;
+  }
+
+  // ---- curators' rules (data/curator_rules.json, written by mpstruc/automation.py) ----
+  // The rule a curator gave for a subfamily ("typically 16-stranded beta-barrel") and
+  // the official entries whose counted barrel contradicts it. Loaded the first time a
+  // subfamily page is opened; the page works without it. Everything in it is untrusted.
+  const sgRules = { data: null, loading: false, done: false };
+  function loadRules() {
+    if (sgRules.done || sgRules.loading) return;
+    sgRules.loading = true;
+    optionalJson("data/curator_rules.json")
+      .then((d) => { sgRules.data = isObj(d) ? d : null; })
+      .finally(() => {
+        sgRules.loading = false; sgRules.done = true;
+        if (sgRules.data && /^sg\//.test(lastRoute)) rerender();
+      });
+  }
+  function sgRuleNote(sg) {
+    loadRules();
+    const d = sgRules.data;
+    const rule = d && Array.isArray(d.rules) ? d.rules.find((r) => isObj(r) && r.key === sg.k && typeof r.note === "string" && r.note.trim()) : null;
+    if (!rule) return "";
+    const note = rule.note.trim().replace(/\.$/, "");
+    const by = [typeof rule.addedBy === "string" && rule.addedBy ? `added by ${rule.addedBy}` : "",
+      /^\d{4}-\d\d-\d\d$/.test(String(rule.addedOn || "")) ? rule.addedOn : ""].filter(Boolean).join(", ");
+    const odd = (Array.isArray(d.conflicts) ? d.conflicts : []).filter((c) => isObj(c) && c.subgroup === sg.k
+      && PDB_RE.test(String(c.pdb || "")) && Number.isInteger(c.count) && c.count > 0 && c.count < 1000).slice(0, 50);
+    const k = isObj(d.counting) && Number.isInteger(d.counting.n) && Number.isInteger(d.counting.correct) ? d.counting : null;
+    const items = odd.map((c) => {
+      const e = state.byKey.get(String(c.key || ""));
+      const fits = c.fits && state.sgOf.has(c.fits) ? `; that fits <a href="#/sg/${esc(c.fits)}">${safeMarkup(state.sgOf.get(c.fits).name)}</a>` : "";
+      return `<li>${e ? `<a href="#/entry/${esc(e.k)}">${esc(c.pdb)}</a>` : esc(c.pdb)} <span class="mp-rule-name">${e ? safeMarkup(e.name || "") : esc(plain(c.name))}</span>:
+        ${c.closed === false ? "at least " : ""}${c.count} strands counted${c.closed === false ? " (seam open)" : ""}${fits}</li>`;
+    }).join("");
+    return `<aside class="mp-rule" aria-label="Curators’ rule for this subfamily">
+      <p class="mp-rule-text"><b>Curators’ rule:</b> ${esc(note[0].toLowerCase() + note.slice(1))}${by ? ` <span class="mp-of">(${esc(by)})</span>` : ""}</p>
+      ${items ? `<details class="mp-rule-odd"><summary>${odd.length} ${odd.length === 1 ? "entry here does" : "entries here do"} not fit the rule</summary>
+        <ul>${items}</ul>
+        <p class="mp-rule-how">Strands are counted from the coordinates of each structure${k ? ` (exactly right for ${k.correct} of ${k.n} structures with a known number)` : ""}. This is for the curators’ information: official mpstruc is not changed.</p></details>` : ""}
+    </aside>`;
   }
 
   function viewSubgroup(sg) {
@@ -607,7 +648,7 @@ links.addEventListener("click", (event) => {
       html: listView(sg.name, `<a href="#/">Database</a> › ${esc(sg.group.topology)}`,
         `${sg.parents.length} parents · ${pool.length - sg.parents.length + related} daughter structures `
           + `(${pool.length - sg.parents.length} described in full, ${related} listed as related)`,
-        pool, null, true),
+        pool, null, true, sgRuleNote(sg)),
     };
   }
 
@@ -893,8 +934,44 @@ links.addEventListener("click", (event) => {
     if (c.placement === "parent") return `New parent in ${where}`;
     if (c.placement === "daughter") return `Daughter of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}`;
     if (c.placement === "related") return `Related entry of <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a>${c.ownerKey ? ` in ${where}` : " (also a new structure, not yet in mpstruc)"}`;
+    // Sent to review by a curators' rule (mpstruc/automation.py apply_rules): moved to the
+    // subfamily its barrel fits, next to the closest entry of the same family there, or
+    // held back because no barrel is resolved in it.
+    const chk = isObj(c.ruleCheck) ? c.ruleCheck : null;
+    if (chk && chk.closest === "family" && c.ownerPdb) return `Closest entry: <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where} (same protein family): choose new parent, daughter or related.`;
+    if (chk && chk.status === "no-barrel" && !c.ownerPdb) return c.subgroup ? `Possibly ${where}, but no membrane barrel is resolved in it: choose whether and where it belongs.`
+      : "No membrane barrel is resolved in it and no subfamily fits: choose where it belongs.";
     return c.ownerPdb ? `Shares a protein with <a href="#/pdb/${esc(c.ownerPdb)}">${esc(c.ownerPdb)}</a> in ${where}, but not exactly: choose parent, daughter or related.`
                       : "No strong link to any subfamily: choose where it belongs.";
+  }
+
+  // 'Barrel: 16 strands counted (chain A)' on a suggestion (c.barrelStrands, from
+  // mpstruc/barrel.py), with how that compares with the curators' rule for the subfamily
+  // (c.ruleCheck). The full sentence is in the card's Why list. Untrusted values.
+  //   - seam open: the count is a lower bound ("at least 16 strands counted");
+  //   - upTo: a larger ring fits the same strands ("8 to 10 strands counted");
+  //   - method "UniProt strands": no barrel could be counted from the coordinates, but
+  //     all the membrane strands UniProt gives for the protein are resolved.
+  // "None resolved" is said only when the rule held the structure back for that reason
+  // (status no-barrel); a structure whose barrel could not be counted says so instead.
+  const RULE_TAG = { fits: "Fits the curators’ rule", moved: "Moved by the curators’ rule", differs: "Does not fit the curators’ rule",
+    unclear: "The count does not decide the rule", "no-barrel": "Held for review by the curators’ rule",
+    unchecked: "Curators’ rule not checked" };
+  function barrelLine(c) {
+    const b = isObj(c.barrelStrands) && Number.isInteger(c.barrelStrands.count) && c.barrelStrands.count > 0 && c.barrelStrands.count < 1000 ? c.barrelStrands : null;
+    const chk = isObj(c.ruleCheck) && Object.hasOwn(RULE_TAG, c.ruleCheck.status) ? c.ruleCheck : null;
+    if (!b && !chk) return "";
+    const at = !b ? "" : Number.isInteger(b.chains) && b.chains > 1 ? `${b.chains} chains together`
+      : /^[A-Za-z0-9]{1,8}$/.test(String(b.chain || "")) ? `chain ${b.chain}` : "";
+    const where = [at, b && b.closed === false ? "seam open" : ""].filter(Boolean).join(", ");
+    const upTo = b && b.closed !== false && Number.isInteger(b.upTo) && b.upTo > b.count && b.upTo < 1000 ? b.upTo : 0;
+    const n = !b ? "" : b.closed === false ? `at least ${b.count}` : upTo ? `${b.count} to ${upTo}` : `${b.count}`;
+    const what = !b ? (chk.status === "no-barrel" ? "none resolved in the structure" : "could not be counted in this structure")
+      : b.method === "UniProt strands" ? `${n} membrane strands resolved <span class="mp-of">(from UniProt; not counted from the coordinates)</span>`
+      : `${n} strands counted${where ? ` <span class="mp-of">(${esc(where)})</span>` : ""}`;
+    const from = chk && chk.status === "moved" && state.sgOf.has(chk.from) ? ` <span class="mp-of">from ${esc(sgName(chk.from))}</span>` : "";
+    return `<p class="mp-barrel"><b>Barrel:</b> ${what}
+      ${chk ? `<span class="mp-rule-tag ${esc(chk.status)}">${esc(RULE_TAG[chk.status])}</span>${from}` : ""}</p>`;
   }
 
   function decisionOf(c) { return decisions[c.pdb] || null; }
@@ -1537,6 +1614,7 @@ links.addEventListener("click", (event) => {
       </div>
       ${c.membraneWhy && c.membraneWhy.length ? `<p class="mp-memwhy">${esc(whySentence(c.membraneWhy))}</p>` : ""}
       ${tmEvidence(c)}
+      ${barrelLine(c)}
       <p class="mp-suggest"><b>Suggestion:</b> ${suggestion(c)}
         ${c.placement !== "review" ? `<span class="mp-conf${lowConf ? " low" : ""}">right ${pct(c.confidence)} of the time in testing</span>` : ""}</p>
       <details class="mp-why"><summary>All chains in the structure</summary><p>${esc((c.entities || []).filter(Boolean).join("; ") || "—")}</p></details>
@@ -2095,7 +2173,12 @@ links.addEventListener("click", (event) => {
     const name = plain(r.name) || acc || "Unnamed protein", pdbName = plain(r.pdbName);
     const aside = [r.fusion === true ? "part of a fusion chain" : "", pdbName ? `in the PDB: ${pdbName}` : "",
       Number.isFinite(r.chains) && r.chains > 1 ? `${r.chains} chains` : ""].filter(Boolean).join(" · ");
-    const count = barrel ? `Beta-barrel domain ${barrel.range[0]}-${barrel.range[1]} (${plain(barrel.barrel) || "beta-barrel"}) - ${status === "resolved" ? "in the structure" : status === "unknown" ? "not checked" : "not in the structure"}`
+    // A barrel counted in the coordinates (UniProt names no barrel domain for the protein).
+    const strands = isObj(r.barrel) && Number.isInteger(r.barrel.strands) && r.barrel.strands > 0 && r.barrel.strands < 1000 ? r.barrel.strands : 0;
+    // Seam open: the number is a lower bound. upTo: a larger ring fits the same strands.
+    const upTo = strands && r.barrel.open !== true && Number.isInteger(r.barrel.upTo) && r.barrel.upTo > strands && r.barrel.upTo < 1000 ? r.barrel.upTo : 0;
+    const count = strands ? `Beta-barrel: ${r.barrel.open === true ? "at least " : ""}${strands}${upTo ? ` to ${upTo}` : ""} strands counted in the structure${r.barrel.open === true ? ", seam open" : ""}${barrel ? ` (residues ${barrel.range[0]}-${barrel.range[1]})` : ""}`
+      : barrel ? `Beta-barrel domain ${barrel.range[0]}-${barrel.range[1]} (${plain(barrel.barrel) || "beta-barrel"}) - ${status === "resolved" ? "in the structure" : status === "unknown" ? "not checked" : "not in the structure"}`
       : !n ? (status === "unknown" ? "Membrane segments: not known" : "Membrane segments: none")
       : `Membrane segments: ${n} - ${status === "unknown" ? "not checked" : k === n ? (n === 1 ? "in the structure" : "all in the structure") : k ? `${k} in the structure` : (n === 1 ? "not in the structure" : "none in the structure")}`;
     const note = plain(r.note);

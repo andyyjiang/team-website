@@ -59,7 +59,10 @@ DATA_FILES = ["data/candidates.json", "data/mpstruc.json", "data/import_log.json
               "data/awaiting.json", CURATION,
               # The comparison with the other group's Vercel demo (mpstruc.vercel_import /
               # mpstruc.vercel_compare); skipped when a run did not write them.
-              "data/vercel_snapshot.json", "data/vercel_compare.json"]
+              "data/vercel_snapshot.json", "data/vercel_compare.json",
+              # The curators' rules for the site, and the official entries that contradict
+              # one (automation.write_rule_files).
+              "data/curator_rules.json", "mpstruc/reports/rule_conflicts.md", "mpstruc/reports/rule_conflicts.json"]
 
 
 def now_iso() -> str:
