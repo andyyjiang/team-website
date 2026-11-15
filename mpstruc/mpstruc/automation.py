@@ -915,8 +915,8 @@ def apply_rules(props: list[dict], kb: KB, ruled: dict[str, dict], barrels: dict
         same protein that fits another ruled subfamily, it moves there on that basis;
       - a new protein placed by family votes alone, counted without a barrel and with a
         membrane score under REVIEW_BELOW, goes to review (without a subfamily if none of
-        its proteins is an outer-membrane protein at all). A structure with an
-        outer-membrane protein that could not be counted is left as it is ("unchecked");
+        its proteins is an outer-membrane protein at all). A structure that
+        could not be counted (absent from barrels) is left as it is ("unchecked");
       - "ruleCheck": {"status": "fits" | "moved" | "differs" | "unclear" | "no-barrel" |
         "unchecked", "text": the same in a sentence, "rule": the ruled subfamily it was
         checked against[, "from", "closest": "family" when the owner is only the closest
@@ -1125,8 +1125,9 @@ def apply_rules(props: list[dict], kb: KB, ruled: dict[str, dict], barrels: dict
                 text = (f"{counted_text(b)}, fewer than {rule['name']} typically have ({rule['barrelStrands']}, curators' rule); "
                         f"the barrel is open, so strands may be missing from the count and the suggestion stays")
             annotate(c, "unclear", cur, text)
-        elif c["pdb"] not in barrels and om.get(c["pdb"]):
-            # Not "no barrel": its outer-membrane protein could not be looked at this time.
+        elif c["pdb"] not in barrels:
+            # Not "no barrel": its chains could not be looked at this time (an outer-membrane
+            # protein, or any protein of a small structure suggested here: rule_inputs).
             c["ruleCheck"] = {"status": "unchecked", "rule": cur, "lines": 0,
                               "text": f"The barrel could not be counted in this run (the coordinates could not be fetched), so the "
                                       f"curators' rule for {rule['name']} ({rules_mod.strands_phrase(rule)}) was not checked"}
@@ -1176,8 +1177,8 @@ def apply_rules(props: list[dict], kb: KB, ruled: dict[str, dict], barrels: dict
 def rule_inputs(props: list[dict], ruled: dict[str, dict]) -> tuple[dict, dict, dict]:
     """(barrels, outer-membrane proteins, families) apply_rules needs, for the candidates
     a rule touches (and the structures of the same paper that follow them). A structure
-    whose barrel could not be counted is absent from barrels (all of them if the
-    coordinate server cannot be reached)."""
+    whose barrel could not be counted is absent from barrels (if the coordinate server
+    cannot be reached, all but those with no chain to look at: membrane.nothing_to_count)."""
     from . import membrane
     lead_touched = {c["pdb"] for c in props if touched_by_rules(c, ruled)}
     ids = sorted(lead_touched | {c["pdb"] for c in props
@@ -1193,7 +1194,7 @@ def rule_inputs(props: list[dict], ruled: dict[str, dict]) -> tuple[dict, dict, 
         barrels = membrane.counted_barrels(ids, ext, fams, None, ents, every=every)
     except Exception as err:  # without counts the rules only note what they could not check
         print(f"rules: barrels could not be counted ({err})")
-        barrels = {}
+        barrels = {p: {} for p in ids if membrane.nothing_to_count(p, ext, fams, ents, every)}
     return barrels, om, fams
 
 

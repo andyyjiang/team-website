@@ -267,6 +267,27 @@ def eligible_proteins(pdb: str, ext: dict, fam: dict, seg: dict | None = None) -
     return accs
 
 
+def protein_entities(ent: dict | None, accs: set[str] | None = None) -> dict[str, str]:
+    """{polymer entity id: UniProt accession} of a structure's proteins (rcsb.entry_entities
+    item), fusion partners left out; accs: only these proteins."""
+    found: dict[str, str] = {}
+    for e in (ent or {}).get("polymer_entities") or []:
+        ups = [u for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []
+               if u not in FUSION_UNIPROT and (accs is None or u in accs)]
+        if ups and e.get("rcsb_id"):
+            found[str(e["rcsb_id"]).rsplit("_", 1)[-1]] = ups[0]
+    return found
+
+
+def nothing_to_count(pdb: str, ext: dict, fam: dict, ents: dict, every=()) -> bool:
+    """counted_barrels has no chain to look at in this structure (with seg=None): none of
+    its proteins is an outer-membrane protein and it is not one of `every`, or has more
+    than VOTE_MAX_ENTITIES proteins. No download is needed to say it has no membrane barrel."""
+    if outer_membrane_proteins((ext.get(pdb) or {}).get("kw"), (fam.get(pdb) or {}).get("ipr")):
+        return False
+    return pdb not in every or len(protein_entities(ents.get(pdb))) > VOTE_MAX_ENTITIES
+
+
 def counted_barrels(ids: list[str], ext: dict, fam: dict, seg: dict | None = None,
                     ents: dict | None = None, cov: dict | None = None, feats: dict | None = None,
                     every=()) -> dict[str, dict[str, dict]]:
@@ -275,9 +296,10 @@ def counted_barrels(ids: list[str], ext: dict, fam: dict, seg: dict | None = Non
     (the barrel's residues in the chain's own numbering)[, "upTo"], and for a barrel made
     by several chains "chains" and "perChain"}}}.
 
-    A structure that was counted and has no such barrel maps to {}; a structure that could
-    not be counted (the PDB could not serve it, it is too large, the network failed) is
-    left out: "not counted" is not "no barrel".
+    A structure that was counted and has no such barrel, or has no chain to look at
+    (nothing_to_count), maps to {}; a structure that could not be counted (the PDB could
+    not serve it, it is too large, the network failed) is left out: "not counted" is not
+    "no barrel".
 
     Only chains of outer_membrane_proteins are looked at (one small download per protein,
     cached; see barrel.py), and only a ring that lies in the protein's membrane part is
@@ -303,15 +325,10 @@ def counted_barrels(ids: list[str], ext: dict, fam: dict, seg: dict | None = Non
     ents = ents if ents is not None else rcsb.entry_entities(need)
     owner: dict[str, dict[str, str]] = {}
     for pdb in need:
-        found: dict[str, str] = {}
-        for e in (ents.get(pdb) or {}).get("polymer_entities") or []:
-            ups = [u for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []
-                   if u not in FUSION_UNIPROT]
-            hit = ups if pdb in votes else [u for u in ups if u in todo[pdb]]
-            if hit and e.get("rcsb_id"):
-                found[str(e["rcsb_id"]).rsplit("_", 1)[-1]] = hit[0]
+        found = protein_entities(ents.get(pdb), None if pdb in votes else todo[pdb])
         if pdb in votes and len(found) > VOTE_MAX_ENTITIES:
-            continue  # a large complex with no outer-membrane protein: not counted
+            out[pdb] = {}  # a large complex with no outer-membrane protein: nothing in it to count
+            continue
         owner[pdb] = found
     res = barrel_mod.barrel_counts({pdb: sorted(v) for pdb, v in owner.items() if v})
     found_any = [pdb for pdb, by_ent in owner.items()

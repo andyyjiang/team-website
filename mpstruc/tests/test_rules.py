@@ -509,10 +509,52 @@ def test_an_uncounted_bam_complex_is_not_sent_to_review():
     lead = _bam()
     apply_rules([lead], _kb(), RULED, {"9PXG": {}}, {"9PXG": {"BAMA2"}}, {}, {})
     assert lead["placement"] == "review" and lead["ruleCheck"]["status"] == "no-barrel"
-    # A structure with no outer-membrane protein has nothing to count: the pore still goes to review.
+    # A structure with no outer-membrane protein and too many proteins to be one barrel
+    # protein has nothing to count ({}: rule_inputs, even when the server is down): the pore
+    # still goes to review.
     pore = _cand("9AAV", "parent", AT, rule="new-protein", uniprot=("NUP",), membrane=0.171)
-    apply_rules([pore], _kb(), RULED, {}, {}, {}, {})
+    apply_rules([pore], _kb(), RULED, {"9AAV": {}}, {}, {}, {})
     assert pore["placement"] == "review" and pore["subgroup"] is None
+    # A small one (invasin: no outer-membrane keyword) whose chains would have been counted
+    # because of where it is suggested, and could not be: left as it is, like the BAM complex.
+    inv = _cand("9INV", "parent", AT, rule="new-protein", uniprot=("INVASIN",), membrane=0.3)
+    assert apply_rules([inv], _kb(), RULED, {}, {}, {}, {}) == []
+    assert (inv["placement"], inv["subgroup"], inv["ruleCheck"]["status"]) == ("parent", AT, "unchecked")
+
+
+def test_when_the_coordinate_server_is_down_only_structures_with_nothing_to_count_have_no_barrel(monkeypatch):
+    from mpstruc import automation, membrane
+    one = lambda acc: {"rcsb_id": f"X_{acc}", "rcsb_polymer_entity_container_identifiers": {"uniprot_ids": [acc]}}
+    ents = {"9PXG": {"polymer_entities": [one("BAMA2")]}, "9INV": {"polymer_entities": [one("INVASIN")]},
+            "9AAV": {"polymer_entities": [one(f"NUP{k}") for k in range(membrane.VOTE_MAX_ENTITIES + 1)]},
+            "9OTH": {"polymer_entities": [one("SOLUBLE")]}}
+    ext = {"9PXG": {"kw": {"BAMA2": ["KW-0998"]}}, "9INV": {"kw": {"INVASIN": []}}, "9AAV": {"kw": {}}, "9OTH": {"kw": {}}}
+    monkeypatch.setattr(automation.rcsb, "entry_extras", lambda ids: {p: ext[p] for p in ids})
+    monkeypatch.setattr(automation.rcsb, "entry_families", lambda ids: {p: {"ipr": {}} for p in ids})
+    monkeypatch.setattr(automation.rcsb, "entry_entities", lambda ids: {p: ents[p] for p in ids})
+
+    def down(*a, **k):
+        raise OSError("models.rcsb.org unreachable")
+    monkeypatch.setattr(membrane, "counted_barrels", down)
+    props = [_bam(), _cand("9INV", "parent", AT, rule="new-protein", uniprot=("INVASIN",), membrane=0.3),
+             _cand("9AAV", "parent", AT, rule="new-protein", uniprot=("NUP0",), membrane=0.171),
+             # only a top vote is a ruled subfamily: its chains are not counted on the vote
+             {**_cand("9OTH", "parent", "G01-S001", rule="new-protein", uniprot=("SOLUBLE",)), "alternatives": [{"subgroup": AT}]}]
+    barrels, om, _ = automation.rule_inputs(props, RULED)
+    assert barrels == {"9AAV": {}, "9OTH": {}} and om["9PXG"] == {"BAMA2"}
+    apply_rules(props, _kb(), RULED, barrels, om, {}, {})
+    assert [(c["placement"], c["subgroup"], (c.get("ruleCheck") or {}).get("status")) for c in props[:3]] == \
+        [("parent", OMP, "unchecked"), ("parent", AT, "unchecked"), ("review", None, "no-barrel")]
+
+
+def test_a_large_complex_without_an_outer_membrane_protein_has_nothing_to_count(monkeypatch):
+    from mpstruc import membrane
+    one = lambda acc: {"rcsb_id": f"X_{acc}", "rcsb_polymer_entity_container_identifiers": {"uniprot_ids": [acc]}}
+    ents = {"9AAV": {"polymer_entities": [one(f"NUP{k}") for k in range(membrane.VOTE_MAX_ENTITIES + 1)]},
+            "9INV": {"polymer_entities": [one("INVASIN")]}}
+    monkeypatch.setattr(membrane.barrel_mod, "barrel_counts", lambda wanted: {p: None for p in wanted})  # downloads fail
+    got = membrane.counted_barrels(["9AAV", "9INV"], {}, {}, None, ents, {}, {}, every={"9AAV", "9INV"})
+    assert got == {"9AAV": {}}  # no download needed to say so; 9INV could not be counted
 
 
 CONFLICT_4C00 = [{"pdb": "4C00", "key": f"{AT}-P0011", "subgroup": AT, "count": 16, "chain": "A", "closed": True,
