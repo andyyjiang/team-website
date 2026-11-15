@@ -10,18 +10,33 @@ module measures it:
   checks whether the curators' own text for that structure (the condition
   part of the entry name, its description, the related line) mentions each
   one. Per chemical component and per ligand class this gives 'seen in N
-  structures, named in M', split by whether the PDB title mentions the ligand.
-  The result is mpstruc/ligand_usage.json.
+  structures, named in M', split by what the PDB title says of the ligand
+  (situation()): it mentions it ('title': by a name, or by a family word such
+  as 'PIP2' or a common name that fits its chemical names), it may mean it
+  ('guess': an abbreviation, or a compound the title names that is credited
+  to this ligand only because no other is left), or neither ('none'). The
+  result is mpstruc/ligand_usage.json.
 * DECIDE (`decide`). For a ligand of a new structure: the rate at which
   curators named this component (or, for a component mpstruc has rarely or
-  never seen, its class) in the same situation (title mentions it / does
-  not), compared with a threshold chosen on tuning families. Every decision
-  comes with a plain-English reason for the curators. 'The title mentions
-  it' is listing.ligands_in_title, the same test in learning and deciding.
-  (The paper's title was tried as a second place to look; it did not help.)
+  never seen, its class) in the same situation, compared with a threshold
+  chosen on tuning families. Every decision comes with a plain-English reason
+  for the curators. What the title says is listing.ligands_in_title, the same
+  test in learning and deciding. (The paper's title was tried as a second
+  place to look; it did not help.)
 * MEASURE (`tune`, `score`). Families of entries are split 60/20/20: usage is
   learned on the first part, the rule chosen on the second, and precision
   and recall of 'ligand named' reported on the third, which nothing saw.
+  'Named' is what the text matcher found, not a curator's own record: about a
+  quarter of the positive labels are inferred by elimination (how='sole'), and
+  where curators copy a title word the label and the 'guess' situation agree by
+  construction. ligand_usage.json therefore also holds the score on labels read
+  in the text only, and the score for each situation: almost all of the gain
+  over naming every drug-like ligand is made where the title does not mention
+  the ligand, and that is also where the rule is weakest (about one in two).
+
+A ligand's name inside a protein's name ('ATP synthase', 'IP3 receptor',
+'fucoxanthin chlorophyll a/c-binding protein') is not a mention, in titles and
+in curators' text alike.
 
 Classes come from the chemical component's own properties (formula, weight,
 type, SMILES) and name patterns, never from a list of 'known' ligands, so a
@@ -47,7 +62,7 @@ HARD_EXCLUDE = {"HOH", "DOD", "UNX", "UNL", "UNK"}
 CORPUS_QUERY = (
     "query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id struct { title } "
     "rcsb_primary_citation { title } "
-    "polymer_entities { rcsb_polymer_entity { pdbx_description } } "
+    "polymer_entities { rcsb_polymer_entity { pdbx_description } entity_poly { rcsb_sample_sequence_length } } "
     "nonpolymer_entities { rcsb_nonpolymer_entity { pdbx_description } "
     "nonpolymer_comp { chem_comp { id name } } } } }")
 COMP_QUERY = (
@@ -60,21 +75,38 @@ COMP_QUERY = (
 def _cached_fetch(cache_name: str, ids: list[str], query: str, field: str, key, batch: int,
                   slim=lambda x: x) -> dict[str, dict | None]:
     """ids -> records from the PDB's GraphQL API, kept in cache/<cache_name>
-    (a component or a released entry never changes in the ways used here)."""
+    (a component or a released entry never changes in the ways used here).
+    An id is cached as None only when the PDB answered and does not know it. A
+    failed request (network down, or an answer without data) caches nothing: those
+    ids are left out of the result, which still holds everything already cached,
+    and are asked for again on the next call."""
     from . import rcsb
     path = rcsb.CACHE_DIR / cache_name
     cache: dict = json.loads(path.read_text()) if path.exists() else {}
     todo = sorted({i.upper() for i in ids if i} - cache.keys())
+    failed = None
     for i in range(0, len(todo), batch):
         chunk = todo[i:i + batch]
-        data = rcsb._post_json(rcsb.GRAPHQL, {"query": query, "variables": {"ids": chunk}})
-        found = {key(e): slim(e) for e in (data.get("data") or {}).get(field) or [] if e}
+        try:
+            data = rcsb._post_json(rcsb.GRAPHQL, {"query": query, "variables": {"ids": chunk}})
+            got = (data.get("data") or {}).get(field)
+            if got is None:  # HTTP 200 with {errors: [...], data: null}: no answer, not 'unknown'
+                raise RuntimeError(f"the PDB returned no data ({str(data.get('errors'))[:200]})")
+        except Exception as err:  # nothing is cached for what was not fetched: it is asked for again next time
+            failed = err
+            break
+        found = {key(e): slim(e) for e in got if e}
         for cid in chunk:
-            cache[cid] = found.get(cid)
+            cache[cid] = found.get(cid)  # None: the PDB answered and does not know this id
         if (i // batch) % 10 == 9 or i + batch >= len(todo):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
-    return {i: cache.get(i.upper()) for i in ids}
+    if failed:
+        if cache:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(cache))
+        print(f"ligands: could not fetch part of {cache_name} ({failed}); using what is cached")
+    return {i: cache[i.upper()] for i in ids if i and i.upper() in cache}
 
 
 def _slim_comp(e: dict) -> dict:
@@ -94,9 +126,9 @@ def chem_comps(ids: list[str], batch: int = 150) -> dict[str, dict | None]:
 
 
 def corpus_entries(ids: list[str], batch: int = 100) -> dict[str, dict | None]:
-    """Title, citation title, protein names and non-polymer ligands per PDB entry;
-    cached in cache/ligand_corpus.json."""
-    return _cached_fetch("ligand_corpus.json", ids, CORPUS_QUERY, "entries", lambda e: e.get("rcsb_id"), batch)
+    """Title, citation title, protein names and chain lengths, and non-polymer ligands
+    per PDB entry; cached in cache/ligand_corpus_v2.json."""
+    return _cached_fetch("ligand_corpus_v2.json", ids, CORPUS_QUERY, "entries", lambda e: e.get("rcsb_id"), batch)
 
 
 # ---------------------------------------------------------------- ligand classes
@@ -115,7 +147,7 @@ _ELEMENT_ION = re.compile(
     r"gold|silver|lead|xenon|krypton|argon|aluminum|aluminium)\b[ (]*(?:[IV]+|\d?[+-])?\)? ?(?:ion|atom)?$", re.I)
 _COFACTOR = re.compile(
     r"\bha?eme?\b|porphyrin|chlorophyll|chlorin\b|pheophytin|caroten|lutein|xanthin|lycopene|spheroiden|rhodopin|"
-    r"neurosporene|quinone|quinol\b|flavin|nicotinamide|retinal\b|retinol|cobalamin|pyridoxal|thiamin|molybd|cluster|"
+    r"neurosporene|quinone|quinol\b|(?<!thio)flavin|nicotinamide|retinal\b|retinol|cobalamin|pyridoxal|thiamin|molybd|cluster|"
     r"phycocyanobilin|phycoerythrobilin|phycourobilin|biliverdin|phytochromobilin|echinenone|spirilloxanthin|"
     r"lipoic|tocopher|plastoquin|\bcoenzyme q|bacteriochlor|dinuclear copper", re.I)
 _NUCLEOTIDE = re.compile(r"adenosine|guanosine|uridine|cytidine|thymidine|inosine|adenyl|guanyl|uridyl|cytidyl|"
@@ -256,6 +288,25 @@ def comp_terms(comp: dict, description: str = "") -> list[str]:
     return out
 
 
+# In text reduced by _forms(): what follows a ligand's name when it is part of a protein's
+# name ('ATP synthase', 'IP3 receptor', 'fucoxanthin chlorophyll a/c-binding protein').
+_PROTEIN_AFTER = re.compile(
+    r"(?:(?:ions?|\d\w*|[a-z]) ){0,2}(?:synthases?|synthetases?|receptors?|channels?|transporters?|pumps?|exchangers?|"
+    r"symporters?|antiporters?|cotransporters?|uniporters?|carriers?|importers?|exporters?|permeases?|translocators?|"
+    r"[a-z0-9]*binding|gated|dependent|sensitive|sensing|sensors?|(?!(?:ph|b|rele|c|incre|dise)ases? )[a-z]{3,}ases?) |"
+    r"(?:[a-z0-9]+ ){0,4}[a-z0-9]*binding (?:proteins?|cassette) ")
+
+
+def _found(k: str, f: str) -> bool:
+    """Is the name `k` in the text `f` (both as _forms() gives them) other than inside a protein's name?"""
+    i = f.find(k)
+    while i >= 0:
+        if not _PROTEIN_AFTER.match(f, i + len(k)):
+            return True
+        i = f.find(k, i + 1)
+    return False
+
+
 def mentions(text: str, comp: dict, description: str = "", terms: list[str] | None = None) -> str | None:
     """The way `text` names the chemical component, or None if it does not.
 
@@ -263,7 +314,9 @@ def mentions(text: str, comp: dict, description: str = "", terms: list[str] | No
     differ: 'AMPPNP' = 'AMP-PNP'); the bare chemical ID counts only in capitals
     ('ATP', never 'act' for ACT). A single-atom ion counts when the text speaks
     of the ion ('Ca2+', 'zinc-bound'), not of a protein named after it
-    ('calcium channel'). 'X-free' and 'without X' are not mentions."""
+    ('calcium channel'); likewise any other name inside a protein's name ('ATP
+    synthase', 'chlorophyll a/c-binding protein') is not the ligand. 'X-free'
+    and 'without X' are not mentions."""
     from . import listing
     cid = comp.get("id") or ""
     text = _NEGATED.sub(" ", plain(text))
@@ -271,14 +324,16 @@ def mentions(text: str, comp: dict, description: str = "", terms: list[str] | No
         m = listing.ion_in_text(cid, text)
         return m[0] if m else None
     if len(cid) >= 3 and re.search(r"[A-Z]", cid) and cid not in ID_WORDS and \
-            re.search(rf"(?<![A-Za-z0-9]){re.escape(cid)}(?![A-Za-z0-9])", text):
+            re.search(rf"(?-i:{listing.name_pattern(cid)})(?!{listing.NAME_IN_PROTEIN})", text):
         return cid
+    if cid in listing.CASED_ALIAS and re.search(listing.CASED_ALIAS[cid], text):
+        return re.search(listing.CASED_ALIAS[cid], text)[0]
     label = listing.COMMON.get(cid) or ""
     if re.fullmatch(r"[A-Z][a-z]{2}", label) and re.search(rf"(?<![A-Za-z0-9-]){label}(?![A-Za-z0-9-])", text):
         return label  # a free amino acid by its three-letter code ('with bound Arg', not 'Arg123' or 'Ala-Gln')
     forms = _forms(text)
     for t in terms if terms is not None else comp_terms(comp, description):
-        if any(k in f for k in _forms(t) for f in forms):
+        if any(_found(k, f) for k in _forms(t) for f in forms):
             return t
     return None
 
@@ -344,22 +399,28 @@ def _comp_entity(comp: dict, description: str = "") -> dict:
 
 def observe(db, corpus: dict[str, dict | None] | None = None, comps: dict[str, dict | None] | None = None) -> list[dict]:
     """One record per (structure in mpstruc, non-polymer ligand in its PDB entry):
-    {pdb, entry, family, kind, id, cls, named, how, title, cit, apo}.
+    {pdb, entry, family, kind, id, cls, named, how, by, said, title, cit, apo}.
 
     `named`: the curators' text for the structure mentions the ligand. `how`
     says on what evidence: 'direct' (its ID, name or a synonym is in the text),
     'fit' (the text names a compound by a code or abbreviation that fits this
     ligand's chemical name) or 'sole' (the text names one more compound and
-    this is the structure's only other small-molecule ligand). `title` / `cit`:
-    the PDB title / the paper's title mentions it; `apo`: the title says the
-    structure is unliganded."""
+    this is the structure's only other small-molecule ligand). `said`: how the
+    PDB title mentions it (situation(): 'title', 'guess' or 'none'); `title`:
+    said == 'title'; `cit`: the paper's title mentions it; `apo`: the PDB title
+    says the structure is unliganded."""
     from . import listing
     texts = curator_texts(db)
     corpus = corpus if corpus is not None else corpus_entries(sorted(texts))
     ids = sorted({((n.get("nonpolymer_comp") or {}).get("chem_comp") or {}).get("id") for v in corpus.values() if v
                   for n in v.get("nonpolymer_entities") or []} - {None})
     comps = comps if comps is not None else chem_comps(ids)
-    cls_of = {c: classify(comps[c] or {"id": c}) for c in ids}
+    cls_of = {c: classify(comps.get(c) or {"id": c}) for c in ids}
+    n_structures: dict[str, int] = defaultdict(int)   # mpstruc structures with each component
+    for pdb in texts:
+        for cid in {((n.get("nonpolymer_comp") or {}).get("chem_comp") or {}).get("id")
+                    for n in (corpus.get(pdb) or {}).get("nonpolymer_entities") or []}:
+            n_structures[cid] += 1
     out = []
     for pdb, ctx in sorted(texts.items()):
         ent = corpus.get(pdb)
@@ -379,37 +440,88 @@ def observe(db, corpus: dict[str, dict | None] | None = None, comps: dict[str, d
             hit = mentions(ctx["text"], comp, desc, terms)
             rows.append({"pdb": pdb, "entry": ctx["entry"], "family": ctx["family"], "kind": ctx["kind"], "id": cid,
                          "cls": cls_of[cid], "named": bool(hit), "how": "direct" if hit else None, "by": hit,
-                         "title": False,
+                         "title": False, "said": "none",
                          "cit": bool(mentions(cit, comp, desc, terms)), "apo": bool(APO_TITLE.search(title)),
                          "_names": [comp.get("name") or "", desc] + [s[0] for s in comp.get("synonyms") or []],
                          "_w": comp.get("weight") or 0})
         in_title = listing.ligands_in_title({"polymer_entities": ent.get("polymer_entities"), "nonpolymer_entities": [
-            _comp_entity(comps.get(r["id"]) or {"id": r["id"], "name": r["_names"][0]}, r["_names"][1]) for r in rows]}, title)
+            _comp_entity(comps.get(r["id"]) or {"id": r["id"], "name": r["_names"][0]}, r["_names"][1]) for r in rows]},
+            title, seen=n_structures, classes=cls_of)
         for r in rows:
-            r["title"] = r["id"] in in_title
-        _assign_leftovers(rows, ctx["own"], ent, title)
+            r["said"] = situation(in_title.get(r["id"]))   # 'title', 'guess' or 'none'
+            r["title"] = r["said"] == "title"
+        _assign_leftovers(rows, ctx["own"], ent, title, ctx["text"])
         for r in rows:
             r.pop("_names"), r.pop("_w")
         out += rows
     return out
 
 
-# Lipid words of curators' text and what the ligand's chemical names must then contain.
-_LIPID_WORDS = [
-    (r"(?:PO|DO|DM|DP|DS|DL|SO|SA)?PC|phosphatidylcholine", r"choline|trimethylammonio|trimethylazaniumyl"),
-    (r"(?:PO|DO|DM|DP|DS|DL|SO|SA)?PE|phosphatidylethanolamine", r"ethanolamine|aminoethoxy|aminoethyl|azanylethoxy"),
-    (r"(?:PO|DO|DM|DP|DS|DL|SO|SA)?PS|phosphatidylserine", r"serine"),
-    (r"(?:PO|DO|DM|DP|DS|DL|SO|SA)?PG|phosphatidylglycerol", r"glycerol|dihydroxypropyl|bis\(oxidanyl\)propoxy"),
-    (r"PIP\d?|PI|PI\(?[\d,]+\)?P\d?|PtdIns\S*|PI\d?P|phosphatidylinositol\S*|phosphoinositide", r"inositol|cyclohexyl"),
-    (r"cholesterol|CHS|sterol", r"cholest|sterol"),
-    (r"cardiolipin|CL|CDL", r"cardiolipin"),
-    (r"LP[ACES]|S1P|DAG|diacylglycerol|(?:phospho|sphingo|glyco)?lipids?|sphingomyelin|ceramide|fatty acids?", r"."),
+# Words for a family of molecules ('PIP2', 'POPC', 'LPA', 'C22-CoA', 'ubiquinone') that a
+# PDB title or a curator's text uses for a ligand the PDB knows by a systematic name:
+# (the word, what the ligand's chemical names must then contain, the classes it may have).
+_ACYL = r"(?:PO|DO|DM|DP|DS|DL|SO|SA|L|[Ll]yso-?|NBD-|\d\d:\d[- ])?"
+_LIPIDS, _ANY = ("lipid",), ("lipid", "nucleotide", "drug", "cofactor")
+FAMILY_WORDS = [
+    (rf"(?-i:{_ACYL}PC)|PtdCho|(?:lyso-?)?phosphatidylcholines?", r"choline|trimethylammonio|trimethylazaniumyl", _LIPIDS),
+    (rf"(?-i:{_ACYL}PE)|PtdEtn|(?:lyso-?)?phosphatidylethanolamines?", r"ethanolamine|aminoethoxy|aminoethyl|azanylethoxy", _LIPIDS),
+    (rf"(?-i:{_ACYL}PS)|PtdSer|(?:lyso-?)?phosphatidylserines?", r"serine", _LIPIDS),
+    (rf"(?-i:{_ACYL}PG)|PtdGro|(?:lyso-?)?phosphatidylglycerols?", r"glycerol|dihydroxypropyl|bis\(oxidanyl\)propoxy", _LIPIDS),
+    (rf"(?-i:{_ACYL}PA)|(?:lyso-?)?phosphatidic acids?|phosphatidates?",
+     r"^(?!.*(?:choline|ammonio|azaniumyl|ethanolamine|aminoethoxy|aminoethyl|serine|inositol)).*phosph", _LIPIDS),
+    (r"PIP\d?|PI|L?PI\(?[\d,]+\)?P\d?|PtdIns\S*|PI\d?P|LPI|(?:lyso-?)?phosphatidylinositol\S*|phosphoinositides?",
+     r"inositol|cyclohexyl", _LIPIDS),
+    (r"cholesterol|CHS|sterol", r"cholest|sterol", _LIPIDS),
+    (r"cardiolipin|CL|CDL", r"cardiolipin", _LIPIDS),
+    (r"(?-i:[\w:,()-]*CoA)|[\w:,()-]*coenzyme a", r"coenzyme a|coa\b", _ANY),
+    (r"[\w-]*(?:oyl|acyl)-(?:AMP|adenylate)", r"aminopurin|adenos|adenyl", _ANY),
+    (r"\w*quino(?:ne|l)s?(?:[- ]?\d+)?|U?Q\d{1,2}|UQ|CoQ\d*|vitamin K\d?|M?K-?\d", r"quinon|quinol|naphthalenedione|naphthoquin",
+     ("cofactor", "lipid", "drug")),
+    (r"LP[ACES]|S1P|sphingosine[- ]1[- ]phosphate|DAG|diacylglycerol|(?:phospho|sphingo|glyco)?lipids?|sphingomyelin|"
+     r"ceramide|fatty acids?", r".", _LIPIDS),
 ]
 _ALKANE = re.compile(r"^n?-?[a-z]+ane$", re.I)
 
 
+def _family_core(phrase: str) -> str:
+    """'d16:1 S1P' -> 'S1P', 'L-alpha-lysophosphatidylinositol' -> 'lysophosphatidylinositol'."""
+    return re.sub(r"^(?:[A-Za-z]?\d\d:\d(?:/\d\d:\d)?[- ]|(?:L-)?alpha-)+", "", plain(phrase).strip())
+
+
+def is_family_word(phrase: str) -> bool:
+    return any(re.fullmatch(word, _family_core(phrase), re.I) for word, _, _ in FAMILY_WORDS)
+
+
+def family_picks(phrases: list[str], candidates: list[tuple]) -> dict:
+    """{ligand key: phrase} for the family words among `phrases`: each family's
+    words go to the structure's candidates (key, class, [chemical names]) of
+    that family that are not bare alkyl chains, when there are no more such
+    ligands than words for them ('C22-CoA and MCoA' with two acyl-CoA ligands;
+    'PIP2' with one inositol lipid, never with two)."""
+    out: dict = {}
+    used: set[str] = set()
+    for word, need, classes in FAMILY_WORDS:
+        said = [ph for ph in dict.fromkeys(phrases) if ph not in used and re.fullmatch(word, _family_core(ph), re.I)]
+        hits = [c for c in candidates if c[0] not in out and c[1] in classes
+                and not _ALKANE.match(c[2][0] if c[2] else "") and re.search(need, " | ".join(x or "" for x in c[2]), re.I)]
+        if hits and len(hits) <= len(said):
+            for c, ph in zip(hits, said):
+                out[c[0]] = ph
+            used.update(said)
+    return out
+
+
+# Classes a common name from a text may fit by its stems (never an ion, a buffer or a detergent).
+FIT_CLASSES = ("drug", "nucleotide", "amino acid", "lipid", "sugar", "cofactor")
+
+
 _BINDING = re.compile(r"(?:with bound|bound to|bound with|in complex with|complexed with|inhibited by|activated by|"
                       r"in (?:the )?presence of)\s+([^;,()]+)", re.I)
+
+
+# A function word ('With') or a phrase about protein chains ('5 Lhcr antennae', 'auxiliary subunit TARP gamma8').
+_NOT_A_COMPOUND = re.compile(r"^(?:with|and|the|to|of|in|by|from|for|or|bound)$|"
+                             r"\b(?:antennae?|subunits?|proteins?|chains?|domains?|protomers?|monomers?)\b", re.I)
 
 
 def _bound_phrases(text: str) -> list[str]:
@@ -418,7 +530,7 @@ def _bound_phrases(text: str) -> list[str]:
     ('with bound a full bitopic agonist C5-Quino' -> 'C5-Quino') and
     'TC-I 2014-bound' -> 'TC-I 2014'."""
     from . import listing
-    out = listing.title_names(text)
+    out = listing.compound_phrases(text)
     extra = [m[1] for m in re.finditer(r"(?<![\w-])([A-Z][\w.+-]*(?: \d+)?)-bound\b", text)]
     for m in _BINDING.finditer(text):
         for part in re.split(r"\s+and\s+|\s*/\s*|\s+plus\s+|\s*\+\s*", m[1]):
@@ -431,7 +543,7 @@ def _bound_phrases(text: str) -> list[str]:
     return out
 
 
-def _stems_fit(term: str, names: list[str]) -> bool:
+def stems_fit(term: str, names: list[str]) -> bool:
     """A common name for one of the chemical names: two separate four-letter
     stems, covering at least half of it, are found in one name
     ('carbamylcholine' in 'carbamoylcholine')."""
@@ -448,50 +560,58 @@ def _stems_fit(term: str, names: list[str]) -> bool:
     return False
 
 
-def _assign_leftovers(rows: list[dict], text: str, ent: dict, title: str) -> None:
-    """Compounds the curators' own text for the structure names that no
-    ligand's names explain ('with bound LY354740' when the PDB only has a
-    systematic name). In turn: a ligand whose chemical name shares stems with
-    the word ('fit'); for a lipid word ('PIP2', 'POPC', 'lipid'), the structure's
-    only lipid that is not a bare alkyl chain ('fit'); and when at least as
-    many unexplained compounds are named as the structure has unexplained
+def _assign_leftovers(rows: list[dict], own: str, ent: dict, title: str, text: str | None = None) -> None:
+    """Compounds the curators' text for the structure names that no ligand's
+    names explain ('with bound LY354740' when the PDB only has a systematic
+    name). In turn, how='fit': a ligand whose chemical name shares stems with
+    the word; for a family word ('PIP2', 'POPC', 'LPA', 'acyl-CoA', 'lipid'), the
+    structure's only ligand of that family that is not a bare alkyl chain; a
+    ligand whose common name the word abbreviates ('NQNO'). These read the whole
+    `text`. Then how='sole', from the structure's `own` text only (not what a
+    related structure inherits from its entry): when at least as many
+    unexplained compounds are named as the structure has unexplained
     small-molecule ligands, those ligands; when fewer, as many ligands as there
-    are compounds ('sole')."""
+    are compounds."""
     from . import listing
-    forms_named = [_forms(str(r["by"])) for r in rows if r["named"]]
+    own_phrases = {_forms(ph)[0] for ph in _bound_phrases(plain(own))}
     left = []
-    for ph in _bound_phrases(plain(text)):
+    for ph in _bound_phrases(plain(text if text is not None else own)):
         k = _forms(ph)
-        if any(k[0] in f[0] or f[0] in k[0] or k[1] in f[1] or f[1] in k[1] for f in forms_named):
+        if any(k[0] in f[0] or f[0] in k[0] or k[1] in f[1] or f[1] in k[1]
+               for f in (_forms(str(r["by"])) for r in rows if r["named"])):
             continue  # already explained by a ligand named directly
-        if listing.names_protein(ph, ent) or listing._is_antibody(ph) or \
-                listing.NOT_A_LIGAND.match(ph) or listing.MUTATION.fullmatch(ph):
-            continue  # a protein partner or a word for the sample
-        left.append(ph)
-    codes = []
-    for ph in left:
-        free = [r for r in rows if not r["named"]]
-        pick = next((r for r in free if r["cls"] in ("drug", "nucleotide", "amino acid", "lipid", "sugar", "cofactor")
-                     and len(re.sub(r"[^a-z]", "", ph.lower())) >= 6 and _stems_fit(ph, r["_names"])), None)
-        need = next((must for word, must in _LIPID_WORDS if re.fullmatch(word, ph, re.I)), None)
-        if not pick and need:
-            lipids = [r for r in free if r["cls"] == "lipid" and not _ALKANE.match(r["_names"][0])
-                      and re.search(need, " ".join(r["_names"]), re.I)]
-            pick = lipids[0] if len(lipids) == 1 else None
-            if not pick:
-                continue
+        if listing.names_protein(ph, ent) or listing._is_antibody(ph) or _NOT_A_COMPOUND.search(ph) or \
+                listing.NOT_A_LIGAND.match(ph) or listing.MUTATION.fullmatch(ph) or listing.ION_NAME.fullmatch(ph.strip()):
+            continue  # a protein partner, an ion or a word for the sample
+        pick = next((r for r in rows if not r["named"] and r["cls"] in FIT_CLASSES
+                     and len(re.sub(r"[^a-z]", "", ph.lower())) >= 6 and stems_fit(ph, r["_names"])), None)
         if pick:
             pick.update(named=True, how="fit", by=ph)
-        elif len(ph.split()) <= 4 and not listing.SETTING.match(ph):
+        else:
+            left.append(ph)
+    free = [r for r in rows if not r["named"]]
+    for i, ph in family_picks(left, [(i, r["cls"], r["_names"]) for i, r in enumerate(free)]).items():
+        free[i].update(named=True, how="fit", by=ph)
+    codes = []
+    for ph in left:
+        if is_family_word(ph):
+            continue   # a family word the ligands do not settle is nobody's
+        pick = None
+        if re.fullmatch(r"[A-Za-z][A-Za-z0-9-]{1,6}", ph) and sum(c.isupper() for c in ph) >= 2:
+            fits = [(listing._abbreviation_fit(ph, r["_names"]), r) for r in rows if not r["named"] and r["cls"] != "ion"]
+            pick = max((x for x in fits if x[0]), key=lambda x: x[0], default=(0, None))[1]
+        if pick:
+            pick.update(named=True, how="fit", by=ph)
+        elif len(ph.split()) <= 4 and not listing.SETTING.match(ph) and _forms(ph)[0] in own_phrases:
             codes.append(ph)
     # Small molecules first, then free amino acids and nucleotides; within a class the
     # ones the PDB title names, then the heaviest (a drug outweighs a stray additive).
     order = ("drug", "amino acid", "nucleotide")
     drugs = sorted((r for r in rows if not r["named"] and r["cls"] in order),
-                   key=lambda r: (order.index(r["cls"]), not r["title"], -r["_w"]))[:len(codes)]
+                   key=lambda r: (order.index(r["cls"]), r["said"] == "none", -r["_w"]))[:len(codes)]
     # A free amino acid or nucleotide only for a compound the text clearly binds ('TNCA-bound').
     strong = [ph for ph in codes if re.search(
-        rf"(?:bound|complex with|complexed with)\s+(?:\S+\s+){{0,3}}?{re.escape(ph)}|{re.escape(ph)}[- ]bound", text, re.I)]
+        rf"(?:bound|complex with|complexed with)\s+(?:\S+\s+){{0,3}}?{re.escape(ph)}|{re.escape(ph)}[- ]bound", own, re.I)]
     drugs = [r for r in drugs if r["cls"] == "drug" or strong]
     for r, ph in zip(drugs, codes + codes[-1:] * len(drugs)):
         r.update(named=True, how="sole", by=ph)
@@ -499,11 +619,34 @@ def _assign_leftovers(rows: list[dict], text: str, ent: dict, title: str) -> Non
 
 # ---------------------------------------------------------------- learned usage
 
+SITUATIONS = ("title", "guess", "none")
+SITUATION_TEXT = {
+    "title": ("the PDB title mentions it", "when the PDB title mentions them"),
+    "guess": ("the PDB title names a compound that no ligand's name explains, which may be this one",
+              "when the PDB title names a compound that may be them"),
+    "none": ("the PDB title does not mention it", "when the PDB title does not mention them")}
+
+
+def situation(how) -> str:
+    """How firmly the PDB title mentions a ligand, from listing.ligands_in_title's
+    answer: 'title' (by a name, its ID, or a family word or common name that fits
+    its chemical names), 'guess' (an abbreviation that could be read from its
+    name, or a compound the title names that is credited to it only because no
+    other ligand is left), 'none'. The two are counted apart: curators name the
+    ligand in most 'title' cases, far fewer 'guess' cases."""
+    if how in (True, "name", "fit", "title"):
+        return "title"
+    return "guess" if how in ("abbreviation", "compound", "guess") else "none"
+
+
 def _tally(rows: list[dict]) -> dict:
-    """n/named over all rows, and the same where the PDB title mentions the ligand."""
-    t = [r for r in rows if r["title"]]
+    """n/named over all rows, the same where the PDB title mentions the ligand (_title)
+    and where the title only may mean it (_guess)."""
+    t = [r for r in rows if r["said"] == "title"]
+    g = [r for r in rows if r["said"] == "guess"]
     return {"n": len(rows), "named": sum(r["named"] for r in rows),
-            "n_title": len(t), "named_title": sum(r["named"] for r in t)}
+            "n_title": len(t), "named_title": sum(r["named"] for r in t),
+            "n_guess": len(g), "named_guess": sum(r["named"] for r in g)}
 
 
 RARE = 5  # a component seen in at most this many structures stands for 'one nobody has seen'
@@ -512,7 +655,7 @@ RARE = 5  # a component seen in at most this many structures stands for 'one nob
 def summarise(obs: list[dict], comps: dict[str, dict | None] | None = None, rule: dict | None = None,
               meta: dict | None = None) -> dict:
     """Observations -> the ligand_usage.json document:
-    comps    {id: {name, class, n, named, n_title, named_title}}
+    comps    {id: {name, class, n, named, n_title, named_title, n_guess, named_guess}}
     classes  {class: {all: {...}, rare: {...}}}; 'rare' counts only components seen
              in at most RARE structures, the best guide to a component never seen
     overall  the same over every ligand
@@ -555,15 +698,18 @@ def load_usage(path: Path | str | None = None) -> dict:
     return _USAGE[p]
 
 
-def _split(t: dict | None, said: bool) -> tuple[int, int]:
-    """(structures, named) for the situation: the PDB title mentions the ligand, or does not."""
-    t = t or {}
-    if said:
+def _split(t: dict | None, said) -> tuple[int, int]:
+    """(structures, named) for one situation: the PDB title mentions the ligand, may mean it, or neither."""
+    t, sit = t or {}, situation(said)
+    if sit == "title":
         return t.get("n_title", 0), t.get("named_title", 0)
-    return t.get("n", 0) - t.get("n_title", 0), t.get("named", 0) - t.get("named_title", 0)
+    if sit == "guess":
+        return t.get("n_guess", 0), t.get("named_guess", 0)
+    return (t.get("n", 0) - t.get("n_title", 0) - t.get("n_guess", 0),
+            t.get("named", 0) - t.get("named_title", 0) - t.get("named_guess", 0))
 
 
-def rate(usage: dict, cid: str, cls: str, said: bool) -> dict:
+def rate(usage: dict, cid: str, cls: str, said) -> dict:
     """How often curators named this component, and its class, in this situation.
     `p` is the component's own rate pulled towards its class's rate by `prior`
     pseudo-structures: a component seen 200 times speaks for itself, one seen
@@ -573,7 +719,7 @@ def rate(usage: dict, cid: str, cls: str, said: bool) -> dict:
     cn, cm = _split(c.get("rare"), said)
     an, am = _split(c.get("all"), said)
     on, om = _split(usage.get("overall"), said)
-    overall = om / on if on else (0.9 if said else 0.1)
+    overall = om / on if on else {"title": 0.9, "guess": 0.5, "none": 0.1}[situation(said)]
     # The class's rate among rarely seen components, itself steadied by the whole class and all ligands.
     class_rate = (cm + 2 * ((am + 2 * overall) / (an + 2))) / (cn + 2)
     k = (usage.get("rule") or {}).get("prior", 2.0)
@@ -586,11 +732,12 @@ def class_of(comp: dict, usage: dict | None = None) -> str:
     return ((usage.get("comps") or {}).get(comp.get("id") or "") or {}).get("class") or classify(comp)
 
 
-def decide(comp: dict, said: bool, usage: dict | None = None, cls: str | None = None) -> dict:
+def decide(comp: dict, said, usage: dict | None = None, cls: str | None = None) -> dict:
     """Would curators name this ligand? -> {id, name, class, decision, rate, why}.
 
-    `comp` is the chemical component ({id, name, ...}), `said` whether the PDB
-    title mentions it (listing.ligands_in_title). Named when the rate at which
+    `comp` is the chemical component ({id, name, ...}), `said` how the PDB
+    title mentions it (listing.ligands_in_title's answer, see situation();
+    True / False also do). Named when the rate at which
     curators named it in this situation (see rate()) reaches the threshold
     chosen on tuning data; water and unknown atoms are never named."""
     usage = usage if usage is not None else load_usage()
@@ -602,8 +749,7 @@ def decide(comp: dict, said: bool, usage: dict | None = None, cls: str | None = 
         return {**out, "decision": "omitted", "rate": 0.0, "why": "water or an unidentified atom: never a named ligand"}
     r = rate(usage, cid, cls, said)
     named = r["p"] >= (usage.get("rule") or {}).get("threshold", 0.5)
-    where = "the PDB title mentions it" if said else "the PDB title does not mention it"
-    when = "when the PDB title mentions them" if said else "when the PDB title does not mention them"
+    where, when = SITUATION_TEXT[situation(said)]
     label = CLASS_LABEL.get(cls, cls)
     if r["n"] >= 5:
         why = (f"curators named {out['name']} in {r['named']} of the {r['n']} mpstruc structures that have it "
@@ -626,19 +772,32 @@ def _fold(family: str) -> str:
     return "train" if h < 6 else "tune" if h < 8 else "test"
 
 
+def predict(r: dict, usage: dict, comps: dict | None = None) -> bool:
+    """Would the rule name the ligand of observation `r`? (As listing.ligands does: an
+    apo / unliganded title names nothing it does not itself mention.)"""
+    d = decide((comps or {}).get(r["id"]) or {"id": r["id"]}, r["said"], usage, cls=r["cls"])
+    return d["decision"] == "named" and not (r["apo"] and r["said"] == "none")
+
+
 def score(rows: list[dict], usage: dict, comps: dict | None = None) -> dict:
     """Precision, recall and F1 of 'ligand named' as decide() would call it, against the curators."""
     comps = comps or {}
     tp = fp = fn = 0
     for r in rows:
-        d = decide(comps.get(r["id"]) or {"id": r["id"]}, r["title"], usage, cls=r["cls"])
-        pred = d["decision"] == "named" and not (r["apo"] and not r["title"])
+        pred = predict(r, usage, comps)
         tp += pred and r["named"]
         fp += pred and not r["named"]
         fn += (not pred) and r["named"]
     p, rc = (tp / (tp + fp) if tp + fp else 0.0), (tp / (tp + fn) if tp + fn else 0.0)
     return {"precision": round(p, 3), "recall": round(rc, 3), "f1": round(2 * p * rc / (p + rc), 3) if p + rc else 0.0,
             "ligands": len(rows), "named": sum(r["named"] for r in rows)}
+
+
+# Where the choice is open, a ligand is named when curators named comparable ones in two of
+# five structures: a ligand named in error is struck out at a glance (ligandNotes says why it
+# is there), a missing one has to be looked up. At 0.3 a single mpstruc structure that names
+# a detergent is enough to name it everywhere; at 0.5 no drug the title does not mention is named.
+LEAN = 0.4
 
 
 def tune(obs: list[dict], comps: dict | None = None) -> tuple[dict, dict]:
@@ -652,15 +811,32 @@ def tune(obs: list[dict], comps: dict | None = None) -> tuple[dict, dict]:
     for prior in (1.0, 2.0, 4.0):
         for threshold in (0.3, 0.4, 0.5, 0.6):
             rule = {"threshold": threshold, "prior": prior}
-            tried.append((score(folds["tune"], summarise(folds["train"], comps, rule), comps)["f1"], rule))
-    top = max(f1 for f1, _ in tried)
-    # The scores form a plateau: among settings within 0.005 of the best, keep the plainest
-    # (an even-odds threshold, a prior of two structures), so a rebuild does not flip between equals.
+            sc = score(folds["tune"], summarise(folds["train"], comps, rule), comps)
+            tried.append((sc["f1"], sc["recall"], rule))
+    top = max(x[0] for x in tried)
+    # The scores form a plateau (F1 within 0.005 from a threshold of 0.3 to 0.6): what moves
+    # along it is whether a drug-like ligand the title does not mention is named, which curators
+    # do about four times in ten, and no split of the data settles that. So among equals the
+    # threshold nearest LEAN is kept, then the plainest prior, and a rebuild does not flip
+    # between equals.
     best = min((x for x in tried if x[0] >= top - 0.005),
-               key=lambda x: (abs(x[1]["threshold"] - 0.5), abs(x[1]["prior"] - 2.0)))
+               key=lambda x: (abs(x[2]["threshold"] - LEAN), abs(x[2]["prior"] - 2.0)))
+    best = (best[0], best[2])
     rule = best[1]
-    held = score(folds["test"], summarise(folds["train"] + folds["tune"], comps, rule), comps)
-    return rule, {"tune_f1": best[0], **held, "families": len({r["family"] for r in folds["test"]})}
+    usage = summarise(folds["train"] + folds["tune"], comps, rule)
+    test = folds["test"]
+    held = score(test, usage, comps)
+    brief = lambda rows: {k: v for k, v in score(rows, usage, comps).items() if k != "f1" or rows}
+    return rule, {
+        "tune_f1": best[0], **held, "families": len({r["family"] for r in test}),
+        # The same held-out ligands by what the PDB title says of them: the gain over naming
+        # nothing is made where the title does not mention the ligand, and is smallest there.
+        "by_situation": {s: brief([r for r in test if r["said"] == s]) for s in SITUATIONS},
+        # 'sole' labels are inferred by elimination, not read in the curators' text: the
+        # score without them (learned and measured on text matches only) is the firmer one.
+        "text_matches_only": score([r for r in test if r["how"] != "sole"],
+                                   summarise([r for r in folds["train"] + folds["tune"] if r["how"] != "sole"],
+                                             comps, rule), comps)}
 
 
 def build(out: Path = USAGE_PATH, exclude: set[str] = frozenset(), xml: str | None = None) -> dict:
@@ -680,10 +856,16 @@ def build(out: Path = USAGE_PATH, exclude: set[str] = frozenset(), xml: str | No
     doc = summarise(obs, comps, rule, {
         "source": db.meta.get("timeStamp") or "", "structures": len({r["pdb"] for r in obs}),
         "ligands": len(obs), "held_out": held,
+        "labels": {"named": sum(r["named"] for r in obs),
+                   **{f"by_{h}": sum(r["how"] == h for r in obs) for h in ("direct", "fit", "sole")}},
         "note": "Built by `python -m mpstruc.ligands build` from the mpstruc snapshot: for each chemical component "
                 "(and class), in how many mpstruc structures it is a ligand (n) and in how many of those the "
                 "curators' text names it (named); n_title / named_title count the structures whose PDB title "
-                "mentions it."})
+                "mentions it by a name, n_guess / named_guess those where the title only names an abbreviation or "
+                "an unexplained compound that may be it. 'named' is what a text matcher found, not a curator's "
+                "own record: labels.by_direct were read in the curators' text, by_fit matched by a code or family "
+                "word, by_sole inferred because the text names one more compound than the ligands explain. "
+                "held_out.text_matches_only is the score without the inferred labels."})
     dump(doc, out)
     return doc
 
@@ -694,15 +876,24 @@ def _pct(a: int, b: int) -> str:
 
 def report(doc: dict) -> str:
     """The class table of a usage document, as text."""
-    rows = [f"{'class':12s} {'title mentions it':>22s} {'title does not':>22s}   (rarely seen components only)"]
+    rows = [f"{'class':11s} {'title mentions it':>17s} {'title may mean it':>17s} {'title does not':>17s}   "
+            f"(rarely seen components only)"]
     for c, v in doc["classes"].items():
-        (tn, tm), (nn, nm) = _split(v["all"], True), _split(v["all"], False)
-        (rtn, rtm), (rnn, rnm) = _split(v["rare"], True), _split(v["rare"], False)
-        rows.append(f"{c:12s} {_pct(tm, tn):>22s} {_pct(nm, nn):>22s}   {_pct(rtm, rtn):>16s} {_pct(rnm, rnn):>16s}")
+        cells = [_pct(*reversed(_split(v[k], s))) for k in ("all", "rare") for s in SITUATIONS]
+        rows.append(f"{c:11s} {cells[0]:>17s} {cells[1]:>17s} {cells[2]:>17s}   {cells[3]:>15s} {cells[4]:>13s} {cells[5]:>14s}")
     h = doc["meta"].get("held_out") or {}
     rows.append(f"rule: named when the rate reaches {doc['rule']['threshold']} (prior {doc['rule']['prior']}); "
                 f"held-out families: precision {h.get('precision')}, recall {h.get('recall')}, F1 {h.get('f1')} "
                 f"on {h.get('ligands')} ligands of {h.get('families')} families")
+    for s, x in (h.get("by_situation") or {}).items():
+        rows.append(f"  {SITUATION_TEXT[s][0]}: precision {x.get('precision')}, recall {x.get('recall')}, "
+                    f"{x.get('named')} named of {x.get('ligands')}")
+    t = h.get("text_matches_only") or {}
+    lab = doc["meta"].get("labels") or {}
+    if t:
+        rows.append(f"  labels read in the curators' text only ({lab.get('by_sole')} of {lab.get('named')} 'named' labels are "
+                    f"inferred by elimination and left out): precision {t.get('precision')}, recall {t.get('recall')}, "
+                    f"F1 {t.get('f1')}")
     return "\n".join(rows)
 
 

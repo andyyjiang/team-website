@@ -21,8 +21,9 @@ entries of the 2 and 15 Oct 2026 snapshots):
   differ: the title words that set them apart are added.
 * Which bound ligands are named is learned from mpstruc (ligands.py, ligand_usage.json):
   per chemical component and per ligand class, how often curators named it when the
-  PDB title does / does not mention it. `ligandNotes` in the draft says, for every
-  ligand of the PDB entry, whether it is named and why.
+  PDB title mentions it, may mean it, or does not. `ligandNotes` in the draft says, for
+  every ligand of the PDB entry, whether it is named and why (plain text, HTML-escaped
+  like the other fields: show it as HTML or unescape it, never escape it again).
 * Names and descriptions get mpstruc's <sub>/<sup> markup (markup.py).
   Bibliography titles stay as the journal printed them: none of the 803
   titles curated for 2024-2026 papers carries markup.
@@ -71,6 +72,15 @@ ION_NOUN = (r"(?:(?:ions?\s+|\d[\w.]*\s+)?(?:channels?|transporters?|pumps?|ATPa
             r"co-?transporters?|uniporters?|carriers?|importers?|exporters?|transport\b|efflux|uptake|activated|"
             r"dependent|gated|selective|sensing|transporting|conducting|release|permeable|coupled|"
             r"sensitive|leak))")
+# 'ATP synthase', 'IP3 receptor', 'glucose transporter', 'ATP-binding cassette', 'ATP/ADP carrier',
+# 'Serotonin 1D (5-HT1D) receptor',
+# 'fucoxanthin chlorophyll a/c-binding protein': a ligand's name inside a protein's name.
+LIGAND_NOUN = (r"(?:(?:ions?\s+|\d[\w.]*[\s-]+)?(?:\([^)]*\)[\s-]*)?(?:synthases?|synthetases?|receptors?|channels?|transporters?|pumps?|"
+               r"exchangers?|symporters?|antiporters?|co-?transporters?|uniporters?|carriers?|importers?|exporters?|"
+               r"permeases?|translocators?|binding|gated|dependent|sensitive|sensing|sensors?|"
+               r"(?!(?:ph|b|rele|c|incre|dise)ases?\b)[a-z]{3,}ases?)\b)")
+NAME_IN_PROTEIN = (rf"(?i:(?:/[\w+-]+)?[\s-]*{LIGAND_NOUN}|"
+                   rf"(?:[\s/-]+[\w/]+){{0,3}}?[\s-]*binding\s+(?:proteins?|cassette))")
 # Ligands mpstruc writes by a short common name.
 COMMON = {"ATP": "ATP", "ADP": "ADP", "AMP": "AMP", "ANP": "AMP-PNP", "ACP": "AMPPCP", "AGS": "ATP&gamma;S",
           "GTP": "GTP", "GDP": "GDP", "GSP": "GTP&gamma;S", "GNP": "GMPPNP", "BEF": "BeF<sub>3</sub><sup>-</sup>",
@@ -80,7 +90,7 @@ COMMON = {"ATP": "ATP", "ADP": "ADP", "AMP": "AMP", "ANP": "AMP-PNP", "ACP": "AM
           "CLR": "cholesterol", "Y01": "CHS", "RET": "retinal", "HEM": "heme", "SAM": "SAM", "SAH": "SAH",
           "NAD": "NAD<sup>+</sup>", "NAI": "NADH", "FAD": "FAD", "FMN": "FMN", "UQ": "ubiquinone",
           "8PE": "phosphatidylethanolamine", "TTX": "tetrodotoxin", "COA": "CoA", "ACO": "acetyl-CoA",
-          "SUC": "succinate", "CIT": "citrate", "GLC": "glucose", "ASP": "aspartate"}
+          "SUC": "succinate", "CIT": "citrate", "GLC": "glucose", "ASP": "aspartate", "PO4": "phosphate"}
 # Amino acids as bound ligands: mpstruc writes the three-letter code ('with bound Leu').
 COMMON.update({a.upper(): a for a in "Ala Arg Asn Cys Gln His Ile Leu Lys Met Phe Pro Ser Thr Trp Tyr Val".split()})
 # Which ligands are named at all (buffers, detergents, lipids, cofactors and most ions are not) is no
@@ -89,9 +99,11 @@ COMMON.update({a.upper(): a for a in "Ala Arg Asn Cys Gln His Ile Leu Lys Met Ph
 COMMON_ALT = {"ANP": ["AMPPNP", "AMP-PNP", "AppNHp", "ANP"], "ACP": ["AMPPCP", "AMP-PCP", "AppCp"],
               "AGS": ["ATPgammaS", "ATP-gamma-S", "ATPγS"], "GSP": ["GTPgammaS", "GTPγS"],
               "GNP": ["GppNHp", "GMPPNP"], "BEF": ["BeFx", "BeF3", "BeF3-", "BeF"], "ALF": ["AlFx", "AlF4", "AlF4-", "AlF"],
-              "MGF": ["MgFx", "MgF3", "MgF"], "MF4": ["MgFx", "MgF4", "MgF"],
+              "MGF": ["MgFx", "MgF3", "MgF"], "MF4": ["MgFx", "MgF4", "MgF"], "AF3": ["AlF3", "AlFx", "AlF"],
               "SRO": ["5-HT", "serotonin"], "I3P": ["IP3", "InsP3"], "PIO": ["PIP2", "PI(4,5)P2"],
               "CMP": ["cAMP"], "PCG": ["cGMP"], "GLU": ["glutamate", "L-glutamate", "Glu"]}
+# Short names that mean the ligand only as written ('Pi-bound' is phosphate; 'PI', 'pi-helix' are not).
+CASED_ALIAS = {"PO4": r"(?<![A-Za-z0-9])Pi(?![A-Za-z0-9(])"}
 ANTIBODY = re.compile(r"\b(fab|fabs|nanobody|nanobodies|nb\d*|scfv\d*|antibody|heavy chain|light chain|sybody|"
                       r"darpin|megabody|igg\d*|vhh|monobody|fv|fragment antigen|antigen[- ]binding|"
                       r"single[- ]chain variable|legobody|anti-?fab)\b", re.I)
@@ -286,11 +298,16 @@ def title_names(title: str, aliases: set[str] = frozenset()) -> list[str]:
             found.append(item)
     for m in re.finditer(r"([\w.+]+(?:-[\w.+]+)+)(?=\s+(?:protein\s+)?complex\b)", t):
         found.append(m[1])
-    for m in re.finditer(r"\b([\w.+-]+)-(?:bound|occupied|loaded)\b", t):
-        found.append(m[1])
-    m = re.match(r"([A-Za-z0-9][\w.+-]*)\s+(?:bound|occupied)\b", t)  # 'AR234958 bound Mas1 receptor'
-    if m:
-        found.append(m[1])
+    for m in re.finditer(r"(?<![\w(,+-])((?:\d+,)*(?:[\w.+-]*\([\w,']+\))?[\w.+-]+)-(?:bound|occupied|loaded)\b", t):
+        found.append(m[1])   # 'LSD-bound', 'PI(3,5)P2-bound', '2,4-DB-CoA-bound'
+    # 'AR234958 bound Mas1 receptor', 'structure of ThT bound type1 amyloid' (not 'GPR3 bound to X')
+    # (not 'GPR3 bound to X', nor 'LolDF bound abaucin': there the protein comes first)
+    for m in re.finditer(r"(?<![\w-])([A-Za-z0-9][\w.+-]*)\s+(?:bound|occupied)\b(?!\s+(?:to|with|by|in|at|and|or)\b|\s*[-,;:)]|\s*$)"
+                         r"(?=\s+([^,;()]+))", t):
+        after = m[2].split()
+        if m.start() == 0 or ((re.search(r"[A-Z0-9]", m[1][1:]) or re.search(r"\d", m[1])) and
+                              (len(after) >= 2 or re.search(r"[A-Z0-9]", m[2]) or PROTEINISH.search(m[2]))):
+            found.append(m[1])
     # 'Slo1-paxilline', 'MCT2-embigin-AR-C155858': a hyphen chain that includes the
     # protein itself or its G protein lists the other members.
     split: list[str] = []
@@ -515,15 +532,29 @@ def _same_complex(desc: str, own: str) -> bool:
 
 # ---------------------------------------------------------------- ligands
 
-def _in_title(words: list[str], title: str) -> str | None:
-    """The first of `words` the title uses, spelled as the title spells it."""
+def name_pattern(word: str) -> str:
+    """A regular expression for a ligand's name as a whole word. A three-capital
+    abbreviation ('ATP', 'ADP', 'GDP') also counts in 'MgATP', 'ATPs' and 'ADPVi'."""
+    w = re.escape(word)
+    if re.fullmatch(r"[A-Z]{3}", word):
+        return (rf"(?:(?<![A-Za-z0-9])|(?<=(?<![A-Za-z0-9])Mg)){w}"
+                rf"(?:(?![A-Za-z0-9])|(?=s(?![A-Za-z0-9]))|(?=(?:Vi|VO4|AlF[\dx]?|BeF[\dx]?)(?![A-Za-z0-9])))")
+    return rf"(?<![A-Za-z0-9]){w}(?![A-Za-z0-9])"
+
+
+def _in_title(words: list[str], title: str, ligand: bool = False) -> str | None:
+    """The first of `words` the title uses, spelled as the title spells it. For a
+    ligand's names (`ligand`), not where the word is part of a protein's name
+    ('ATP synthase', 'IP3 receptor', 'glutamate transporter')."""
+    after = re.compile(NAME_IN_PROTEIN) if ligand else None
     for w in words:
         w = (w or "").strip()
         if len(w) < 2:
             continue
-        m = re.search(rf"(?<![A-Za-z0-9]){re.escape(w)}(?![A-Za-z0-9])", title, re.I)
-        if m:
-            return m.group(0)
+        pattern = name_pattern(w) if ligand else rf"(?<![A-Za-z0-9]){re.escape(w)}(?![A-Za-z0-9])"
+        for m in re.finditer(pattern, title, re.I):
+            if not (after and after.match(title, m.end())):
+                return m.group(0)
     return None
 
 
@@ -552,13 +583,16 @@ def ion_in_text(cid: str, text: str) -> re.Match | None:
 def ligand_said(n: dict, title: str) -> str | None:
     """How a title names a non-polymer entity, spelled as the title spells it
     ('AMPPNP' for ANP); for an ion, its chemical ID when the title speaks of
-    the bound ion ('calcium-bound', not 'calcium channel'). None if it does not."""
+    the bound ion ('calcium-bound', not 'calcium channel'). None if it does not;
+    a name inside a protein's name ('ATP synthase') is not the ligand."""
     cid, name, syn, pdesc, drug = _ligand_names(n)
     if cid in IONS:
         return cid if ion_in_text(cid, title) else None
     named = [w for w in [*COMMON_ALT.get(cid, []), COMMON.get(cid), pdesc, name, *syn, *drug] if w]
+    if cid in CASED_ALIAS and re.search(CASED_ALIAS[cid], title):
+        return re.search(CASED_ALIAS[cid], title)[0]
     return _in_title([v for w in named for v in _variants(re.sub(r"<[^>]+>|&\w+;", "", w)) if _readable(v)] +
-                     ([cid] if len(cid) >= 3 and not cid.isdigit() else []), title)
+                     ([cid] if len(cid) >= 3 and not cid.isdigit() else []), title, ligand=True)
 
 
 # Detergents and membrane mimetics a title names as the setting ('in LMNG'), not as a compound.
@@ -581,48 +615,132 @@ def names_protein(name: str, det: dict) -> bool:
     return False
 
 
-def ligands_in_title(det: dict, title: str | None = None) -> dict[str, str]:
-    """chem id -> how the title mentions that ligand, for every ligand it mentions:
-    'name' (one of its names or its ID is in the title: ligand_said), 'abbreviation'
-    ('DCA-bound' for deoxycholic acid) or 'compound' (the title names a compound that
-    no protein chain and no ligand name explains, and this is the ligand left for it:
-    'cVA-bound' when the PDB only has '(Z)-octadec-11-enyl acetate').
+# What a title calls an ion ('Na+-bound', 'Pi', 'proton'): never a compound to look for among the ligands.
+ION_NAME = re.compile(r"(?:[A-Z][a-z]?\d?[+-]{1,2}|[A-Z][a-z]?\(I+\)|P?Pi|protons?|" + "|".join(
+    w for v in ION_WORDS.values() for w in v.split("|") if w.isalpha()) + r")(?:\s+ions?)?", re.I)
+# Family words (ligands.FAMILY_WORDS) a title may use anywhere, not only after 'bound to' / 'with'.
+TITLE_FAMILY = re.compile(
+    r"(?<![A-Za-z0-9])((?:lyso-?)?phosphatidyl\w+|phosphatidic acid|PIP\d|L?PI\([\d,]+\)P\d?|PtdIns[\w(),]*|cardiolipin|"
+    r"sphingomyelin|ceramide|[\w:,()-]*-CoA|\w*ubiquino(?:ne|l)(?:-\d+)?|menaquinone(?:-\d+)?|plastoquinone|"
+    r"vitamin K\d?|S1P|LPA|LPC|LPI|LPE|PtdSer|PtdCho|PtdEtn|PtdGro)(?![A-Za-z0-9])(?!" + NAME_IN_PROTEIN + ")")
 
-    A compound goes to the heaviest small molecule (then nucleotide, then free amino
-    acid) the title does not otherwise mention; to a lipid, cofactor or sugar only when
-    it is the one such ligand and the title says the compound is bound ('X-bound',
-    'bound to X')."""
+
+def compound_phrases(text: str) -> list[str]:
+    """title_names plus the family words (TITLE_FAMILY) the text uses anywhere."""
+    out = title_names(text)
+    have = {_norm(x) for x in out}
+    for m in TITLE_FAMILY.finditer(text):
+        if _norm(m[1]) not in have:
+            have.add(_norm(m[1]))
+            out.append(m[1])
+    return out
+
+
+def _short_peptides(det: dict) -> int:
+    """How many of the entry's chains are short peptides ('TYR-DAL-GLY-MEA-ETA', a
+    30-residue hormone): what a title's 'bound with DAMGO' then means."""
+    n = 0
+    for e in det.get("polymer_entities") or []:
+        length = (e.get("entity_poly") or {}).get("rcsb_sample_sequence_length")
+        desc = ((e.get("rcsb_polymer_entity") or {}).get("pdbx_description") or "") \
+            if isinstance(e.get("rcsb_polymer_entity"), dict) else ""
+        n += bool((length and length <= 40) or SEQUENCE.fullmatch(desc.strip()))
+    return n
+
+
+def ligands_in_title(det: dict, title: str | None = None, spelling: dict | None = None,
+                     seen: dict | None = None, classes: dict | None = None) -> dict[str, str]:
+    """chem id -> how the title mentions that ligand, for every ligand it mentions:
+
+    'name'          one of its names or its ID is in the title (ligand_said);
+    'fit'           the title names a compound that fits this ligand's chemical names:
+                    a common name sharing its stems ('carbamylcholine' for
+                    'carbamoylcholine'), or a family word ('PIP2', 'LPA', 'C22-CoA',
+                    'phosphatidic acid', 'ubiquinone') when this is the structure's only
+                    ligand of that family;
+    'abbreviation'  a short name in the title whose letters can be read from its common
+                    name ('DCA-bound' for deoxycholic acid); one abbreviation goes to one
+                    ligand, the one it fits best;
+    'compound'      the title names a compound that no protein chain, ion or ligand name
+                    explains, and this is the ligand left for it ('cVA-bound' when the PDB
+                    only has '(Z)-octadec-11-enyl acetate'): the heaviest small molecule
+                    (then nucleotide, then free amino acid) not otherwise mentioned. A
+                    lipid, cofactor or sugar only when it is the one such ligand, the
+                    title says the compound is bound ('cVA-bound', 'bound to X') and
+                    mpstruc has rarely seen the component: cholesterol and the usual
+                    membrane lipids are in most structures whatever the title is about.
+                    Never a detergent.
+
+    'name' and 'fit' are firm, 'abbreviation' and 'compound' are guesses
+    (ligands.situation); curators' use of the ligand is learned for each apart.
+    `spelling`, if given, receives {chem id: the title's word} for 'fit' ligands.
+    `seen` {chem id: mpstruc structures with that component} and `classes` {chem id: class}
+    default to the learned usage (learning passes its own, so a rebuild never reads the old file)."""
     title = title if title is not None else _title(det)
     out: dict[str, str] = {}
     spelled: list[str] = []
-    rest = []
+    rest = []   # (class, -weight, id, names) of ligands the title does not name outright
     for n in det.get("nonpolymer_entities") or []:
         cid, name, syn, pdesc, _ = _ligand_names(n)
-        if not cid or cid in out or cid in ligand_rules.HARD_EXCLUDE:
+        if not cid or cid in out or cid in ligand_rules.HARD_EXCLUDE or any(r[2] == cid for r in rest):
             continue
         said = ligand_said(n, title)
         if said:
             out[cid] = "name"
             spelled.append(said if cid not in IONS else "")
-        elif cid not in IONS and _abbreviated(title, [pdesc, name, *syn]):
-            out[cid] = "abbreviation"
-            spelled.append(_abbreviated(title, [pdesc, name, *syn]) or "")
-        else:
+        elif cid not in IONS:
             rec = _comp_record(n)
-            rest.append((ligand_rules.class_of(rec), -(rec.get("weight") or 0), cid))
+            cls = (classes or {}).get(cid) or ligand_rules.class_of(rec)
+            rest.append((cls, -(rec.get("weight") or 0), cid, [name, pdesc, *syn]))
     known = [_norm(x) for x in spelled if x]
-    for t in title_names(title):
-        k = _norm(t)
-        if not k or any(k in x or x in k for x in known) or names_protein(t, det) or _is_antibody(t) or \
-                NOT_A_LIGAND.match(t) or SETTING.match(t) or len(t.split()) > 2:
+    explained = lambda t: any(_norm(t) in x or x in _norm(t) for x in known)
+    left = lambda: [r for r in rest if r[2] not in out]
+    # An abbreviation goes to the one ligand it fits best ('CHS' is cholesterol hemisuccinate, not cholesterol).
+    protein_words = {w for e in det.get("polymer_entities") or [] if isinstance(e.get("rcsb_polymer_entity"), dict)
+                     for w in re.findall(r"[A-Za-z0-9]+", _desc(e))}
+    for t in _title_abbreviations(title):
+        if explained(t) or ligand_rules.is_family_word(t) or t in protein_words:
             continue
-        small = [r for r in rest if r[0] in _SMALL_MOLECULES and r[2] not in out]
-        other = [r for r in rest if r[0] in _OTHER_MOLECULES and r[2] not in out]
-        bound = re.search(rf"{re.escape(t)}[- ]bound|bound (?:to |with )?{re.escape(t)}", title, re.I)
+        fits = [(_abbreviation_fit(t, r[3]), r) for r in left()]
+        fits = [x for x in fits if x[0]]
+        if fits:
+            out[max(fits, key=lambda x: x[0])[1][2]] = "abbreviation"
+            known.append(_norm(t))
+    phrases = []
+    for t in compound_phrases(title):
+        if not _norm(t) or explained(t) or names_protein(t, det) or _is_antibody(t) or NOT_A_LIGAND.match(t) or \
+                SETTING.match(t) or ION_NAME.fullmatch(t.strip()):
+            continue
+        letters = re.sub(r"[^a-z]", "", t.lower())
+        fit = next((r[2] for r in left() if r[0] in ligand_rules.FIT_CLASSES and len(letters) >= 6
+                    and ligand_rules.stems_fit(t, r[3])), None)
+        if fit:
+            out[fit] = "fit"
+            if spelling is not None:
+                spelling[fit] = (t, "stems")
+        else:
+            phrases.append(t)
+    picks = ligand_rules.family_picks(phrases, [(r[2], r[0], r[3]) for r in left()])
+    for cid, t in picks.items():
+        out[cid] = "fit"
+        if spelling is not None and len(picks) == 1:   # with several, which word is whose is not known
+            spelling[cid] = (t, "family")
+    peptides = _short_peptides(det)
+    for t in phrases:
+        if ligand_rules.is_family_word(t) or len(t.split()) > 2:
+            continue   # a family word the ligands do not settle is nobody's
+        if peptides:   # the compound is the peptide chain
+            peptides -= 1
+            continue
+        small = [r for r in left() if r[0] in _SMALL_MOLECULES]
+        other = [r for r in left() if r[0] in _OTHER_MOLECULES]
         if small:
             out[min(small, key=lambda r: (_SMALL_MOLECULES.index(r[0]), r[1]))[2]] = "compound"
-        elif len(other) == 1 and bound:
-            out[other[0][2]] = "compound"
+        elif len(other) == 1 and re.search(rf"{re.escape(t)}[- ]bound|bound (?:to |with )?{re.escape(t)}", title, re.I):
+            if seen is None:
+                seen = {k: v.get("n", 0) for k, v in (ligand_rules.load_usage().get("comps") or {}).items()}
+            if seen.get(other[0][2], 0) <= ligand_rules.RARE:
+                out[other[0][2]] = "compound"
     return out
 
 
@@ -634,22 +752,27 @@ def _title_abbreviations(title: str) -> tuple[str, ...]:
                  and not NOT_A_LIGAND.match(t))
 
 
-def _abbreviated(title: str, names: list[str]) -> str | None:
-    """The abbreviation a title uses for a chemical the PDB knows by a common
-    name: 'DCA' for 'deoxycholic acid', 'cVA' for '11-cis-vaccenyl acetate'.
-    Its letters start the name and come in order in it; systematic (IUPAC)
-    names contain almost any letter sequence, so they do not count."""
-    for t in _title_abbreviations(title or ""):
-        letters = re.sub(r"[^a-z]", "", t.lower())
-        if len(letters) < 2:
-            continue
-        for w in names:
-            w = _plain(w or "")
-            low = re.sub(r"[^a-z]", "", w.lower())
-            if _readable(w) and not _systematic(w.lstrip("0123456789-")) and len(low) >= len(letters) + 4 and \
-                    low[:1] == letters[0] and re.match(".*".join(letters), low):
-                return t
-    return None
+def _abbreviation_fit(abbr: str, names: list[str]) -> int:
+    """Can `abbr` be the abbreviation of a chemical the PDB knows by a common
+    name ('DCA' for 'deoxycholic acid', 'cVA' for '11-cis-vaccenyl acetate')?
+    Its letters must start the name and come in order in it; systematic (IUPAC)
+    names contain almost any letter sequence, so they do not count. 0 if not,
+    else 1 + how many of its letters start a word of the name (the better fit)."""
+    letters = re.sub(r"[^a-z]", "", abbr.lower())
+    best = 0
+    if len(letters) < 2:
+        return 0
+    for w in names:
+        w = re.sub(r"^(?:(?:alpha|beta|[dl])-)+", "", _plain(w or ""), flags=re.I)
+        low = re.sub(r"[^a-z]", "", w.lower())
+        if any(d not in w for d in re.findall(r"\d+", abbr)):
+            continue   # 'G6P' is 'glucose-6-phosphate'; 'CP29' is no chlorophyll
+        if _readable(w) and not _systematic(re.sub(r"-\d+-", "-", w.lstrip("0123456789-"))) and \
+                len(low) >= len(letters) + 4 and \
+                low[:1] == letters[0] and re.match(".*".join(letters), low):
+            starts = [x[0] for x in re.findall(r"[a-z]+", w.lower())]
+            best = max(best, 1 + sum(1 for ch in set(starts) if ch in letters))
+    return best
 
 
 def _comp_record(n: dict) -> dict:
@@ -676,28 +799,34 @@ def ligands(det: dict, title: str | None = None, notes: list | None = None) -> l
     the PDB title does / does not mention it. A title that calls the structure
     apo or unliganded names no ligand it does not itself mention. A ligand
     the title names is written the way the title writes it ('LSD', 'paxilline').
-    `notes`, if given, receives one {id, name, decision, why} per ligand."""
+    `notes`, if given, receives one {id, name, decision, why} per ligand
+    (name and why are HTML-escaped plain text)."""
     title = title if title is not None else _title(det)
     apo = ligand_rules.APO_TITLE.search(title)
-    in_title = ligands_in_title(det, title)
+    spelling: dict = {}
+    in_title = ligands_in_title(det, title, spelling)
     out: list[tuple[str, str, str]] = []
     for n in det.get("nonpolymer_entities") or []:
         cid, name, syn, pdesc, drug = _ligand_names(n)
         if not cid or cid in ligand_rules.HARD_EXCLUDE:
             continue
         said = ligand_said(n, title)
-        mentioned = cid in in_title
+        mentioned = in_title.get(cid)
         d = ligand_rules.decide(_comp_record(n), mentioned)
         if apo and not mentioned and d["decision"] == "named":
             d.update(decision="omitted", why=f"the PDB title says the structure is {apo[0].lower()} and does not "
                                              f"mention this ligand (otherwise: {d['why']})")
         if notes is not None and not any(x["id"] == cid for x in notes):
-            notes.append({"id": cid, "name": d["name"], "decision": d["decision"], "why": d["why"]})
+            # Escaped like every other text field of the draft (a chemical name may hold '<' or '&').
+            notes.append({"id": cid, "name": html.escape(d["name"], quote=False), "decision": d["decision"],
+                          "why": html.escape(d["why"], quote=False)})
         if d["decision"] != "named":
             continue
         how = "title" if said else "name"
         if cid in IONS:
             label = IONS[cid]
+        elif cid in CASED_ALIAS and cid in COMMON and said and re.fullmatch(CASED_ALIAS[cid], said):
+            label = COMMON[cid]   # the title's 'Pi' is written out
         elif said and ((cid in COMMON_ALT and cid not in ("ALF", "BEF", "MGF")) or said.upper() != cid):
             label = said
         elif cid in COMMON:
@@ -706,10 +835,16 @@ def ligands(det: dict, title: str | None = None, notes: list | None = None) -> l
             # A readable common name before a systematic one ('auxin'-style synonyms
             # before '1H-indol-3-ylacetic acid'), then the shortest.
             # (DrugBank synonyms include other languages' names, so only the PDB's own are used.)
-            nice = list(dict.fromkeys(_bare(_chem_case(w)) for w in [pdesc, name, *syn] if w and _readable(w)))
+            # ('choline ion' is written 'choline')
+            nice = list(dict.fromkeys(re.sub(r"(?<=[a-z]{5})\s+ion$", "", _bare(_chem_case(w)), flags=re.I)
+                                      for w in [pdesc, name, *syn] if w and _readable(w)))
             if nice and _systematic(nice[0]):
                 nice.sort(key=lambda w: (_systematic(w), len(w)))
-            if nice:
+            word, kind = spelling.get(cid) or ("", "")
+            if word and (not nice or _systematic(nice[0])):
+                # The PDB has only a systematic name: the title's own word for it ('PI(4,5)P2', 'LPA').
+                label, how = next((v for v in COMMON.values() if _plain(v) == word), word), "title"   # 'PIP2' with its subscript
+            elif nice:
                 label = _chem_case(nice[0])
             else:
                 label, how = cid, "id"
@@ -733,12 +868,15 @@ def _unname(notes: list | None, cid: str, why: str) -> None:
 
 def _variants(name: str) -> list[str]:
     """Other ways a title writes a chemical name: without stereo prefixes
-    ('(S)-(-)-nicotine' -> 'nicotine') and as the anion ('imidodiphosphoric acid'
+    ('(S)-(-)-nicotine' -> 'nicotine'), without 'ion' ('thiocyanate ion') and as the anion ('imidodiphosphoric acid'
     -> 'imidodiphosphate'). The last item is the plainest form."""
     out = [name]
     bare = _bare(name)
     if bare != name:
         out.append(bare)
+    m = re.fullmatch(r"([A-Za-z][A-Za-z -]{4,}?)(?:\s*\(\d?[+-]\))?\s+ion", name.strip(), re.I)
+    if m:
+        out.append(m[1])  # 'THIOCYANATE ION' -> 'THIOCYANATE', 'AZIDE ION' -> 'AZIDE'
     for w in list(out):
         anion = re.sub(r"(?:(?<=phosph)or|(?<=sulf)ur)?(ic|ous) acid$", lambda m: ("ate" if m[1].lower() == "ic" else "ite") if m[0].islower() else
                        ("ATE" if m[1].upper() == "IC" else "ITE"), w, flags=re.I)
@@ -778,6 +916,7 @@ def _chem_case(name: str) -> str:
         w = re.sub(r"\((\d+)([rsez])\)", lambda m: f"({m[1]}{m[2].upper()})", w)
         w = re.sub(r"(?<![a-z])([nos])(,[nos])*-(?=[a-z\d(])", lambda m: m[0].upper(), w)  # N-benzyl, N,N-
         w = re.sub(r"^([dl])-(?=[a-z])", lambda m: m[1].upper() + "-", w)               # L-glutamate
+        w = re.sub(r"(?<![a-z])coa(?![a-z])", "CoA", w)                                 # dodecyl-CoA
         words.append(w)
     return "".join(words)
 
@@ -1524,9 +1663,10 @@ def enrich(details: dict[str, dict | None], batch: int = 100, max_age_s: float =
                 for n in det.get("nonpolymer_entities") or []} - {None}
     records: dict = {}
     try:  # formula, weight, type and SMILES of each ligand: what ligands.classify() goes by
+        # (if the PDB cannot be reached this still returns every record already cached)
         records = ligand_rules.chem_comps(sorted({c for d in details.values() if d for c in comp_ids(d)}))
     except Exception as err:
-        print(f"listing: could not fetch chemical components ({err})")
+        print(f"listing: could not read chemical components ({err})")
     for pid, det in details.items():
         x = cache.get(pid.upper()) if det else None
         if x or (det and comp_ids(det) & records.keys()):

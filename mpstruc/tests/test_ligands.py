@@ -20,8 +20,9 @@ NICOTINE = {"id": "NCT", "name": "(S)-3-(1-METHYL-2-PYRROLIDINYL)PYRIDINE", "wei
             "synonyms": [["(S)-(-)-NICOTINE", "PDB Reference Data"], ["Nicotine", "DrugBank"]]}
 
 
-def tally(n, named, n_title, named_title):
-    return {"n": n, "named": named, "n_title": n_title, "named_title": named_title}
+def tally(n, named, n_title, named_title, n_guess=0, named_guess=0):
+    return {"n": n, "named": named, "n_title": n_title, "named_title": named_title,
+            "n_guess": n_guess, "named_guess": named_guess}
 
 
 # A small usage table with the shape of ligand_usage.json.
@@ -31,8 +32,10 @@ USAGE = {
     "classes": {
         "ion": {"all": tally(500, 50, 60, 45), "rare": tally(40, 8, 8, 8)},
         "lipid": {"all": tally(700, 20, 12, 11), "rare": tally(50, 7, 4, 4)},
-        "drug": {"all": tally(300, 220, 120, 114), "rare": tally(200, 150, 70, 68)},
-        "nucleotide": {"all": tally(120, 50, 55, 42), "rare": tally(10, 4, 3, 3)},
+        "drug": {"all": tally(300, 220, 120, 114, 60, 50), "rare": tally(200, 150, 70, 68, 40, 34)},
+        "nucleotide": {"all": tally(120, 50, 55, 42, 20, 6), "rare": tally(10, 4, 3, 3, 2, 1)},
+        "cofactor": {"all": tally(400, 12, 12, 9, 5, 1), "rare": tally(30, 4, 4, 3, 2, 0)},
+        "sugar": {"all": tally(120, 4, 6, 4, 3, 1), "rare": tally(10, 2, 3, 2, 1, 0)},
         "detergent": {"all": tally(140, 1, 1, 1), "rare": tally(6, 0, 0, 0)},
         "additive": {"all": tally(200, 9, 14, 9), "rare": tally(16, 2, 3, 2)},
     },
@@ -133,12 +136,11 @@ def test_observe_a_named_drug_by_code_and_an_unnamed_lipid(usage):
               "9AAB": corpus_entry("Cryo-EM structure of apo mGlu2", [clr])}
     obs = {(r["pdb"], r["id"]): r for r in ligands.observe(db, corpus, {"40F": drug, "CLR": clr, "CA": CA})}
     assert obs["9AAA", "40F"]["named"] and obs["9AAA", "40F"]["how"] == "sole"   # the only compound left for the code
-    assert obs["9AAA", "40F"]["title"]                                           # and the title names it the same way
+    assert obs["9AAA", "40F"]["said"] == "guess" and not obs["9AAA", "40F"]["title"]   # the title's code: only a guess
     assert not obs["9AAA", "CLR"]["named"] and not obs["9AAA", "CA"]["named"]
     assert not obs["9AAB", "CLR"]["named"] and obs["9AAB", "CLR"]["apo"]
     doc = ligands.summarise(list(obs.values()), {"40F": drug})
-    assert doc["comps"]["40F"] == {"name": drug["name"], "class": "drug", "n": 1, "named": 1, "n_title": 1,
-                                   "named_title": 1}
+    assert doc["comps"]["40F"] == {"name": drug["name"], "class": "drug", **tally(1, 1, 0, 0, 1, 1)}
     assert doc["classes"]["lipid"]["all"] == tally(2, 0, 0, 0)
 
 
@@ -201,9 +203,9 @@ def test_water_and_unknown_atoms_are_never_named(usage):
 
 def test_tuning_and_scoring_split_by_family():
     assert ligands._fold("9AAA") in ("train", "tune", "test")
-    rows = [{"id": "CA", "cls": "ion", "named": False, "title": False, "apo": False, "family": "F"},
-            {"id": "CA", "cls": "ion", "named": True, "title": True, "apo": False, "family": "F"},
-            {"id": "A1XYZ", "cls": "drug", "named": True, "title": False, "apo": True, "family": "F"}]
+    rows = [{"id": "CA", "cls": "ion", "named": False, "said": "none", "apo": False, "family": "F"},
+            {"id": "CA", "cls": "ion", "named": True, "said": "title", "apo": False, "family": "F"},
+            {"id": "A1XYZ", "cls": "drug", "named": True, "said": "none", "apo": True, "family": "F"}]
     s = ligands.score(rows, USAGE)
     # the apo title silences the drug the title does not mention: one miss
     assert (s["precision"], s["recall"]) == (1.0, 0.5)
@@ -316,3 +318,232 @@ def test_relist_redrafts_listings_and_keeps_every_other_field(tmp_path, monkeypa
     assert a["species"] == "B. theta" and a["curatorNote"] == "kept"         # fields the draft does not set stay
     assert "relatedLine" not in b
     assert c == {"name": "Unchanged", "description": "x-ray structure"}      # no PDB details: old draft kept
+
+
+# ---------------------------------------------------------------- review findings (lipid words, guesses, protein names)
+
+def lig(rec, description=None):
+    """A non-polymer entity carrying its chemical component record, as listing.enrich() attaches it."""
+    return {"rcsb_nonpolymer_entity": {"pdbx_description": description or rec["name"]},
+            "nonpolymer_comp": {"chem_comp": {"id": rec["id"], "name": rec["name"]}, "record": rec,
+                                "rcsb_chem_comp_synonyms": [{"name": s[0], "provenance_source": s[1]}
+                                                            for s in rec.get("synonyms") or []]}}
+
+
+REF = "PDB Reference Data"
+UBL = {"id": "UBL", "name": "[(2R)-2-oxidanyl-3-phosphonooxy-propyl] (Z)-octadec-9-enoate", "formula": "C21 H41 O7 P",
+       "weight": 436.52, "type": "non-polymer", "smiles": "CCCCCCCCC=CCCCCCCCC(=O)OCC(COP(=O)(O)O)O"}
+ACOA = {"id": "3IX", "name": "S-[2-[3-[[(2R)-4-[[[(2R,3S,4R,5R)-5-(6-aminopurin-9-yl)-4-oxidanyl-3-phosphonooxy-oxolan-2-yl]"
+                              "methoxy-oxidanyl-phosphoryl]oxy-oxidanyl-phosphoryl]oxy-3,3-dimethyl-2-oxidanyl-butanoyl]amino]"
+                              "propanoylamino]ethyl] (5Z,8Z,11Z,14Z)-icosa-5,8,11,14-tetraenethioate",
+        "formula": "C41 H66 N7 O17 P3 S", "weight": 1053.986, "type": "non-polymer", "synonyms": [["Arachidonyl-CoA", REF]],
+        "smiles": "CCCCCC=CCC=CCC=CCC=CCCCC(=O)SCCNC(=O)CCNC(=O)C(C(C)(C)COP(=O)(O)OP(=O)(O)OCC1C(C(C(O1)n2cnc3c2ncnc3N)O)OP(=O)(O)O)O"}
+PT5 = {"id": "PT5", "name": "[(2R)-1-octadecanoyloxy-3-[oxidanyl-[(1R,2R,3S,4R,5R,6S)-2,3,6-tris(oxidanyl)-4,5-diphosphonooxy-"
+                             "cyclohexyl]oxy-phosphoryl]oxy-propan-2-yl] (8Z)-icosa-5,8,11,14-tetraenoate",
+       "formula": "C47 H85 O19 P3", "weight": 1047.088, "type": "non-polymer",
+       "synonyms": [["Phosphatidylinositol 4,5-bisphosphate", REF], ["PtdIns(4,5)P2", REF]],
+       "smiles": "CCCCCCCCCCCCCCCCCC(=O)OCC(COP(=O)(O)OC1C(C(C(C(C1O)OP(=O)(O)O)OP(=O)(O)O)O)O)OC(=O)CCCC=CCC=CCC=CCC=CCCCCC"}
+CLR = {"id": "CLR", "name": "CHOLESTEROL", "formula": "C27 H46 O", "weight": 386.654, "type": "non-polymer"}
+Y01 = {"id": "Y01", "name": "CHOLESTEROL HEMISUCCINATE", "formula": "C31 H50 O4", "weight": 486.726, "type": "non-polymer"}
+SCN = {"id": "SCN", "name": "THIOCYANATE ION", "formula": "C N S", "weight": 58.082, "type": "non-polymer"}
+PO4 = {"id": "PO4", "name": "PHOSPHATE ION", "formula": "O4 P", "weight": 94.971, "type": "non-polymer"}
+ADP = {"id": "ADP", "name": "ADENOSINE-5'-DIPHOSPHATE", "weight": 427.2, "type": "non-polymer"}
+MG = {"id": "MG", "name": "MAGNESIUM ION", "formula": "Mg"}
+TFX = {"id": "TFX", "name": "2-[4-(dimethylamino)phenyl]-3,6-dimethyl-1,3-benzothiazol-3-ium", "formula": "C17 H19 N2 S",
+       "weight": 283.411, "type": "non-polymer", "synonyms": [["Thioflavin T", REF]],
+       "smiles": "Cc1ccc2c(c1)sc([n+]2C)c3ccc(cc3)N(C)C"}
+A86 = {"id": "A86", "name": "(3S,3'S,5R,5'R,6S,6'R,8'R)-3,5'-dihydroxy-8-oxo-6',7'-didehydro-5,5',6,6',7,8-hexahydro-5,6-epoxy-"
+                             "beta,beta-caroten-3'-yl acetate", "synonyms": [["Fucoxanthin", REF]], "drug": "Fucoxanthin"}
+CLA = {"id": "CLA", "name": "CHLOROPHYLL A"}
+
+
+def test_a_lipid_the_title_names_by_a_family_word_is_mentioned():
+    # 20ZX: the PDB knows LPA only by a systematic name; with the learned usage as shipped.
+    e = entry("20ZX", "Cryo-EM structure of Gq-coupled LPAR5 in complex with LPA",
+              [entity("Lysophosphatidic acid receptor 5", ["Q9H1C0"], 372)], [lig(UBL)])
+    assert ligands_in_title(e) == {"UBL": "fit"}
+    assert build(e, {"Q9H1C0"})["name"].endswith("with bound LPA")
+    # 9W63: 'C20:5-CoA bound state'; the cholesterol beside it stays out
+    e = entry("9W63", "Cryo-EM structure of C20:5-CoA bound state human ABCD3 in inward-facing conformation",
+              [entity("ATP-binding cassette sub-family D member 3", ["P28288"], 914)], [lig(ACOA), lig(CLR)])
+    assert ligands_in_title(e) == {"3IX": "fit"}
+    name = build(e, {"P28288"})["name"]
+    assert "with bound arachidonyl-CoA" in name and "cholesterol" not in name
+    # 8JNI: 'in complex with PIP2', not only 'PIP2-bound'
+    e = entry("8JNI", "Structure of AE2 in complex with PIP2", [entity("Anion exchange protein 2", ["P04920"], 1241)],
+              [lig(PT5), lig({"id": "CL", "name": "CHLORIDE ION", "formula": "Cl"})])
+    assert ligands_in_title(e) == {"PT5": "fit"}
+    assert build(e, {"P04920"})["name"].endswith("with bound PIP<sub>2</sub>")
+    # 'PI(3,5)P2-bound' is read whole; two inositol lipids and one word settle nothing
+    e = entry("9Y6P", "Cryo-EM structure of PI(3,5)P2-bound TRPML2", [entity("Mucolipin-2", ["Q1"])], [lig(PT5)])
+    assert ligands_in_title(e) == {"PT5": "fit"}
+    e["nonpolymer_entities"].append(lig({**PT5, "id": "PIO"}))
+    assert ligands_in_title(e) == {}
+
+
+def test_family_words_go_to_as_many_ligands_as_there_are_words():
+    coa = lambda i, name: (i, "lipid", [name])
+    two = [coa("A", "3-oxotetracosanoyl-CoA"), coa("B", "Behenoyl-CoA")]
+    assert ligands.family_picks(["C22-CoA", "MCoA"], two) == {"A": "C22-CoA", "B": "MCoA"}
+    assert ligands.family_picks(["C22-CoA"], two) == {}
+    # phosphatidic acid is the phospholipid without a head group; a bare alkyl chain is never the lipid meant
+    pa = ("PA", "lipid", ["(2R)-3-(phosphonooxy)propane-1,2-diyl ditetradecanoate"])
+    pc = ("PC", "lipid", ["(2S)-3-(hexadecanoyloxy)-2-[(9Z)-octadec-9-enoyloxy]propyl 2-(trimethylammonio)ethyl phosphate"])
+    assert ligands.family_picks(["NBD-PA"], [pa, pc, ("C14", "lipid", ["TETRADECANE"])]) == {"PA": "NBD-PA"}
+    assert ligands.family_picks(["lipid"], [("C14", "lipid", ["TETRADECANE"])]) == {}
+    assert ligands.is_family_word("d16:1 S1P") and ligands.is_family_word("PtdSer") and not ligands.is_family_word("DAMGO")
+
+
+def test_a_title_compound_is_never_credited_to_a_lipid_by_elimination():
+    mor = entity("Mu-type opioid receptor", ["P35372"], 388)
+    # 10TM: DAMGO is the five-residue peptide chain, not the cholesterol
+    e = entry("10TM", "Cryo-EM structure of MOR bound with DAMGO", [entity("TYR-DAL-GLY-MEA-ETA", [], 5), mor], [lig(CLR)])
+    assert ligands_in_title(e) == {}
+    assert "cholesterol" not in build(e, {"P35372"})["name"]
+    # ... and with no peptide chain either: a lipid is in most structures whatever the title is about
+    e = entry("7FIY", "Cryo-EM structure of the tirzepatide-bound human GIPR-Gs complex", [mor], [lig(CLR)])
+    assert ligands_in_title(e) == {}
+    # a peptide chain takes the title's compound before a small molecule does
+    drug = {"id": "A1XYZ", "name": "examplamide", "weight": 410.0}
+    e = entry("9AAA", "Cryo-EM structure of MOR bound with DAMGO", [entity("TYR-DAL-GLY-MEA-ETA", [], 5), mor], [lig(drug)])
+    assert ligands_in_title(e) == {}
+    # 9Z62: 'Na+-bound' is the ion and 'Pi' is phosphate, neither is the cholesterol
+    e = entry("9Z62", "Structure of the sodium-dependent phosphate importer SLC34A2, Pi- and Na+-bound",
+              [entity("Sodium-dependent phosphate transport protein 2B", ["O95436"])], [lig(CLR), lig(NA), lig(PO4)])
+    assert ligands_in_title(e) == {"NA": "name", "PO4": "name"}
+    assert [lab for _, lab, _ in listing_ligands(e)] == ["phosphate", "Na<sup>+</sup>"]
+
+
+def test_an_abbreviation_goes_to_the_one_ligand_it_fits_best():
+    # 9VNA: 'with CHS' is cholesterol hemisuccinate (named outright), never cholesterol as well
+    e = entry("9VNA", "Cryo-EM structure of TRP melastatin channel in the desensitized state, with CHS",
+              [entity("Transient receptor potential cation channel subfamily M member 8", ["Q8R4D5"])],
+              [lig(CLR), lig(CA), lig(Y01)])
+    assert ligands_in_title(e) == {"Y01": "name"}
+    assert build(e, {"Q8R4D5"})["name"].endswith("with bound CHS, desensitized state")
+    from mpstruc.listing import _abbreviation_fit
+    assert _abbreviation_fit("CHS", ["CHOLESTEROL HEMISUCCINATE"]) > _abbreviation_fit("CHS", ["CHOLESTEROL"]) > 0
+    assert _abbreviation_fit("G6P", ["BETA-D-GLUCOSE-6-PHOSPHATE"])      # the digit is in the name
+    assert not _abbreviation_fit("CP29", ["CHLOROPHYLL A"])              # a protein's number is not
+    # a word of a protein chain's name is no abbreviation of a pigment
+    e = entry("9XK8", "PSII-LHCII supercomplex, LHCII trimer with LHCB", [entity("Chlorophyll a-b binding protein LHCB", ["Q1"])],
+              [lig({"id": "LUT", "name": "LUTEIN-HYDROXY-CAROTENOID B", "synonyms": [["LUTEIN HYDROXYCAROTENOID B", REF]]})])
+    assert ligands_in_title(e) == {}
+
+
+def test_a_ligand_name_inside_a_protein_name_is_not_a_mention():
+    from mpstruc.listing import ligand_said
+    said = lambda rec, title: ligand_said(lig(rec), title)
+    assert said(ATP, "Porcine ATP synthase with inhibitory protein IF1, DP-state") is None
+    assert said(ATP, "ATP-binding cassette transporter in the ATP-bound state") == "ATP"
+    assert said(ATP, "Structure of an ATP-sensitive potassium channel") is None
+    assert said(ATP, "CNNM4 tetramer with Magnesium and MgATP") == "ATP" and said(ADP, "transporter with MgADPVO4 bound") == "ADP"
+    i3p = {"id": "I3P", "name": "D-MYO-INOSITOL-1,4,5-TRIPHOSPHATE"}
+    assert said(i3p, "Structure of the IP3 receptor in the closed state") is None
+    assert said(i3p, "IP3 receptor bound to IP3 and calcium") == "IP3"
+    gly = {"id": "GLY", "name": "GLYCINE"}
+    assert said(gly, "Glycine transporter 1 in an occluded state") is None and said(gly, "GlyT1 with glycine") == "glycine"
+    # 9PEW: the ATP and ADP of an ATP synthase are not what its title is about (as shipped)
+    e = entry("9PEW", "Porcine ATP synthase with inhibitory protein IF1, DP-state",
+              [entity("ATP synthase subunit b", ["A0A4X1TA12"], 191)], [lig(ADP), lig(MG), lig(ATP)])
+    assert ligands_in_title(e) == {} and listing_ligands(e) == []
+    # the same in curators' text
+    assert not ligands.mentions("in complex with fucoxanthin chlorophyll a/c-binding protein (FCPI)", A86)
+    assert not ligands.mentions("in complex with fucoxanthin chlorophyll-binding protein II (FCPII)", A86)
+    assert not ligands.mentions("in complex with alloxanthin chlorophyll a/c-binding protein II (ACPII)", CLA)
+    assert ligands.mentions("with bound fucoxanthin", A86) and ligands.mentions("with MgATP bound", ATP)
+    assert not ligands.mentions("glycine receptor, open state", gly)
+
+
+def test_protein_words_in_curator_text_are_no_compounds():
+    assert ligands._bound_phrases("with bound LY354740") == ["LY354740"]
+    for words in ("With", "5 Lhcr antennae", "auxiliary subunit TARP gamma8"):
+        assert ligands._NOT_A_COMPOUND.search(words)
+    drug = {"id": "ZEX", "name": "(3R,3'R)-beta,beta-carotene-3,3'-diol", "weight": 568.9}
+    db = db_of(mp_entry("5ZGH", "Photosystem I in complex with 5 Lhcr antennae"))
+    obs = ligands.observe(db, {"5ZGH": corpus_entry("Cryo-EM structure of the red algal PSI-LHCR", [drug])}, {"ZEX": drug})
+    assert not obs[0]["named"]
+
+
+def test_components_named_x_ion_match_x():
+    from mpstruc.listing import _variants, ligand_said
+    assert "THIOCYANATE" in _variants("THIOCYANATE ION") and "AZIDE" in _variants("AZIDE ION")
+    assert _variants("CALCIUM ION")[-1] == "CALCIUM"       # (ions in listing.IONS never get here)
+    # 36EZ, with the usage as shipped
+    e = entry("36EZ", "Crystal structure of thiocyanate bound bovine cytochrome c oxidase",
+              [entity("Cytochrome c oxidase subunit 1", ["P00396"], 514)], [lig(SCN), lig(MG)])
+    assert ligands_in_title(e) == {"SCN": "name"}
+    assert build(e, {"P00396"})["name"].endswith("with bound thiocyanate")
+    assert ligands.mentions("with bound azide", {"id": "AZI", "name": "AZIDE ION"})
+    assert ligands.mentions("hAE2 with bicarbonate", {"id": "BCT", "name": "BICARBONATE ION"})
+    af3 = {"id": "AF3", "name": "ALUMINUM FLUORIDE", "formula": "Al F3"}
+    assert ligand_said(lig(af3), "NFeoB bound to GDP-AlF3") == "AlF3"
+
+
+def test_thioflavin_is_a_dye_not_a_flavin_cofactor():
+    from mpstruc.listing import title_names
+    assert ligands.classify(TFX) == "drug"
+    assert ligands.classify({"id": "RBF", "name": "RIBOFLAVIN"}) == "cofactor"
+    assert ligands.classify({"id": "FMN", "name": "FLAVIN MONONUCLEOTIDE"}) == "cofactor"
+    title = "The cryo-EM structure of ThT bound type1 amyloid beta 42 fibril"
+    assert title_names(title) == ["ThT"]
+    assert title_names("Cryo-EM structure of Acinetobacter baumannii LolDF bound abaucin (wide cavity)") == []   # protein first
+    assert title_names("Structure of GPR3 bound to AF64394") == ["AF64394"]
+    e = entry("9XJC", title, [entity("Amyloid-beta precursor protein", ["P05067"], 770)], [lig(TFX)])
+    assert build(e, {"P05067"})["name"].endswith("with bound thioflavin T")     # with the usage as shipped
+
+
+def test_a_guess_is_counted_apart_from_a_mention(usage):
+    assert [ligands.situation(h) for h in ("name", "fit", True, "abbreviation", "compound", None, False)] == \
+        ["title", "title", "title", "guess", "guess", "none", "none"]
+    nuc = {"id": "A1NUC", "name": "adenosine-5'-examplate"}
+    assert ligands.decide(nuc, "name")["decision"] == "named"           # nucleotides the title names: 42 of 55
+    d = ligands.decide(nuc, "compound")                                 # ... the title only may mean: 6 of 20
+    assert d["decision"] == "omitted" and "may be" in d["why"]
+    assert ligands.decide({"id": "A1XYZ", "name": "examplamide", "weight": 410.0}, "compound")["decision"] == "named"
+    rows = [{"id": "X", "cls": "drug", "named": True, "said": s} for s in ("title", "guess", "guess", "none")]
+    assert ligands._tally(rows) == tally(4, 4, 1, 1, 2, 2)
+    assert ligands._split(tally(10, 6, 3, 3, 2, 1), "none") == (5, 2)
+
+
+def test_ligand_notes_are_escaped_text(usage):
+    odd = {"id": "A1KB5", "name": "Neu5Ac-alpha2->3Gal-beta1->4Glc & more", "weight": 900.0}
+    e = entry("9AAA", "Receptor X", [entity("Receptor X", ["Q1"])], [lig(odd)])
+    note = build(e, {"Q1"})["ligandNotes"][0]
+    assert note["name"] == "Neu5Ac-alpha2-&gt;3Gal-beta1-&gt;4Glc &amp; more"
+    assert "<" not in note["why"] and ">" not in note["why"]
+
+
+# ---------------------------------------------------------------- the component cache
+
+def test_a_failed_lookup_is_not_cached_as_unknown(tmp_path, monkeypatch):
+    from mpstruc import rcsb
+    monkeypatch.setattr(rcsb, "CACHE_DIR", tmp_path)
+    calls = []
+    answer = {"errors": [{"message": "Internal server error"}], "data": None}
+    monkeypatch.setattr(rcsb, "_post_json", lambda url, payload: (calls.append(payload["variables"]["ids"]), answer)[1])
+    assert ligands.chem_comps(["ATP", "KR0"]) == {}                   # HTTP 200 without data: nothing known ...
+    assert not (tmp_path / "chem_comps.json").exists()                # ... and nothing remembered as unknown
+    answer = {"data": {"chem_comps": [{"chem_comp": {"id": "ATP", "name": "ADENOSINE-5'-TRIPHOSPHATE",
+                                                     "formula_weight": 507.2}}]}}
+    got = ligands.chem_comps(["ATP", "KR0"])
+    assert calls == [["ATP", "KR0"], ["ATP", "KR0"]]                  # asked again once the PDB answers
+    assert got["ATP"]["weight"] == 507.2 and got["KR0"] is None       # the PDB answered: KR0 is not a component
+    assert ligands.chem_comps(["ATP", "KR0"]) == got and len(calls) == 2
+
+
+def test_cached_components_are_used_when_the_pdb_is_down(tmp_path, monkeypatch):
+    from mpstruc import listing, rcsb
+    monkeypatch.setattr(rcsb, "CACHE_DIR", tmp_path)
+    (tmp_path / "chem_comps.json").write_text(json.dumps({"KR0": KR0}))
+
+    def down(url, payload):
+        raise OSError("network down")
+
+    monkeypatch.setattr(rcsb, "_post_json", down)
+    assert ligands.chem_comps(["KR0", "ZZ9"]) == {"KR0": KR0}
+    det = {"38AQ": entry("38AQ", "t", [SUSC], [ligand("KR0", KR0["name"]), ligand("ZZ9", "new thing")])}
+    out = listing.enrich(det)
+    recs = [n["nonpolymer_comp"].get("record") for n in out["38AQ"]["nonpolymer_entities"]]
+    assert recs == [KR0, None]                                        # the cached record is still attached
+    assert json.loads((tmp_path / "chem_comps.json").read_text()) == {"KR0": KR0}
