@@ -1,7 +1,7 @@
 {
- "version": "1.12",
- "pr": 12,
- "title": "Per-protein membrane evidence, copy as mpstruc entry, bigger 3D previews",
- "mergedAt": "2026-11-13T23:21:44Z",
- "sha": "d814b5fb762148e7119ba83d0b61fea9d7124f53"
+ "version": "1.15",
+ "pr": 15,
+ "title": "Curators' rules (β-barrel strands, ligand naming), AI feedback and Re-generate, mpstruc links, version label",
+ "mergedAt": "2026-11-16T21:39:33Z",
+ "sha": "10fa450c51765f547bcd10b8dee03c6a89a2c423"
 }
