@@ -1,0 +1,145 @@
+{
+ "window": [
+  "2024-09-01",
+  "2025-03-31"
+ ],
+ "structures": 9583,
+ "outer_membrane_proteins_checked": 16,
+ "barrel_counted": 8,
+ "crossed_50": 2,
+ "crossed_labelled_membrane": 2,
+ "crossed_labelled_not": [],
+ "crossed_unlabelled": [],
+ "before": {
+  "n": 9583,
+  "membrane": 1187,
+  "auc": 0.9855,
+  "brier": 0.0235,
+  "at_50": {
+   "called_membrane": 1364,
+   "precision_pct": 84.0,
+   "recall_pct": 96.5
+  }
+ },
+ "after": {
+  "n": 9583,
+  "membrane": 1187,
+  "auc": 0.9854,
+  "brier": 0.0236,
+  "at_50": {
+   "called_membrane": 1366,
+   "precision_pct": 84.0,
+   "recall_pct": 96.7
+  }
+ },
+ "by_kind_before": {
+  "MONOTOPIC MEMBRANE PROTEINS": {
+   "n": 7,
+   "recall_pct": 0.0
+  },
+  "TRANSMEMBRANE PROTEINS: ALPHA-HELICAL": {
+   "n": 474,
+   "recall_pct": 96.4
+  },
+  "TRANSMEMBRANE PROTEINS: BETA-BARREL": {
+   "n": 19,
+   "recall_pct": 89.5
+  },
+  "outer membrane (UniProt)": {
+   "n": 32,
+   "recall_pct": 84.4
+  }
+ },
+ "by_kind_after": {
+  "MONOTOPIC MEMBRANE PROTEINS": {
+   "n": 7,
+   "recall_pct": 0.0
+  },
+  "TRANSMEMBRANE PROTEINS: ALPHA-HELICAL": {
+   "n": 474,
+   "recall_pct": 96.4
+  },
+  "TRANSMEMBRANE PROTEINS: BETA-BARREL": {
+   "n": 19,
+   "recall_pct": 89.5
+  },
+  "outer membrane (UniProt)": {
+   "n": 32,
+   "recall_pct": 90.6
+  }
+ },
+ "moved": [
+  {
+   "pdb": "8RM3",
+   "before": 0.586,
+   "after": 0.924,
+   "label": 0,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Crystal structure of ferrioxamine transporter FoxA"
+  },
+  {
+   "pdb": "8RMI",
+   "before": 0.586,
+   "after": 0.924,
+   "label": 0,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Crystal structure of ferrioxamine transporter FoxA"
+  },
+  {
+   "pdb": "8S34",
+   "before": 0.639,
+   "after": 0.932,
+   "label": 0,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Ferric-mycobactin receptor (FemA) in complex with aeruginic acid"
+  },
+  {
+   "pdb": "8XNB",
+   "before": 0.156,
+   "after": 0.7,
+   "label": 1,
+   "mpstruc": null,
+   "strands": 16,
+   "title": "Cryo-EM structure of Deinococcus radiodurans BamA"
+  },
+  {
+   "pdb": "9BOG",
+   "before": 0.242,
+   "after": 0.729,
+   "label": 1,
+   "mpstruc": null,
+   "strands": 24,
+   "title": "Structural basis for adhesin secretion by the outer-membrane usher in type 1 pili"
+  },
+  {
+   "pdb": "9EX3",
+   "before": 0.639,
+   "after": 0.932,
+   "label": 1,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Ferric-mycobactin receptor (FemA) in complex with dihydroaeruginoic acid"
+  },
+  {
+   "pdb": "9F2T",
+   "before": 0.635,
+   "after": 0.931,
+   "label": 1,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Ferric-mycobactin receptor (FemA)"
+  },
+  {
+   "pdb": "9FVQ",
+   "before": 0.635,
+   "after": 0.931,
+   "label": 0,
+   "mpstruc": null,
+   "strands": 22,
+   "title": "Ferric-mycobactin receptor (FemA) in complex with pyochelin"
+  }
+ ]
+}

@@ -2,8 +2,12 @@
 
     python -m mpstruc.automation run [--since YYYY-MM-DD] [--until YYYY-MM-DD]
     python -m mpstruc.automation backtest
+    python -m mpstruc.automation apply-rules   # curator_rules.json on the current candidates, no weekly run
 
 `run` writes ../data/candidates.json for the site's Automation tab.
+`apply-rules` re-reads curator_rules.json, recounts barrel strands, rescores
+and re-places the candidates a rule touches in ../data/candidates.json, and
+rewrites ../data/curator_rules.json and reports/rule_conflicts.md.
 `backtest` replays past periods against mpstruc's own decisions, fits the
 likelihood model and cut-off on the first, reports on the second, and
 writes model.json, reports/backtest.{md,json} and ../data/backtest.json.
@@ -15,6 +19,11 @@ backtest. The rules come from reports/placement_analysis.md:
   partial   shares some proteins only (complexes, fusions)             (67%: review)
   parent    protein not yet in mpstruc                                 (90%)
 RCSB's copy of the mpstruc classification is never used as evidence.
+
+The curators' own rules (curator_rules.json, rules.py) are applied after these:
+a subfamily with a typical number of barrel strands (autotransporters 12,
+Omp85-TpsB 16) is checked against the strands counted in the structure
+(barrel.py), and the suggestion is moved when the count says so (apply_rules).
 """
 from __future__ import annotations
 
@@ -29,7 +38,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import rcsb
+from . import rcsb, rules as rules_mod
 from .model import Database, load
 from .placement import MEMBRANE_SOURCES, entity_summary
 from .report import ROOT, source_xml
@@ -249,19 +258,21 @@ def subgroup_scores(kb: KB, s: dict) -> list[tuple[str, float, list[str]]]:
     """
     weights = {"up": 4.0, "opm": 2.0, "pfam": 1.5, "uipr": 1.5, "ipr": 1.0}
     votes: Counter = Counter()
-    why: dict[str, list[str]] = defaultdict(list)
-    for f in _features(s):
+    why: dict[str, list[tuple[float, str]]] = defaultdict(list)
+    for f in sorted(_features(s)):  # in a fixed order, so the sums and the features named are the same every run
         dist = kb.feat_sg.get(f)
         if not dist:
             continue
         total = sum(dist.values())
         spec = 1.0 / math.log2(1 + len(dist))
         for sg, n in dist.items():
-            votes[sg] += weights[f.split(":")[0]] * spec * n / total
-            if len(why[sg]) < 4:
-                why[sg].append(f)
+            w = weights[f.split(":")[0]] * spec * n / total
+            votes[sg] += w
+            why[sg].append((-w, f))
     tot = sum(votes.values())
-    return [(sg, v / tot, why[sg]) for sg, v in votes.most_common(3)] if tot else []
+    top = sorted(votes.items(), key=lambda kv: (-kv[1], kv[0]))[:3]
+    # The four features that weigh most for the subgroup (then by name).
+    return [(sg, v / tot, [f for _, f in sorted(why[sg])[:4]]) for sg, v in top] if tot else []
 
 
 def _owner(kb: KB, k: Known) -> Known:
@@ -833,6 +844,562 @@ def add_listings(props: list[dict], db: Database | None = None,
         # text plus <br />, <sub>, <sup> and entities only, so the page shows them as HTML.
         p["mp"] = mp
 
+# ---------------------------------------------------------------- curators' rules
+
+PLACEMENT_FIELDS = ("placement", "subgroup", "subgroupName", "group", "ownerPdb", "ownerKey", "confidence", "rule",
+                    "evidence", "alternatives")
+RULE_FIELDS = ("barrelStrands", "ruleCheck")
+MIN_BARREL = 8  # strands (membrane.CORE_MIN_STRANDS): fewer is not a barrel that crosses the membrane
+REVIEW_BELOW = 0.5  # membrane score under which family votes alone do not place a structure in a ruled subfamily
+
+
+def strand_rules(kb: KB) -> dict[str, dict]:
+    """{subgroup key: rule} for the curators' rules that give a number of barrel strands."""
+    return rules_mod.strand_rules(rules_mod.resolve(rules_mod.load_rules(), kb.sg_names))
+
+
+def touched_by_rules(c: dict, ruled: dict[str, dict]) -> bool:
+    """A candidate whose suggested subfamily, or one of its top subfamily votes, has a rule."""
+    return c.get("subgroup") in ruled or any(a.get("subgroup") in ruled for a in c.get("alternatives") or []) \
+        or bool(c.get("ruleCheck"))
+
+
+def _closest_family(kb: KB, sg: str, iprs: set[str]) -> Known | None:
+    """The entry of a subfamily whose protein families are most like these (None if none shares any)."""
+    best, best_key = None, (0.0, False, "")
+    for k in kb.entries:
+        if k.sg != sg or k.kind == "related" or not k.s:
+            continue
+        other = k.s.get("uipr") or set()
+        j = len(iprs & other) / len(iprs | other) if iprs | other else 0.0
+        key = (round(j, 4), k.kind == "parent", k.released)
+        if j > 0 and key > best_key:
+            best, best_key = k, key
+    return best
+
+
+def _short(name: str) -> str:
+    return name if len(name) <= 60 else name[:57].rstrip() + "..."
+
+
+UNIPROT_STRANDS = "UniProt strands"  # "method" of a barrel known only from UniProt's transmembrane strands, all resolved
+
+
+def apply_rules(props: list[dict], kb: KB, ruled: dict[str, dict], barrels: dict[str, dict[str, dict]],
+                om: dict[str, set[str]], fams: dict[str, dict | None], conf: dict[str, float],
+                conflicts: list[dict] | None = None) -> list[dict]:
+    """Check suggestions against the curators' barrel-strand rules, in place.
+
+    props: candidates as propose() returns them, with "membrane" (and "tmEvidence") set.
+    ruled: strand_rules. barrels: membrane.counted_barrels output for the touched
+    candidates ({pdb: {accession: barrel}}; {} for a structure counted without a barrel;
+    a structure that could not be counted is absent); om: {pdb: its outer-membrane
+    proteins}; fams: rcsb.entry_families items; conflicts: rule_conflicts output (official
+    entries whose own barrel contradicts the rule of the subfamily they are listed in).
+
+    For a candidate whose suggested subfamily or top subfamily votes include a ruled one:
+      - "barrelStrands": {"chain", "count", "method", "closed", "uniprot"[, "chains",
+        "perChain", "upTo"]} when a membrane barrel was counted in it (or, when none
+        could be, UniProt's transmembrane strands of an outer-membrane protein are all
+        resolved in it: "method": UNIPROT_STRANDS);
+      - the barrel that is checked is the best one known for the paper: a closed barrel
+        in the structure itself, else one that decides in its own open barrel, else a
+        closed barrel of the same protein in a structure of the same paper ("from"), else
+        UniProt's strands. The count of an open barrel is a lower bound (rules.verdict);
+      - if the count contradicts the suggested subfamily's rule and fits another ruled
+        subfamily, the suggestion moves there: to the entries of the same protein there if
+        any, else with the closest entry of the same protein family as closest match (a new
+        parent stays a new parent). A structure related to an official entry by its paper
+        stays with that entry, and a barrel made by several chains moves nothing; the
+        contradiction is only noted;
+      - if its own barrel does not decide (none counted, or open with too few strands)
+        and the official entry it would join is itself in conflicts, with a barrel of the
+        same protein that fits another ruled subfamily, it moves there on that basis;
+      - a new protein placed by family votes alone, counted without a barrel and with a
+        membrane score under REVIEW_BELOW, goes to review (without a subfamily if none of
+        its proteins is an outer-membrane protein at all). A structure that
+        could not be counted (absent from barrels) is left as it is ("unchecked");
+      - "ruleCheck": {"status": "fits" | "moved" | "differs" | "unclear" | "no-barrel" |
+        "unchecked", "text": the same in a sentence, "rule": the ruled subfamily it was
+        checked against[, "from", "closest": "family" when the owner is only the closest
+        entry of the same protein family, "lines": how many evidence lines the rule added]}.
+    Structures of the same paper follow their lead (same-paper-batch), as in propose().
+    Returns [{"pdb", "before", "after"}] for the suggestions that changed."""
+    from .barrel import METHOD, strands_text
+    by_pdb = {c["pdb"]: c for c in props}
+    odd = {x["pdb"]: x for x in conflicts or []}
+    changes = []
+    followers: dict[str, list[dict]] = defaultdict(list)
+    for c in props:
+        if c.get("rule") == "same-paper-batch" and c.get("ownerPdb"):
+            followers[c["ownerPdb"]].append(c)
+
+    def where(c: dict) -> str:
+        return f"{c['placement']} in {c.get('subgroupName') or 'no subfamily'}" + (f" ({c['ownerPdb']})" if c.get("ownerPdb") else "")
+
+    def others(sg: str) -> list[dict]:
+        return [r for k, r in ruled.items() if k != sg]
+
+    def how(b: dict, sg: str) -> str:
+        return rules_mod.verdict(ruled[sg], b["count"], b.get("closed", True), others(sg), b.get("upTo"))
+
+    def counted(pdb: str, sg: str | None) -> list[dict]:
+        """The membrane barrels counted in a structure. One in a protein UniProt does not
+        place in the outer membrane ("vote") only stands if it is a closed single-chain
+        barrel with the number of strands of the suggested subfamily."""
+        out = []
+        for acc, b in sorted((barrels.get(pdb) or {}).items()):
+            if b.get("count", 0) < MIN_BARREL:
+                continue
+            if b.get("vote") and not (sg in ruled and b.get("closed", True) and not b.get("chains")
+                                      and rules_mod.fits(ruled[sg], b["count"])):
+                continue
+            out.append(dict(b, uniprot=acc))
+        return out
+
+    def pick(pdb: str, sg: str | None, accs: set[str] | None = None) -> dict | None:
+        """The barrel to check: one that fits the suggested subfamily's rule if any, else the largest."""
+        found = [b for b in counted(pdb, sg) if accs is None or b["uniprot"] in accs]
+        if not found:
+            return None
+        fit = [b for b in found if sg in ruled and how(b, sg) == "fits"]
+        return max(fit or found, key=lambda b: (b["count"], b["closed"]))
+
+    def uniprot_strands(c: dict) -> dict | None:
+        """UniProt's transmembrane strands of an outer-membrane protein, all resolved in the
+        structure (from its per-protein table): the barrel, when none could be counted."""
+        rows = [r for r in c.get("tmEvidence") or [] if isinstance(r, dict) and r.get("uniprot") in (om.get(c["pdb"]) or ())
+                and r.get("status") == "resolved" and isinstance(r.get("segments"), int)
+                and r["segments"] >= MIN_BARREL and r.get("resolved") == r["segments"]]
+        if not rows:
+            return None
+        r = max(rows, key=lambda r: r["segments"])
+        return {"count": r["segments"], "closed": True, "method": UNIPROT_STRANDS, "uniprot": r["uniprot"]}
+
+    def outcome(b: dict | None, sg: str) -> tuple[str | None, str | None]:
+        """("fits" | "unclear" | "differs" | None, the ruled subfamily it fits instead)."""
+        if not b:
+            return None, None
+        v = how(b, sg)
+        if v != "differs":
+            return v, None
+        to = [k for k in ruled if k != sg and how(b, k) == "fits"]
+        return "differs", to[0] if to else None
+
+    def evidence_for(c: dict, sg: str) -> dict | None:
+        """The best barrel known for a lead and the structures of its paper."""
+        own = pick(c["pdb"], sg)
+        decides = lambda b: outcome(b, sg)[0] == "fits" or bool(outcome(b, sg)[1])
+        if own and (own.get("closed", True) or decides(own)):
+            return own
+        accs = {own["uniprot"]} if own else set(c.get("uniprot") or [])
+        mates = [dict(b, **{"from": f["pdb"]}) for f in followers.get(c["pdb"], [])
+                 for b in [pick(f["pdb"], sg, accs)] if b and b.get("closed", True)]
+        if mates:
+            return max(mates, key=lambda b: (how(b, sg) == "fits", b["count"]))
+        return uniprot_strands(c) or own
+
+    def note_barrel(c: dict, b: dict | None) -> None:
+        if b and not b.get("from"):
+            c["barrelStrands"] = {k: b[k] for k in ("chain", "count", "method", "closed", "uniprot", "chains", "perChain", "upTo")
+                                  if b.get(k) is not None}
+        elif c["pdb"] in barrels:
+            c.pop("barrelStrands", None)
+
+    def chain_text(b: dict) -> str:
+        return (f"{b['chains']} chains together" if b.get("chains") else f"chain {b['chain']}") + \
+            ("" if b.get("closed", True) else ", seam open")
+
+    def counted_text(b: dict) -> str:
+        """'16 strands counted in the barrel (chain A)' and its variants."""
+        if b.get("method") == UNIPROT_STRANDS:
+            return (f"all {b['count']} membrane-crossing strands UniProt gives for {b['uniprot']} are resolved "
+                    f"(no barrel could be counted from the coordinates)")
+        return (f"{strands_text(b)} strands counted in the barrel ({chain_text(b)}"
+                + (f" of {b['from']}, same paper and protein" if b.get("from") else "") + ")")
+
+    def annotate(c: dict, status: str, rule: str, text: str, lines: list[str] | None = None, **more) -> None:
+        text = text[0].upper() + text[1:]
+        lines = [text] + (lines or [])
+        c["evidence"] = list(c["evidence"]) + lines
+        c["ruleCheck"] = {"status": status, "rule": rule, "text": text, "lines": len(lines), **more}
+
+    def move(c: dict, cur: str, to: str, text: str, acc: str | None) -> None:
+        rule, new = ruled[cur], ruled[to]
+        ev = []
+        if c.get("ownerPdb") and c["ownerPdb"] not in text:
+            ev.append(f"mpstruc lists the same protein under {rule['name']} ({c['ownerPdb']}); "
+                      f"by the rule that entry belongs with {new['name']} too")
+        core = set(c.get("uniprot") or []) - FUSION_UNIPROT
+        family = False  # the closest match is an entry of the same family, not of the same protein
+        same = [k for u in core for k in kb.by_uniprot.get(u, []) if k.sg == to]
+        exact = [k for k in same if k.s and k.s["core"] == core]
+        if exact:
+            votes_p = Counter(k.parent_key for k in exact)
+            parent_key = sorted(votes_p, key=lambda key: (-votes_p[key], key))[0]
+            c.update(placement="daughter", ownerPdb=_parent_pdb(kb, parent_key), ownerKey=parent_key,
+                     confidence=round(conf.get("daughter", 0.9), 2))
+            ev.append(f"Same protein(s) as {votes_p[parent_key]} structure(s) under {c['ownerPdb']} ({parent_key}) there")
+        elif same:
+            parent_key = Counter(k.parent_key for k in same).most_common(1)[0][0]
+            c.update(placement="review", ownerPdb=_parent_pdb(kb, parent_key), ownerKey=parent_key,
+                     confidence=round(conf.get("partial", 0.6), 2))
+            ev.append(f"Shares a protein with {c['ownerPdb']} ({parent_key}) there (complex or fusion differs)")
+        else:
+            iprs = set(((fams.get(c["pdb"]) or {}).get("ipr") or {}).get(acc) or ())
+            near = _closest_family(kb, to, iprs)
+            if c["placement"] == "parent":
+                c.update(ownerPdb=None, ownerKey=None)
+                if near:
+                    ev.append(f"Closest entry there: {near.pdb} (same protein family)")
+            else:  # it was a daughter of, or shared a protein with, an entry of the other subfamily
+                family = bool(near)
+                c.update(placement="review", ownerPdb=_parent_pdb(kb, near.parent_key) if near else None,
+                         ownerKey=near.parent_key if near else None, confidence=0.0)
+                if near:
+                    ev.append(f"Closest entry there: {near.pdb} (same protein family, another species or complex): "
+                              f"new parent, or daughter of it")
+        c.update(subgroup=to, subgroupName=kb.sg_names.get(to), group=kb.sg_group.get(to), rule="barrel-rule")
+        annotate(c, "moved", to, text, ev, **{"from": cur}, **({"closest": "family"} if family else {}))
+
+    for c in props:
+        c.pop("ruleCheck", None)
+    leads = [c for c in props if c.get("rule") != "same-paper-batch"]
+    for c in leads:
+        if not touched_by_rules(c, ruled):
+            continue
+        before = where(c)
+        cur = c.get("subgroup")
+        own = pick(c["pdb"], cur)
+        b = evidence_for(c, cur) if cur in ruled else own
+        note_barrel(c, own or (b if b and b.get("method") == UNIPROT_STRANDS else None))
+        if cur not in ruled:
+            continue
+        rule = ruled[cur]
+        status, to = outcome(b, cur)
+        several = bool(b and b.get("chains"))
+        # The official entry it would join is itself listed against the rule (TamA 4C00).
+        o = odd.get(c.get("ownerPdb") or "")
+        by_owner = None
+        if o and o.get("subgroup") == cur and o.get("fits") in ruled and c["placement"] != "related" \
+                and o.get("uniprot") in (c.get("uniprot") or []) and status != "fits" and not (status == "differs" and to) \
+                and (b is None or rules_mod.possible(ruled[o["fits"]], b["count"], b.get("closed", True), b.get("upTo"))):
+            by_owner = o["fits"]
+        if status == "fits":
+            annotate(c, "fits", cur, f"{counted_text(b)}: fits the curators' rule for {rule['name']} ({rules_mod.strands_phrase(rule)})")
+        elif status == "differs" and to and c["placement"] != "related" and not several:
+            new = ruled[to]
+            move(c, cur, to, f"{counted_text(b)}: {new['name']} are {rules_mod.strands_phrase(new)}, {rule['name']} "
+                             f"{rules_mod.strands_phrase(rule)} (curators' rule), so it is suggested under {new['name']}", b["uniprot"])
+        elif by_owner:
+            new = ruled[by_owner]
+            own_part = "" if b is None else f"; in this structure, {counted_text(b)}"
+            move(c, cur, by_owner,
+                 f"mpstruc lists the same protein under {rule['name']} ({o['pdb']}), but "
+                 f"{o['count']} strands are counted in the barrel of {o['pdb']} itself: {new['name']} are "
+                 f"{rules_mod.strands_phrase(new)}, {rule['name']} {rules_mod.strands_phrase(rule)} (curators' rule), so it is "
+                 f"suggested under {new['name']}{own_part}", o["uniprot"])
+        elif status == "differs":
+            text = f"{counted_text(b)}, but {rule['name']} are {rules_mod.strands_phrase(rule)} (curators' rule)"
+            if to and c["placement"] == "related":
+                text += (f"; it fits {ruled[to]['name']} ({rules_mod.strands_phrase(ruled[to])}). It stays with "
+                         f"{c.get('ownerPdb')}, the official entry of the same paper")
+            elif to:
+                text += (f"; the number fits {ruled[to]['name']} ({rules_mod.strands_phrase(ruled[to])}), but those barrels are "
+                         f"made by one chain, so it is not moved")
+            else:
+                may = [r for r in others(cur) if rules_mod.possible(r, b["count"], b.get("closed", True), b.get("upTo"))]
+                if may and not b.get("closed", True):
+                    text += (f"; the barrel is open, so strands may be missing from the count: it may be one of "
+                             f"{may[0]['name']} ({rules_mod.strands_phrase(may[0])})")
+            annotate(c, "differs", cur, text)
+        elif status == "unclear":
+            if b.get("closed", True):  # two rings fit the same strands
+                text = (f"{counted_text(b)}: only one of the two numbers fits the curators' rule for {rule['name']} "
+                        f"({rules_mod.strands_phrase(rule)}), so the count does not decide and the suggestion stays")
+            elif rules_mod.fits(rule, b["count"]):
+                more = [r for r in others(cur) if r["barrelStrands"] > rule["barrelStrands"]
+                        and rules_mod.possible(r, b["count"], False)]
+                text = (f"{counted_text(b)}: that would fit {rule['name']} ({rules_mod.strands_phrase(rule)}, curators' rule), but "
+                        f"the barrel is open, so strands may be missing from the count, and {more[0]['name']} are "
+                        f"{rules_mod.strands_phrase(more[0])}: the count does not decide and the suggestion stays")
+            else:
+                text = (f"{counted_text(b)}, fewer than {rule['name']} typically have ({rule['barrelStrands']}, curators' rule); "
+                        f"the barrel is open, so strands may be missing from the count and the suggestion stays")
+            annotate(c, "unclear", cur, text)
+        elif c["pdb"] not in barrels:
+            # Not "no barrel": its chains could not be looked at this time (an outer-membrane
+            # protein, or any protein of a small structure suggested here: rule_inputs).
+            c["ruleCheck"] = {"status": "unchecked", "rule": cur, "lines": 0,
+                              "text": f"The barrel could not be counted in this run (the coordinates could not be fetched), so the "
+                                      f"curators' rule for {rule['name']} ({rules_mod.strands_phrase(rule)}) was not checked"}
+        elif c.get("rule") == "new-protein" and (c.get("membrane") or 0) < REVIEW_BELOW:
+            has_om = bool(om.get(c["pdb"]))
+            text = (f"No membrane beta-barrel is resolved in this structure (membrane protein {round(100 * (c.get('membrane') or 0))}% "
+                    f"likely), and only its protein families point to {rule['name']}, a barrel subfamily "
+                    f"({rules_mod.strands_phrase(rule)}, curators' rule): "
+                    + ("only a part outside the membrane of an outer-membrane protein is in it, so a curator decides whether to list it"
+                       if has_om else "none of its proteins is an outer-membrane barrel protein, so it is not placed there"))
+            c.update(placement="review", confidence=0.0, rule="barrel-rule-no-barrel", ownerPdb=None, ownerKey=None)
+            if not has_om:
+                c.update(subgroup=None, subgroupName=None, group=None)
+            annotate(c, "no-barrel", cur, text)
+        if where(c) != before:
+            changes.append({"pdb": c["pdb"], "before": before, "after": where(c)})
+    for c in props:
+        if c.get("rule") != "same-paper-batch":
+            continue
+        lead = by_pdb.get(c.get("ownerPdb") or "")
+        if not lead or not (lead.get("ruleCheck") or touched_by_rules(c, ruled)):
+            continue
+        before = where(c)
+        sg = lead.get("subgroup")
+        b = pick(c["pdb"], sg) or uniprot_strands(c)
+        note_barrel(c, b)
+        check = lead.get("ruleCheck")
+        if check and check["status"] in ("moved", "no-barrel"):
+            c.update(subgroup=lead.get("subgroup"), subgroupName=lead.get("subgroupName"), group=lead.get("group"))
+            text = (f"Follows {lead['pdb']} (same paper), which the curators' barrel rule "
+                    + (f"moved to {lead['subgroupName']}" if check["status"] == "moved" else "sent to review")
+                    + (f"; in this structure, {counted_text(b)}" if b else ""))
+            annotate(c, check["status"], check["rule"], text, **({"from": check["from"]} if check.get("from") else {}))
+        elif b and c.get("subgroup") in ruled:
+            rule = ruled[c["subgroup"]]
+            v = how(b, c["subgroup"])
+            text = (f"{counted_text(b)}: fits the curators' rule for {rule['name']} ({rules_mod.strands_phrase(rule)})" if v == "fits"
+                    else f"{counted_text(b)}: the barrel is open, so strands may be missing from the count, which does not "
+                         f"decide between the curators' rules ({rule['name']}: {rules_mod.strands_phrase(rule)})" if v == "unclear"
+                    else f"{counted_text(b)}, but {rule['name']} are {rules_mod.strands_phrase(rule)} (curators' rule)")
+            annotate(c, v, c["subgroup"], text)
+        if where(c) != before:
+            changes.append({"pdb": c["pdb"], "before": before, "after": where(c)})
+    return changes
+
+
+def rule_inputs(props: list[dict], ruled: dict[str, dict]) -> tuple[dict, dict, dict]:
+    """(barrels, outer-membrane proteins, families) apply_rules needs, for the candidates
+    a rule touches (and the structures of the same paper that follow them). A structure
+    whose barrel could not be counted is absent from barrels (if the coordinate server
+    cannot be reached, all but those with no chain to look at: membrane.nothing_to_count)."""
+    from . import membrane
+    lead_touched = {c["pdb"] for c in props if touched_by_rules(c, ruled)}
+    ids = sorted(lead_touched | {c["pdb"] for c in props
+                                 if c.get("rule") == "same-paper-batch" and c.get("ownerPdb") in lead_touched})
+    if not ids:
+        return {}, {}, {}
+    ext, fams, ents = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_entities(ids)
+    om = {p: membrane.outer_membrane_proteins((ext.get(p) or {}).get("kw"), (fams.get(p) or {}).get("ipr")) for p in ids}
+    # Suggested under a ruled subfamily: the vote is the membrane evidence, so every chain
+    # is looked at when UniProt names no outer-membrane protein in it (invasin).
+    every = {c["pdb"] for c in props if c.get("subgroup") in ruled and c["pdb"] in ids}
+    try:
+        barrels = membrane.counted_barrels(ids, ext, fams, None, ents, every=every)
+    except Exception as err:  # without counts the rules only note what they could not check
+        print(f"rules: barrels could not be counted ({err})")
+        barrels = {p: {} for p in ids if membrane.nothing_to_count(p, ext, fams, ents, every)}
+    return barrels, om, fams
+
+
+def rule_conflicts(db: Database, kb: KB, ruled: dict[str, dict]) -> list[dict]:
+    """Official mpstruc entries (parents and daughters) in a ruled subfamily whose counted
+    barrel contradicts the rule: information for the curators, mpstruc itself is not changed.
+
+    An entry with several barrels (BAM with a substrate) is fine if one fits, and an open
+    barrel with too few strands says nothing (rules.verdict). Entries with no membrane barrel
+    in the structure (POTRA, passenger or head domains, BamB-E) are not listed, and neither
+    are entries whose protein UniProt does not place in the outer membrane (invasin): their
+    chains are not looked at here (membrane.counted_barrels)."""
+    from . import membrane
+    entries = [(sg.key, e) for g in db.groups for sg in g.subgroups if sg.key in ruled
+               for p in sg.parents for e in (p, *p.daughters)]
+    ids = sorted({e.pdbCode.upper() for _, e in entries})
+    ext, fams, ents = rcsb.entry_extras(ids), rcsb.entry_families(ids), rcsb.entry_entities(ids)
+    barrels = membrane.counted_barrels(ids, ext, fams, None, ents)
+    out = []
+    for sg, e in entries:
+        pdb = e.pdbCode.upper()
+        found = [dict(b, uniprot=acc) for acc, b in sorted((barrels.get(pdb) or {}).items()) if b.get("count", 0) >= MIN_BARREL]
+        rest = lambda k: [r for x, r in ruled.items() if x != k]
+        how = lambda b, k: rules_mod.verdict(ruled[k], b["count"], b["closed"], rest(k), b.get("upTo"))
+        if not found or any(how(b, sg) != "differs" for b in found):
+            continue
+        b = max(found, key=lambda b: b["count"])
+        other = [k for k in ruled if k != sg and how(b, k) == "fits"]
+        out.append({"pdb": pdb, "key": e.key, "name": to_text(e.name) or "", "subgroup": sg, "subgroupName": ruled[sg]["name"],
+                    "expected": ruled[sg]["barrelStrands"], "count": b["count"], "chain": b["chain"], "closed": b["closed"],
+                    "uniprot": b["uniprot"], "fits": other[0] if other else None,
+                    "fitsName": ruled[other[0]]["name"] if other else None})
+    return out
+
+
+def conflicts_md(conflicts: list[dict], ruled: dict[str, dict]) -> str:
+    L = ["# Official mpstruc entries that contradict a curators' rule", "",
+         "Barrel strands counted from the coordinates (`mpstruc/barrel.py`) against the rules in `curator_rules.json`.",
+         "For the curators' information: the automation cannot change official mpstruc. Regenerate with",
+         "`python -m mpstruc.automation apply-rules`.", "", "## Rules", ""]
+    L += [f"- **{r['name']}** ({k}): {r['note']} (added by {r.get('addedBy', '?')}, {r.get('addedOn', '?')}; "
+          f"counts within {r.get('tolerance', 0)} of {r['barrelStrands']} fit)" for k, r in sorted(ruled.items())]
+    L += ["", f"## Entries that do not fit ({len(conflicts)})", ""]
+    if conflicts:
+        L += ["| PDB | Entry | Listed under | Rule | Counted | Fits instead |", "|---|---|---|---|---|---|"]
+        for c in conflicts:
+            L.append(f"| {c['pdb']} | {c['name']} ({c['key']}) | {c['subgroupName']} | {c['expected']} strands | "
+                     f"{'' if c['closed'] else 'at least '}{c['count']} strands (chain {c['chain']}{'' if c['closed'] else ', seam open'}) | "
+                     f"{c['fitsName'] or 'no ruled subfamily'} |")
+    else:
+        L.append("None.")
+    return "\n".join(L) + "\n"
+
+
+def _conflicts(db: Database, kb: KB, ruled: dict[str, dict]) -> list[dict] | None:
+    """rule_conflicts, or None when the official entries could not be counted this time."""
+    try:
+        return rule_conflicts(db, kb, ruled) if ruled else []
+    except Exception as err:
+        print(f"rules: the official entries could not be checked ({err})")
+        return None
+
+
+def write_rule_files(db: Database, kb: KB, generated: str, conflicts: list[dict] | None = None) -> dict:
+    """../data/curator_rules.json for the site (the rules, the official entries that
+    contradict one, how well the counting did) and reports/rule_conflicts.{md,json}.
+    conflicts: rule_conflicts output if already computed."""
+    resolved = rules_mod.resolve(rules_mod.load_rules(), kb.sg_names)
+    ruled = rules_mod.strand_rules(resolved)
+    if conflicts is None:
+        conflicts = rule_conflicts(db, kb, ruled) if ruled else []
+    val_path = ROOT / "reports" / "barrel_validation.json"
+    validation = None
+    if val_path.exists():
+        v = json.loads(val_path.read_text())
+        validation = {"n": v["n"], "correct": v["correct"], "withinOne": v["within_one"]}
+        if v.get("open_n"):
+            validation.update(openN=v["open_n"], openCorrect=v["open_correct"])
+    site = rules_mod.site_data(resolved, conflicts, generated, validation)
+    SITE_DATA.mkdir(exist_ok=True)
+    (SITE_DATA / "curator_rules.json").write_text(json.dumps(site, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (ROOT / "reports" / "rule_conflicts.md").write_text(conflicts_md(conflicts, ruled), encoding="utf-8")
+    (ROOT / "reports" / "rule_conflicts.json").write_text(json.dumps(conflicts, indent=1, ensure_ascii=False), encoding="utf-8")
+    return site
+
+
+def reapply_rules(path: Path | None = None, db: Database | None = None) -> dict:
+    """Apply curator_rules.json to data/candidates.json without a weekly run.
+
+    1. membrane.backfill_table: barrels are recounted, and the membrane score, reasons and
+       per-protein table of the structures a counted barrel changes are replaced.
+    2. The candidates a rule touches are placed again from scratch (same classification as
+       the weekly run, from the caches) and checked against the rules (apply_rules); their
+       draft listing is rebuilt when the placement changed.
+    Everything else in the file stays as it is; it is written as the weekly run writes it.
+    Returns {"scores": [...], "placements": [...], "reclassified": [...]} (before -> after)."""
+    from . import membrane
+    path = path or SITE_DATA / "candidates.json"
+    db = db or load(source_xml())
+    scores = membrane.backfill_table(path)
+    data = json.loads(path.read_text(encoding="utf-8"))
+    cands = data.get("candidates") or []
+    settings_path = ROOT / "model.json"
+    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+    conf, model = settings.get("confidence", {}), settings.get("model")
+    kb = build_kb(db, _full_summaries(db))
+    ruled = strand_rules(kb)
+    touched = {c["pdb"] for c in cands if touched_by_rules(c, ruled)}
+    touched |= {c["pdb"] for c in cands if c.get("rule") == "same-paper-batch" and c.get("ownerPdb") in touched}
+    out = {"scores": scores["score_changed"], "placements": [], "reclassified": [], "touched": len(touched)}
+    conflicts = None
+    if touched:
+        ids = [c["pdb"] for c in cands]
+        fresh, _ = propose(kb, ids, conf, model, keep=set(ids))
+        fresh = {p["pdb"]: p for p in fresh}
+        work = []
+        for c in cands:
+            f = fresh.get(c["pdb"])
+            if c["pdb"] not in touched or not f:
+                continue
+            w = {**c, **{k: f[k] for k in PLACEMENT_FIELDS}}
+            w.pop("ruleCheck", None)
+            # The same classification as stored: keep the stored wording, without the lines a
+            # rule added last time ("lines"). A candidate a rule moved gets the fresh wording,
+            # which is the same every run (subgroup_scores names the features in a fixed order).
+            same = all(c.get(k) == f[k] for k in ("placement", "subgroup", "ownerPdb", "ownerKey", "rule", "confidence"))
+            votes = lambda alts: [(a.get("subgroup"), a.get("score")) for a in alts or []]
+            added = (c.get("ruleCheck") or {}).get("lines", None if c.get("ruleCheck") else 0)
+            if same and isinstance(added, int) and 0 <= added <= len(c.get("evidence") or []):
+                w["evidence"] = list(c.get("evidence") or [])[:len(c.get("evidence") or []) - added]
+            if votes(c.get("alternatives")) == votes(f["alternatives"]):
+                w["alternatives"] = c["alternatives"]
+            work.append(w)
+        # A lead that is itself not touched keeps its stored suggestion; its followers need it to follow.
+        known = {w["pdb"] for w in work}
+        context = work + [c for c in cands if c["pdb"] not in known]
+        barrels, om, fams = rule_inputs(work, ruled)
+        conflicts = _conflicts(db, kb, ruled)
+        apply_rules(context, kb, ruled, barrels, om, fams, conf, conflicts)
+        by_pdb = {c["pdb"]: c for c in cands}
+        show = lambda c: f"{c['placement']} in {c.get('subgroupName') or 'no subfamily'}" + (f" ({c['ownerPdb']})" if c.get("ownerPdb") else "")
+        moved = []
+        for w in work:
+            c = by_pdb[w["pdb"]]
+            f = fresh[w["pdb"]]
+            if any(c.get(k) != f[k] for k in ("placement", "subgroup", "ownerPdb")) and not c.get("ruleCheck"):
+                out["reclassified"].append({"pdb": c["pdb"], "before": show(c), "after": show(f)})
+            if any(c.get(k) != w.get(k) for k in ("placement", "subgroup", "ownerPdb")):
+                out["placements"].append({"pdb": c["pdb"], "before": show(c), "after": show(w)})
+                moved.append(c["pdb"])
+            for k in PLACEMENT_FIELDS:
+                c[k] = w[k]
+            for k in RULE_FIELDS:
+                if k in w:
+                    c[k] = w[k]
+                else:
+                    c.pop(k, None)
+        if moved:  # the draft entry names what it goes under: rebuild it for those that moved
+            copy = json.loads(json.dumps(cands))
+            add_listings(copy, db)
+            new_mp = {c["pdb"]: c.get("mp") for c in copy}
+            for pdb in moved:
+                if new_mp.get(pdb):
+                    by_pdb[pdb]["mp"] = new_mp[pdb]
+    data["rulesApplied"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes")
+    path.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    write_rule_files(db, kb, data["rulesApplied"], conflicts)
+    return out
+
+
+def relist(path: Path | None = None, db: Database | None = None) -> dict:
+    """Re-draft the mpstruc listing (`mp`: name, description, relatedLine,
+    ligandNotes, ...) of every candidate in data/candidates.json with the
+    current listing.py, from the caches (the PDB is asked only for what they
+    lack). Nothing is re-scored or re-placed: every other field of the file,
+    and its compact JSON format, stay as they are. A candidate whose PDB
+    details cannot be had keeps its old draft. Returns what changed."""
+    path = path or SITE_DATA / "candidates.json"
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    cands = doc.get("candidates") or []
+    # add_listings only reads pdb, placement, ownerPdb and uniprot; drafts go to copies.
+    fresh = [{k: p.get(k) for k in ("pdb", "placement", "ownerPdb", "uniprot")} for p in cands]
+    add_listings(fresh, db)
+    out = {"candidates": len(cands), "redrafted": 0, "names": 0, "descriptions": 0, "relatedLines": 0, "changed": []}
+    for p, f in zip(cands, fresh):
+        new = f.get("mp")
+        if not new:
+            continue
+        old = p.get("mp") or {}
+        merged = {**old, **new}
+        if "relatedLine" not in new:
+            merged.pop("relatedLine", None)
+        out["redrafted"] += 1
+        diff = [k for k in ("name", "description", "relatedLine") if old.get(k) != merged.get(k)]
+        out["names"] += "name" in diff
+        out["descriptions"] += "description" in diff
+        out["relatedLines"] += "relatedLine" in diff
+        if diff:
+            out["changed"].append({"pdb": p["pdb"], **{k: [old.get(k), merged.get(k)] for k in diff}})
+        p["mp"] = merged
+    path.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+    return out
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -841,9 +1408,22 @@ def main() -> None:
     r.add_argument("--since", help="first release date to consider (default: 26 weeks ago)")
     r.add_argument("--until")
     sub.add_parser("backtest")
+    sub.add_parser("apply-rules", aliases=["replace-rules"])
+    rl = sub.add_parser("relist", help="re-draft the listings in data/candidates.json; nothing is re-scored or re-placed")
+    rl.add_argument("--file", help="candidates file to rewrite (default: data/candidates.json)")
     args = ap.parse_args()
+    if args.cmd in ("apply-rules", "replace-rules"):
+        res = reapply_rules()
+        print(json.dumps(res, indent=1))
+        return
     db = load(source_xml())
     SITE_DATA.mkdir(exist_ok=True)
+
+    if args.cmd == "relist":
+        r = relist(Path(args.file) if args.file else None, db)
+        print(f"relist: re-drafted {r['redrafted']} of {r['candidates']} candidates; changed: {r['names']} names, "
+              f"{r['descriptions']} descriptions, {r['relatedLines']} related lines")
+        return
 
     if args.cmd == "backtest":
         tune = evaluate(db, "2025-01-01", "2025-06-30", {})
@@ -930,6 +1510,17 @@ def main() -> None:
             p["tmEvidence"] = mem[p["pdb"]]["tmTable"]
     props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
     props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
+    # The curators' rules (curator_rules.json): barrel strands counted in the structure
+    # against the typical number of the suggested subfamily.
+    ruled = strand_rules(kb)
+    conflicts = None
+    if ruled:
+        conflicts = _conflicts(db, kb, ruled)
+        moved = apply_rules(props, kb, ruled, *rule_inputs(props, ruled), conf, conflicts)
+        stats["moved by a curators' rule"] = len(moved)
+    for p in props:  # a barrel counted for the membrane score is shown on the card too
+        if mem[p["pdb"]].get("barrel") and "barrelStrands" not in p:
+            p["barrelStrands"] = mem[p["pdb"]]["barrel"]
     # Citations first: any cached entry whose paper turns out to be out now is
     # dropped from the cache, so the draft listing below cites that paper.
     cits = awaiting.citations_for(props, fresh_cits)
@@ -967,6 +1558,10 @@ def main() -> None:
             out["membraneAccuracy"]["review"] = {k: rv[k] for k in ("high_score_not_in_databases",
                                                                      "low_score_in_databases", "middle_scores")}
     (SITE_DATA / "candidates.json").write_text(json.dumps(out, separators=(",", ":")))
+    try:  # the rules and the official entries that contradict them, for the site and the curators
+        write_rule_files(db, kb, out["generated"], conflicts)
+    except Exception as err:
+        print(f"rules: could not write the rule files ({err})")
     # One line per run for the site's Activity log (kept to the last 200 runs).
     log_path = SITE_DATA / "import_log.json"
     runs = json.loads(log_path.read_text()).get("runs", []) if log_path.exists() else []

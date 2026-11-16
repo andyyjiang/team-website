@@ -148,6 +148,28 @@ def test_update_text_preserves_everything_else():
     assert json.loads(new)["version"] == 1
 
 
+def test_regenerated_drafts_are_never_touched():
+    # "drafts" (re-generated drafts curators kept on the site, see FEEDBACK.md) is curator-side
+    # data: the weekly job writes it back exactly as it found it, also for a structure it rejects.
+    drafts = {"35YU": {"mp": {"name": "Re-generated <i>name</i>", "bibliography": {"year": "2026"}},
+                       "placement": {"placement": "daughter", "subgroup": "G03-S084", "owner": "22XP"}, "membrane": "no",
+                       "notes": "Ünïcode notes", "by": "andyyjiang", "byName": "Andy", "at": "2026-11-13T10:00:00.000Z",
+                       "fromFeedback": ["fb-1"], "original": {"name": "permease"}},
+              "9ZZZ": {"mp": {"name": "no longer in the weekly list"}, "notes": "", "original": {}}}
+    doc = {"version": 1, "entries": {"23JK": _curator_reject("Other")}, "log": [], "drafts": copy.deepcopy(drafts)}
+    text = json.dumps(doc, indent=1, ensure_ascii=False) + "\n"
+    same, raw, _ = update_text(text, [_cand("22XS")], _rec(), AT)
+    assert same is text and raw["drafts"] == drafts
+    new, raw, counts = update_text(text, [_cand("35YU", awaiting=TBP)], _rec(["35YU"]), AT)
+    assert counts["rejected"] == ["35YU"]
+    got = json.loads(new)
+    assert got["drafts"] == drafts and list(got) == list(doc)
+    assert text[text.index('"drafts"'):] == new[new.index('"drafts"'):]
+    # ... and it comes back with its draft once the paper is out.
+    again, _, counts = update_text(new, [_cand("35YU")], _rec(pub={"35YU": {"on": "2026-11-12"}}), AT)
+    assert counts["unrejected"] == ["35YU"] and json.loads(again)["drafts"] == drafts
+
+
 def test_decided_and_tracking_keep_unpublished_rejections_checked():
     cur = _raw({"22XQ": _curator_reject("Not published yet", "unpublished"), "22XR": _curator_reject("Other"),
                 "1DEL": {"status": "deleted", "reasonCode": "unpublished"}, "2APP": {"status": "approved"},

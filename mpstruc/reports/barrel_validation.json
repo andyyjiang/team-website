@@ -1,0 +1,1023 @@
+{
+ "rows": [
+  {
+   "pdb": "1UYN",
+   "protein": "NalP translocator domain",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2QOM",
+   "protein": "EspP",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3SLJ",
+   "protein": "EspP, pre-cleavage",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3KVN",
+   "protein": "EstA",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3AEH",
+   "protein": "Hbp",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3QQ2",
+   "protein": "BrkA",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4MEE",
+   "protein": "AIDA-I",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4E1S",
+   "protein": "Intimin",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4E1T",
+   "protein": "Invasin",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "only when suggested under a ruled subfamily (UniProt names no outer-membrane protein)"
+  },
+  {
+   "pdb": "2GR8",
+   "protein": "Hia (trimeric, 4 per chain)",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 3,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2LME",
+   "protein": "YadA (trimeric, 4 per chain)",
+   "subgroup": "G02-S006",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 3,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4C00",
+   "protein": "TamA",
+   "subgroup": "G02-S006",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WIL",
+   "protein": "CdiB (a TpsB transporter)",
+   "subgroup": "G02-S006",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WIM",
+   "protein": "CdiB (a TpsB transporter)",
+   "subgroup": "G02-S006",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4QKY",
+   "protein": "FhaC",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3NJT",
+   "protein": "FhaC R450A",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4K3B",
+   "protein": "BamA",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4K3C",
+   "protein": "BamA",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4N75",
+   "protein": "BamA barrel",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4C4V",
+   "protein": "BamA",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6QGW",
+   "protein": "BamA with nanobody",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "5EKQ",
+   "protein": "BamACDE",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "5D0O",
+   "protein": "BamABCDE",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "5LJO",
+   "protein": "BamABCDE (related code)",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6V05",
+   "protein": "BamABCDE with substrate",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "8BWC",
+   "protein": "BamABCDE",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "8US1",
+   "protein": "TamA",
+   "subgroup": "G02-S007",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1BXW",
+   "protein": "OmpA",
+   "subgroup": "control",
+   "expected": 8,
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1QJP",
+   "protein": "OmpA",
+   "subgroup": "control",
+   "expected": 8,
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1THQ",
+   "protein": "PagP",
+   "subgroup": "control",
+   "expected": 8,
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1QJ8",
+   "protein": "OmpX",
+   "subgroup": "control",
+   "expected": 8,
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1K24",
+   "protein": "OpcA",
+   "subgroup": "control",
+   "expected": 10,
+   "counted": 10,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1I78",
+   "protein": "OmpT",
+   "subgroup": "control",
+   "expected": 10,
+   "counted": 10,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1QD6",
+   "protein": "OmpLA",
+   "subgroup": "control",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1TLY",
+   "protein": "Tsx",
+   "subgroup": "control",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3DWO",
+   "protein": "FadL",
+   "subgroup": "control",
+   "expected": 14,
+   "counted": 14,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1T16",
+   "protein": "FadL",
+   "subgroup": "control",
+   "expected": 14,
+   "counted": 14,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2OMF",
+   "protein": "OmpF",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1OPF",
+   "protein": "OmpF",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2POR",
+   "protein": "porin",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1PRN",
+   "protein": "porin",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1A0S",
+   "protein": "ScrY sucrose porin",
+   "subgroup": "control",
+   "expected": 18,
+   "counted": 18,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1MAL",
+   "protein": "LamB maltoporin",
+   "subgroup": "control",
+   "expected": 18,
+   "counted": 18,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2O4V",
+   "protein": "OprP",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3SY7",
+   "protein": "OccD1 (OprD)",
+   "subgroup": "control",
+   "expected": 18,
+   "counted": 18,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1FEP",
+   "protein": "FepA (TonB-dependent)",
+   "subgroup": "control",
+   "expected": 22,
+   "counted": 22,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2FCP",
+   "protein": "FhuA (TonB-dependent)",
+   "subgroup": "control",
+   "expected": 22,
+   "counted": 22,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1KMO",
+   "protein": "FecA (TonB-dependent)",
+   "subgroup": "control",
+   "expected": 22,
+   "counted": 22,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1NQE",
+   "protein": "BtuB (TonB-dependent)",
+   "subgroup": "control",
+   "expected": 22,
+   "counted": 22,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "4Q35",
+   "protein": "LptD",
+   "subgroup": "control",
+   "expected": 26,
+   "counted": 26,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "5IV9",
+   "protein": "LptD",
+   "subgroup": "control",
+   "expected": 26,
+   "counted": 26,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2J1N",
+   "protein": "OmpC",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "3EMN",
+   "protein": "VDAC1 (mitochondrial)",
+   "subgroup": "control",
+   "expected": 19,
+   "counted": 19,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "2JK4",
+   "protein": "VDAC1 (mitochondrial)",
+   "subgroup": "control",
+   "expected": 19,
+   "counted": 19,
+   "closed": true,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "1EK9",
+   "protein": "TolC (trimer, 4 per chain)",
+   "subgroup": "control",
+   "expected": 12,
+   "counted": 12,
+   "closed": true,
+   "chains": 3,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "7AHL",
+   "protein": "alpha-hemolysin (heptamer, 2 per chain)",
+   "subgroup": "control",
+   "expected": 14,
+   "counted": 36,
+   "closed": true,
+   "chains": 7,
+   "ok": false,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1UUN",
+   "protein": "MspA (octamer, 2 per chain; two chains deposited)",
+   "subgroup": "control",
+   "expected": 16,
+   "counted": 16,
+   "closed": true,
+   "chains": 8,
+   "ok": true,
+   "membrane": "yes"
+  }
+ ],
+ "open": [
+  {
+   "pdb": "7RI4",
+   "protein": "BamA with a substrate (EspP)",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 15,
+   "closed": false,
+   "chains": 1,
+   "ok": false,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "7TT3",
+   "protein": "BamA with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "7TSZ",
+   "protein": "BamA with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "7RJ5",
+   "protein": "BamA with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "9SOW",
+   "protein": "BamA with a substrate (new structure)",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WUH",
+   "protein": "Sam50 with a substrate (Tom40)",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WUJ",
+   "protein": "Sam50 with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 15,
+   "closed": false,
+   "chains": 1,
+   "ok": false,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WUT",
+   "protein": "Sam50 with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "6WUM",
+   "protein": "Sam50 with a substrate",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "25WF",
+   "protein": "SAM50 (new structure)",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  },
+  {
+   "pdb": "9TGQ",
+   "protein": "TamA with TamB (new structure)",
+   "subgroup": "open seam",
+   "expected": 16,
+   "counted": 16,
+   "closed": false,
+   "chains": 1,
+   "ok": true,
+   "membrane": "yes"
+  }
+ ],
+ "soluble": [
+  {
+   "pdb": "1EMA",
+   "protein": "GFP",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1STP",
+   "protein": "streptavidin",
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1BBP",
+   "protein": "bilin-binding protein (lipocalin)",
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "8TIM",
+   "protein": "triosephosphate isomerase (TIM barrel)",
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3PRW",
+   "protein": "BamB (beta-propeller)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3VE2",
+   "protein": "TbpB (lipoprotein on the outer membrane)",
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3KVD",
+   "protein": "fHbp (lipoprotein on the outer membrane)",
+   "counted": 8,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  }
+ ],
+ "guard": [
+  {
+   "pdb": "1S7M",
+   "protein": "Hia binding domain HiaBD1 (trimeric autotransporter head)",
+   "counted": 8,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3EMI",
+   "protein": "Hia 307-422 (trimeric autotransporter)",
+   "counted": 6,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3LA9",
+   "protein": "BpaA head domain (trimeric autotransporter)",
+   "counted": 8,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "4USX",
+   "protein": "BPSL2063 YadA-like head (trimeric autotransporter)",
+   "counted": 9,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3D9X",
+   "protein": "BadA head (trimeric autotransporter)",
+   "counted": 15,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3WPR",
+   "protein": "AtaA stalk fragment fused to GCN4 (trimeric autotransporter)",
+   "counted": 17,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2YO2",
+   "protein": "SadA 255-358 fused to GCN4 (trimeric autotransporter)",
+   "counted": 9,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2YNZ",
+   "protein": "SadA 823-947 fused to GCN4 (trimeric autotransporter)",
+   "counted": 7,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2XQH",
+   "protein": "EibD immunoglobulin-binding fragment (trimeric autotransporter)",
+   "counted": 6,
+   "closed": true,
+   "chains": 3,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2QCZ",
+   "protein": "BamA POTRA domains",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2QDF",
+   "protein": "BamA POTRA domains",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3EFC",
+   "protein": "BamA periplasmic domain",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3OG5",
+   "protein": "BamA POTRA 4-5",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "4XGA",
+   "protein": "BamB with BamA POTRA 3-5",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3MC8",
+   "protein": "Omp85 POTRA 1-3 (Anabaena)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2X8X",
+   "protein": "Omp85 N-terminal domain (Thermosynechococcus)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "5UAY",
+   "protein": "Toc75 POTRA domains",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1WXR",
+   "protein": "Hbp passenger domain (autotransporter)",
+   "counted": 4,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1DAB",
+   "protein": "pertactin P.69 passenger domain (autotransporter)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1F02",
+   "protein": "intimin extracellular fragment",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3BWU",
+   "protein": "FimD usher N-terminal domain with FimC-FimH",
+   "counted": 4,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1ZE3",
+   "protein": "FimD usher N-terminal domain with FimC-FimH pilin domain",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "3L48",
+   "protein": "PapC usher C-terminal domain",
+   "counted": 4,
+   "closed": true,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "1ZZV",
+   "protein": "FecA periplasmic signalling domain (TonB-dependent receptor)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  },
+  {
+   "pdb": "2A02",
+   "protein": "PupA periplasmic signalling domain (TonB-dependent receptor)",
+   "counted": null,
+   "closed": null,
+   "chains": 1,
+   "membrane": "no"
+  }
+ ],
+ "n": 57,
+ "correct": 56,
+ "accuracy": 0.982,
+ "ruled_n": 27,
+ "ruled_correct": 27,
+ "within_one": 56,
+ "open_n": 16,
+ "open_correct": 14,
+ "guard_failed": []
+}

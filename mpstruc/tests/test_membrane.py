@@ -615,10 +615,11 @@ def test_backfill_adds_the_table_and_keeps_everything_else(tmp_path, monkeypatch
     row = [{"uniprot": "Q9UM01", "resolved": 12}]
     monkeypatch.setattr(membrane, "load_model", lambda: {"prior": 0.1})
     monkeypatch.setattr(membrane, "_scored", lambda ids, db, model: iter(
-        [("9TIB", 0.9449, ["new"], row), ("9XXX", 0.8, ["moved"], row)]))
+        [("9TIB", 0.9449, ["new"], row, {}), ("9XXX", 0.8, ["moved"], row, {"barrel_counted": {}})]))
     import datetime
     n = membrane.backfill_table(path, today=datetime.date(2026, 11, 13))
-    assert n == {"candidates": 3, "with_table": 2, "without_table": 1, "why_changed": 1, "why_kept_score_moved": 1}
+    assert n == {"candidates": 3, "with_table": 2, "without_table": 1, "why_changed": 1, "why_kept_score_moved": 1,
+                 "score_changed": []}
     text = path.read_text()
     out = json.loads(text)
     assert text == json.dumps(out, separators=(",", ":"))  # as automation.py writes it
@@ -628,3 +629,26 @@ def test_backfill_adds_the_table_and_keeps_everything_else(tmp_path, monkeypatch
     assert "tmEvidence" not in c
     assert out.pop("tmChecked") == "2026-11-13"  # the day the tables were checked against the PDB and UniProt
     assert {k: v for k, v in out.items() if k != "candidates"} == {k: v for k, v in data.items() if k != "candidates"}
+
+
+def test_backfill_replaces_the_score_where_a_barrel_was_counted(tmp_path, monkeypatch):
+    import datetime
+    import json
+    from mpstruc import membrane
+    path = tmp_path / "candidates.json"
+    data = {"generated": "2026-11-13T01:52+00:00", "candidates": [
+        {"pdb": "9TOP", "membrane": 0.9, "membraneWhy": ["a"]},
+        {"pdb": "9PXG", "membrane": 0.446, "membraneWhy": ["old"], "placement": "parent"},
+        {"pdb": "9LOW", "membrane": 0.2, "membraneWhy": ["b"]}]}
+    path.write_text(json.dumps(data, separators=(",", ":")))
+    row = [{"uniprot": "Q9HXY4", "status": "resolved"}]
+    monkeypatch.setattr(membrane, "load_model", lambda: {"prior": 0.1})
+    monkeypatch.setattr(membrane, "_scored", lambda ids, db, model: iter(
+        [("9TOP", 0.9, ["a"], row, {"barrel_counted": {}}), ("9PXG", 0.9312, ["a 16-strand beta-barrel"], row, {"barrel_counted": {"Q9HXY4": 16}}),
+         ("9LOW", 0.6, ["moved"], row, {})]))
+    n = membrane.backfill_table(path, today=datetime.date(2026, 11, 13))
+    assert n["score_changed"] == [{"pdb": "9PXG", "before": 0.446, "after": 0.931, "strands": 16}]
+    out = json.loads(path.read_text())["candidates"]
+    assert [c["pdb"] for c in out] == ["9PXG", "9TOP", "9LOW"]  # the weekly run's order: highest score first
+    assert out[0]["membrane"] == 0.931 and out[0]["membraneWhy"] == ["a 16-strand beta-barrel"] and out[0]["placement"] == "parent"
+    assert out[2]["membrane"] == 0.2 and out[2]["membraneWhy"] == ["b"]  # no counted barrel: the stored score stands

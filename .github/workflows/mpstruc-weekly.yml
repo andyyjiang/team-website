@@ -58,6 +58,12 @@ jobs:
         working-directory: mpstruc
         run: python -m mpstruc.web
 
+      - name: Refresh the links to official mpstruc listings (keeps the saved file if this fails)
+        working-directory: mpstruc
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python -m mpstruc.anchors
+
       # ---- Comparison with the Vercel demo (https://mpstruc-viewer-demo.vercel.app/).
       # None of these steps can fail the job (each has continue-on-error and a time
       # limit): if the page cannot be read, the comparison uses the saved

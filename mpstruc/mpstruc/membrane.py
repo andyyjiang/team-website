@@ -3,6 +3,7 @@
     python -m mpstruc.membrane             # train, test, write membrane_model.json + reports/membrane.md
     python -m mpstruc.membrane --tradeoff  # also compare ways of labelling monotopic proteins
     python -m mpstruc.membrane table       # add the per-protein evidence table (tmEvidence) to data/candidates.json
+    python -m mpstruc.membrane barrels     # what barrels counted from coordinates change on the test period
 
 Labels (what counts as a membrane protein): the structure is listed in
 mpstruc, or PDBTM or MemProtMD (which screened every PDB entry for
@@ -51,7 +52,7 @@ import urllib.request
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from . import membranedb, rcsb, uniprot
+from . import barrel as barrel_mod, membranedb, rcsb, uniprot
 from .automation import FUSION_UNIPROT, SEARCH, TM_KEYWORDS, released_between
 from .model import load
 from .report import ROOT, source_xml
@@ -113,6 +114,34 @@ BARREL_AFTER_PLUG = 300
 # segments are spread over small subunits (signal peptidase, SecYEG with SecA, BAM).
 CORE_MIN_SEGMENTS, CORE_MIN_LENGTH, CORE_MIN_SHARE, CORE_MIN_STRANDS = 3, 15, 0.25, 8
 TM_FLOOR = 0.7
+# A barrel counted from the coordinates (barrel.py) is a membrane barrel only in a protein
+# UniProt places there: "Cell outer membrane" (KW-0998; not when it is only a lipoprotein
+# anchored to it, such as BamB-E, whose beta-propellers are not barrels in the membrane),
+# "Transmembrane beta strand" (KW-1134; not on a secreted protein that is not in the outer
+# membrane: aerolysin-like toxins form their pore only in a host, see BARREL_DOMAIN and
+# tm_unmapped), or an Omp85 family (BamA, TamA, Sam50, TpsB transporters), which UniProt
+# often gives neither strands nor a barrel domain for. GFP, lipocalins, streptavidin and
+# the soluble domains of outer-membrane proteins close barrels too and have none of these,
+# or no barrel of CORE_MIN_STRANDS strands. Checked on the test period without retraining
+# (reports/barrel_membrane.md): no structure labelled "not a membrane protein" crosses 50%.
+#
+# The keywords describe the full-length protein, so the ring must also lie in the part of
+# it that is in the membrane (in_anchor): the head and stalk fragments of trimeric
+# autotransporters (Hia 1S7M, BadA 3D9X, AtaA 3WPR) close rings of 6 to 17 strands over
+# their three chains far from the C-terminal anchor. Where UniProt names the membrane part
+# (transmembrane strands, a barrel domain, a "membrane anchor" or "translocator domain"
+# region) the counted ring must overlap it; a ring made by several chains that cannot be
+# checked this way (UniProt names no membrane part: MspA) is accepted only with OLIGOMER_MIN
+# or more strands, a whole number per chain (TolC and trimeric autotransporters 12 = 3 x 4,
+# MspA 16 = 8 x 2). The
+# guard set in barrel.GUARD is checked by `python -m mpstruc.barrel validate`.
+KW_LIPOPROTEIN = "KW-0449"
+ANCHOR_REGION = re.compile(r"membrane anchor|translocator domain", re.I)
+OLIGOMER_MIN = 12
+VOTE_MAX_ENTITIES = 6  # protein entities above which a structure with no outer-membrane protein is not counted (see counted_barrels)
+OM_FAMILIES = {"IPR000184": "Omp85 (bacterial surface antigen D15)", "IPR039910": "surface antigen D15-like",
+               "IPR023707": "outer membrane protein assembly factor BamA",
+               "IPR005565": "TpsB transporter (haemolysin activator HlyB-type)"}
 KW_MEMBRANE = {"KW-0472", "KW-1003", "KW-0999", "KW-1000", "KW-0256", "KW-0333", "KW-0998", "KW-0793"}
 TITLE_STOP = {"of", "the", "in", "with", "and", "a", "an", "from", "to", "by", "for", "on", "at", "bound",
               "structure", "structures", "complex", "state", "form", "cryo-em", "cryoem", "crystal", "x-ray"}
@@ -176,6 +205,152 @@ def _fetch(ids: list[str], chains: bool = False):
     accs = sorted({a for v in cov.values() for e in (v or []) for a in e.get("align") or {}} |
                   {u for d in det.values() for u in _uniprots(d)})
     return ext, fam, det, cov, uniprot.membrane_features(accs)
+
+
+def outer_membrane_proteins(kw: dict | None, ipr: dict | None) -> set[str]:
+    """Accessions UniProt places in the outer membrane as a barrel protein (see OM_FAMILIES):
+    the only proteins in which a barrel counted from coordinates is read as a membrane barrel.
+
+    kw: {accession: [UniProt keyword ids]}; ipr: {accession: [InterPro ids]}."""
+    kw, ipr = kw or {}, ipr or {}
+    out = set()
+    for acc in set(kw) | set(ipr):
+        k = set(kw.get(acc) or ())
+        outer = KW_OUTER in k and (KW_LIPOPROTEIN not in k or KW_STRAND in k)
+        strand = KW_STRAND in k and KW_SECRETED not in k
+        if outer or strand or OM_FAMILIES.keys() & set(ipr.get(acc) or ()):
+            out.add(acc)
+    return out - FUSION_UNIPROT
+
+
+def membrane_anchor(feat: dict | None, keywords=()) -> list[list[int]]:
+    """Where UniProt puts a barrel protein's membrane part, [[first, last], ...] in UniProt
+    numbering: its transmembrane segments, barrel domains (barrel_domains) and regions
+    named as the membrane anchor or translocator domain. [] if UniProt names none."""
+    feat = feat or {}
+    named = feat.get("named") or []
+    return ([[t[0], t[1]] for t in feat.get("tm") or []] + barrel_domains(named, keywords)
+            + [[b, e] for b, e, name in named if ANCHOR_REGION.search(name)])
+
+
+def in_anchor(b: dict, acc: str, cov: list | None, feat: dict | None, keywords=()) -> bool | None:
+    """Does a counted barrel lie in the protein's membrane part (membrane_anchor)?
+    None when that cannot be said: UniProt names no membrane part ("unnamed"), or the
+    chain's residues cannot be put in UniProt numbering."""
+    anchors = membrane_anchor(feat, keywords)
+    if not anchors:
+        return None
+    rng = _counted_range(b, acc, cov)
+    if rng is None:
+        return None
+    return any(lo <= rng[1] and rng[0] <= hi for lo, hi in anchors)
+
+
+def membrane_barrel(b: dict, acc: str, cov: list | None, feat: dict | None, keywords=()) -> bool:
+    """Is a barrel counted in an outer-membrane protein's chains its membrane barrel (and
+    not a ring of strands in a soluble part of it)? See ANCHOR_REGION above."""
+    where = in_anchor(b, acc, cov, feat, keywords)
+    if where is not None:
+        return where
+    if not b.get("chains"):
+        return True  # one chain, nothing in UniProt to hold it against: as counted
+    return not membrane_anchor(feat, keywords) and b.get("count", 0) >= OLIGOMER_MIN and b["count"] % b["chains"] == 0
+
+
+def eligible_proteins(pdb: str, ext: dict, fam: dict, seg: dict | None = None) -> set[str]:
+    """The proteins of a structure whose chains counted_barrels looks at."""
+    x = ext.get(pdb) or {}
+    accs = outer_membrane_proteins(x.get("kw"), (fam.get(pdb) or {}).get("ipr"))
+    if seg is not None:
+        accs = {a for a in accs if not (seg.get(a) or {}).get("tm")
+                and not barrel_domains((seg.get(a) or {}).get("named") or [], (x.get("kw") or {}).get(a, ()))}
+    return accs
+
+
+def protein_entities(ent: dict | None, accs: set[str] | None = None) -> dict[str, str]:
+    """{polymer entity id: UniProt accession} of a structure's proteins (rcsb.entry_entities
+    item), fusion partners left out; accs: only these proteins."""
+    found: dict[str, str] = {}
+    for e in (ent or {}).get("polymer_entities") or []:
+        ups = [u for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []
+               if u not in FUSION_UNIPROT and (accs is None or u in accs)]
+        if ups and e.get("rcsb_id"):
+            found[str(e["rcsb_id"]).rsplit("_", 1)[-1]] = ups[0]
+    return found
+
+
+def nothing_to_count(pdb: str, ext: dict, fam: dict, ents: dict, every=()) -> bool:
+    """counted_barrels has no chain to look at in this structure (with seg=None): none of
+    its proteins is an outer-membrane protein and it is not one of `every`, or has more
+    than VOTE_MAX_ENTITIES proteins. No download is needed to say it has no membrane barrel."""
+    if outer_membrane_proteins((ext.get(pdb) or {}).get("kw"), (fam.get(pdb) or {}).get("ipr")):
+        return False
+    return pdb not in every or len(protein_entities(ents.get(pdb))) > VOTE_MAX_ENTITIES
+
+
+def counted_barrels(ids: list[str], ext: dict, fam: dict, seg: dict | None = None,
+                    ents: dict | None = None, cov: dict | None = None, feats: dict | None = None,
+                    every=()) -> dict[str, dict[str, dict]]:
+    """Membrane barrels counted in the structures' coordinates, by outer-membrane protein:
+    {pdb: {accession: {"count", "chain", "closed", "method", "entity", "first", "last"
+    (the barrel's residues in the chain's own numbering)[, "upTo"], and for a barrel made
+    by several chains "chains" and "perChain"}}}.
+
+    A structure that was counted and has no such barrel, or has no chain to look at
+    (nothing_to_count), maps to {}; a structure that could not be counted (the PDB could
+    not serve it, it is too large, the network failed) is left out: "not counted" is not
+    "no barrel".
+
+    Only chains of outer_membrane_proteins are looked at (one small download per protein,
+    cached; see barrel.py), and only a ring that lies in the protein's membrane part is
+    kept (membrane_barrel). seg: uniprot.membrane_features output; when given, only proteins
+    UniProt maps neither strands nor a barrel domain for are counted (what the membrane
+    score needs). ents: rcsb.entry_entities items; cov: {pdb: rcsb.entry_coverage or
+    entry_chains item} (which residues of UniProt a chain is); feats:
+    uniprot.membrane_features output for the anchor test (seg if not given). Each is
+    fetched for the structures that need it if not given.
+
+    every: structures (the ones suggested under a subfamily with a strand rule) in which,
+    when none of the proteins is an outer-membrane protein by UniProt, every protein chain
+    is counted instead, if there are at most VOTE_MAX_ENTITIES proteins (invasin 4E1T has
+    no such keyword). Such a barrel is marked "vote": True: the subfamily vote, not
+    UniProt, is what says it is in a membrane, and the caller decides what that is worth."""
+    todo: dict[str, set[str]] = {pdb: eligible_proteins(pdb, ext, fam, seg) for pdb in ids}
+    votes = {pdb for pdb in every if pdb in todo and not todo[pdb]
+             and not outer_membrane_proteins((ext.get(pdb) or {}).get("kw"), (fam.get(pdb) or {}).get("ipr"))}
+    need = sorted(p for p, accs in todo.items() if accs or p in votes)
+    out: dict[str, dict[str, dict]] = {pdb: {} for pdb in ids if pdb not in need}
+    if not need:
+        return out
+    ents = ents if ents is not None else rcsb.entry_entities(need)
+    owner: dict[str, dict[str, str]] = {}
+    for pdb in need:
+        found = protein_entities(ents.get(pdb), None if pdb in votes else todo[pdb])
+        if pdb in votes and len(found) > VOTE_MAX_ENTITIES:
+            out[pdb] = {}  # a large complex with no outer-membrane protein: nothing in it to count
+            continue
+        owner[pdb] = found
+    res = barrel_mod.barrel_counts({pdb: sorted(v) for pdb, v in owner.items() if v})
+    found_any = [pdb for pdb, by_ent in owner.items()
+                 if any(barrel_mod.best_barrel(res.get(pdb), {ent}) for ent in by_ent)]
+    if found_any and cov is None:
+        cov = rcsb.entry_coverage(found_any)
+    if found_any and feats is None:
+        feats = seg if seg is not None else uniprot.membrane_features(
+            sorted({acc for pdb in found_any for acc in owner[pdb].values()}))
+    for pdb, by_ent in owner.items():
+        r = res.get(pdb) if by_ent else {"chains": {}, "oligomers": []}
+        if not r or r.get("skipped"):
+            continue  # not counted
+        out[pdb] = {}
+        kw = (ext.get(pdb) or {}).get("kw") or {}
+        for ent, acc in sorted(by_ent.items()):
+            b = barrel_mod.best_barrel(r, {ent})
+            if not b or not membrane_barrel(b, acc, (cov or {}).get(pdb), (feats or {}).get(acc), kw.get(acc, ())):
+                continue
+            if b["count"] > (out[pdb].get(acc) or {}).get("count", 0):
+                out[pdb][acc] = {**b, "vote": True} if pdb in votes else b
+    return out
 
 
 def barrel_domains(named: list, keywords=()) -> list[list[int]]:
@@ -494,8 +669,20 @@ def _barrel_name(named: list, rng: list) -> str:
     return "beta-barrel after the TBDR plug (estimated)"
 
 
+def _counted_range(b: dict, acc: str, cov: list | None) -> list[int] | None:
+    """A counted barrel's residues in UniProt numbering (None if they cannot be mapped)."""
+    if b.get("first") is None:
+        return None
+    for ent in cov or []:
+        regions = (ent.get("align") or {}).get(acc) or []
+        got = [rb + q - eb for q in range(b["first"], b["last"] + 1) for eb, rb, n in regions if eb <= q < eb + n]
+        if len(got) >= (b["last"] - b["first"] + 1) / 2:
+            return [min(got), max(got)]
+    return None
+
+
 def tm_table(det: dict | None, cov: list | None, feats: dict | None, kw: dict | None = None,
-             chains: dict | None = None, proteins: dict | None = None) -> list[dict]:
+             chains: dict | None = None, proteins: dict | None = None, counted: dict | None = None) -> list[dict]:
     """Per-protein evidence for one structure, so a curator can check the right protein.
 
     One row per UniProt protein (and one per protein entity with no UniProt link), from
@@ -507,7 +694,11 @@ def tm_table(det: dict | None, cov: list | None, feats: dict | None, kw: dict | 
      "resolved": how many of them are resolved (same criterion as the score),
      "segmentRanges": [[first, last, resolved], ...] (at most TABLE_MAX_SEGMENTS),
      "barrel": {"barrel": name, "range": [first, last], "resolved": bool} when UniProt maps
-               no segments but a membrane-spanning barrel domain (barrel_domains),
+               no segments but a membrane-spanning barrel domain (barrel_domains), or, when it
+               names none either, a barrel counted in the structure (counted; then also
+               "strands": the number counted, "open": True when its seam is open and the
+               number is a lower bound, "upTo" when a larger ring fits too, and "range" is
+               where it is, None if unknown),
      "status": "resolved" (all), "partial", "unresolved", "none" (no membrane part in
                UniProt) or "unknown" (could not be checked: no UniProt link, UniProt has
                deleted the entry ("gone": True), or the chain's sequence could not be lined
@@ -525,8 +716,10 @@ def tm_table(det: dict | None, cov: list | None, feats: dict | None, kw: dict | 
     det: rcsb.entry_details item; cov: checked_coverage output (or an rcsb.entry_coverage
     item); feats: uniprot.membrane_features output; kw: {accession: UniProt keywords};
     chains: {accession or entity description: number of chains}; proteins: uniprot.entries
-    output ({accession: {"name", "seq"}}, None for an entry UniProt no longer has)."""
+    output ({accession: {"name", "seq"}}, None for an entry UniProt no longer has);
+    counted: counted_barrels output for this structure ({accession: barrel})."""
     feats, kw, chains, proteins = feats or {}, kw or {}, chains or {}, proteins or {}
+    counted = {a: b for a, b in (counted or {}).items() if b.get("count", 0) >= CORE_MIN_STRANDS}
     names: dict[str, str] = {}
     fused: set[str] = set()
     unlinked: list[str] = []
@@ -593,6 +786,18 @@ def tm_table(det: dict | None, cov: list | None, feats: dict | None, kw: dict | 
                            else f"beta-barrel domain {b}-{e} is in the structure" if share >= 0.9
                            else f"{'most' if share >= 0.75 else 'part'} of beta-barrel domain {b}-{e} is in the structure "
                                 f"(modelled {_range_text(inside)})")
+        elif acc in counted and not gone:
+            # UniProt maps nothing for it, but the barrel is there in the coordinates.
+            b = counted[acc]
+            rng = _counted_range(b, acc, cov)
+            name = re.sub(r"^an? ", "", barrel_mod.barrel_text(b)) + " counted in the structure"
+            row["barrel"] = {"barrel": name, "range": rng, "resolved": True, "strands": b["count"],
+                             **({"open": True} if not b.get("closed", True) else {}),
+                             **({"upTo": b["upTo"]} if b.get("upTo") else {})}
+            row["status"] = "resolved"
+            row["note"] = (name + (f", made by {b['chains']} chains" if b.get("chains") else "")
+                           + ("" if b.get("closed", True) else ", its seam open")
+                           + " (UniProt names no barrel domain)")
         else:
             row["status"] = "none"
             row["note"] = "no membrane-crossing segments in UniProt"
@@ -654,10 +859,14 @@ def name_proteins(table: list[dict], most: int = 3) -> str:
 
 
 def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
-              cov: list | None = None, feats: dict | None = None) -> dict | None:
+              cov: list | None = None, feats: dict | None = None, counted: dict | None = None) -> dict | None:
     """Release-day facts about a structure (no labels, no PDB annotations).
 
     feats: uniprot.membrane_features output ({acc: {"tm": [...], "named": [...]}}).
+    counted: counted_barrels output for this structure ({accession: barrel}). A barrel of
+    CORE_MIN_STRANDS or more strands counted in a chain of an outer-membrane protein that
+    UniProt maps neither strands nor a barrel domain for is a resolved membrane barrel,
+    exactly like a named barrel domain that is in the structure ("barrel_counted").
     """
     if not det:
         return None
@@ -690,6 +899,17 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
     tm_total, tm_modelled = tm_coverage(cov, tmseg or {}) if cov is not None else (None, None)
     # Membrane-spanning beta-barrel domains, mapped onto the structure the same way.
     bar_total, bar_modelled = tm_coverage(cov, barrel or {}) if cov is not None else (None, None)
+    # Barrels counted in the coordinates, for outer-membrane proteins UniProt maps nothing for.
+    seen: dict[str, int] = {}
+    if cov is not None and feats is not None and counted:
+        om = outer_membrane_proteins(kw, ipr)
+        seen = {a: b["count"] for a, b in sorted(counted.items())
+                if a in ups and a in om and b.get("count", 0) >= CORE_MIN_STRANDS
+                and not tmseg.get(a) and not barrel.get(a)}
+    if seen:
+        has_barrel = True
+        bar_total, bar_modelled = bar_total + len(seen), bar_modelled + len(seen)
+        tm_unmapped = [u for u in tm_unmapped if u not in seen]
     core = None
     if cov is not None and tmseg is not None:
         strand_ups = {u for u in ups if KW_STRAND in kw.get(u, ())}
@@ -699,6 +919,8 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
         "has_tm_protein": has_tm_protein, "has_barrel": has_barrel, "tm_unmapped": tm_unmapped,
         "tm_in_construct": tm_total, "tm_modelled": tm_modelled,
         "barrel_in_construct": bar_total, "barrel_modelled": bar_modelled,
+        "barrel_counted": seen,
+        "barrel_counted_text": {a: barrel_mod.barrel_text(counted[a]) for a in seen},
         "pdb": pdb, "released": (ext or {}).get("released", ""),
         "uniprots": sorted(ups), "tm_uniprots": sorted(tm_ups), "keywords": sorted(all_kw),
         "detergents": sorted(ligs & DETERGENTS), "lipids": sorted(ligs & LIPIDS),
@@ -710,6 +932,11 @@ def raw_facts(pdb: str, ext: dict | None, fam: dict | None, det: dict | None,
         "n_protein": len(prot),
         "n_unmapped": sum(1 for e in prot if not (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids")),
     }
+
+
+def _a(n: int) -> str:
+    """'an' before a number said with a vowel (8, 11, 18, 80-89), else 'a'."""
+    return "an" if str(n)[0] == "8" or n in (11, 18) else "a"
 
 
 def _fam_logodds(stats: list[int] | None, prior: float) -> float:
@@ -875,7 +1102,12 @@ def explain(x: dict[str, float], why: dict, f: dict, p: float, model: dict, n: i
             k = f["tm_modelled"]
             parts.append(f"{k} membrane-crossing {'segment is' if k == 1 else 'segments are'} resolved in the structure")
         if x.get("barrel_modelled"):
-            parts.append("the beta-barrel that crosses the membrane is resolved in the structure")
+            seen = f.get("barrel_counted") or {}
+            top = max(seen, key=seen.get) if seen else None
+            parts.append("the beta-barrel that crosses the membrane is resolved in the structure"
+                         if len(seen) < (f.get("barrel_modelled") or 0) or not seen else
+                         f"{(f.get('barrel_counted_text') or {}).get(top) or f'{_a(seen[top])} {seen[top]}-strand beta-barrel'} "
+                         f"is resolved in the structure (counted from its coordinates in {top}; UniProt names no barrel domain)")
         rule = why.get("rule") or {}
         named = name_proteins(table) if table and sum(1 for r in table if r.get("uniprot")) > 1 else ""
         if named and parts and f.get("tm_modelled"):
@@ -1139,9 +1371,10 @@ def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = T
     mono_ids = {p for p, g in groups.items() if g == MONOTOPIC}
     ids_tr, pos_tr, _ = _labels(*TRAIN, ctx.mpstruc_ids, mono_ids, monotopic)
     ext, fam, det, cov, seg = _fetch(ids_tr)
+    counted = _counted(ids_tr, ext, fam, seg, None, cov)
     facts = []
     for pdb in ids_tr:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
+        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg, counted.get(pdb))
         if f:
             facts.append((f, int(pdb in pos_tr)))
     facts.sort(key=lambda r: (r[0]["released"], r[0]["pdb"]))
@@ -1171,11 +1404,12 @@ def train_and_test(folds: int = 5, monotopic: str | None = None, write: bool = T
     ids_te, pos_te, all_te = _labels(*TEST, ctx.mpstruc_ids, mono_ids, monotopic)
     used = set(ids_te)
     ext, fam, det, cov, seg = _fetch(all_te)
+    counted = _counted(all_te, ext, fam, seg, None, cov)
     rows_te, kinds = [], []
     for pdb in all_te:
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
-        if f:
-            x, why = features(f, ctx, prior)
+        got = score_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg, counted.get(pdb), ctx, model)
+        if got:
+            f, x, why, _ = got
             y = int(pdb in pos_te) if pdb in used else None
             kinds.append((pdb, predict(x, model), y, f))
             if pdb in used:
@@ -1221,11 +1455,44 @@ def load_model() -> dict | None:
     return json.loads(MODEL_PATH.read_text()) if MODEL_PATH.exists() else None
 
 
+def _counted(ids: list[str], ext: dict, fam: dict, seg: dict, ents: dict | None = None,
+             cov: dict | None = None) -> dict[str, dict]:
+    """counted_barrels for the membrane score (proteins UniProt maps nothing for); an
+    unreachable ModelServer leaves the scores as they were without the counted barrels."""
+    try:
+        return counted_barrels(ids, ext, fam, seg, ents, cov)
+    except Exception as err:
+        print(f"membrane: barrels could not be counted ({err})")
+        return {}
+
+
+def score_facts(pdb: str, ext, fam, det, cov, seg, counted: dict | None, ctx: Context, model: dict):
+    """(facts, features, why, probability) for one structure, or None if the PDB has no such
+    entry. A counted barrel (see raw_facts) is used when it does not lower the score: where
+    other evidence already carries the structure, the model's weights for "a barrel is
+    resolved" can come out a point or two under those for what it replaces, and a barrel
+    found in the coordinates is never a reason to think less of a structure."""
+    f = raw_facts(pdb, ext, fam, det, cov, seg)
+    if not f:
+        return None
+    x, why = features(f, ctx, model["prior"])
+    p = predict(x, model)
+    if counted:
+        f1 = raw_facts(pdb, ext, fam, det, cov, seg, counted)
+        if f1["barrel_counted"]:
+            x1, why1 = features(f1, ctx, model["prior"])
+            p1 = predict(x1, model)
+            if p1 > p:
+                return f1, x1, why1, p1
+    return f, x, why, p
+
+
 def _scored(ids: list[str], db=None, model: dict | None = None):
-    """Yields (pdb, probability, reasons, tm_table rows) for each structure the PDB knows."""
+    """Yields (pdb, probability, reasons, tm_table rows, facts) for each structure the PDB knows."""
     ctx = Context(db or load(source_xml()), model.get("fam_stats"))
     ext, fam, det, chains, seg = _fetch(ids, chains=True)
     ents = rcsb.entry_entities(ids)  # chains per protein
+    counted = _counted(ids, ext, fam, seg, ents, chains)
     try:
         proteins = uniprot.entries(sorted(seg))
     except Exception as err:  # then the PDB's alignment stands unchecked, and rows are named by the PDB
@@ -1234,22 +1501,112 @@ def _scored(ids: list[str], db=None, model: dict | None = None):
     for pdb in ids:
         # The same checked coverage for the score and for the table.
         cov = {pdb: checked_coverage(chains.get(pdb), seg, (ext.get(pdb) or {}).get("kw"), proteins)}
-        f = raw_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
-        if not f:
+        got = score_facts(pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg, counted.get(pdb), ctx, model)
+        if not got:
             continue
-        x, why = features(f, ctx, model["prior"])
-        p = predict(x, model)
+        f, x, why, p = got
+        seen = {a: b for a, b in (counted.get(pdb) or {}).items() if a in f["barrel_counted"]}
         table = tm_table(det.get(pdb), cov.get(pdb), seg, (ext.get(pdb) or {}).get("kw"),
-                         chain_counts(ents.get(pdb)), proteins)
-        yield pdb, p, explain(x, why, f, p, model, table=table), table
+                         chain_counts(ents.get(pdb)), proteins, seen)
+        if seen:  # the barrel itself, for the card ("Barrel: 16 strands counted")
+            acc = max(seen, key=lambda a: seen[a]["count"])
+            f["barrel_found"] = {k: v for k, v in {**seen[acc], "uniprot": acc}.items() if k in barrel_mod.CARD_FIELDS}
+        yield pdb, p, explain(x, why, f, p, model, table=table), table, f
 
 
 def score_structures(ids: list[str], db=None, model: dict | None = None) -> dict[str, dict]:
-    """{pdb: {"p": probability, "why": [reasons], "tmTable": tm_table rows}} for new structures."""
+    """{pdb: {"p": probability, "why": [reasons], "tmTable": tm_table rows, and "barrel": the
+    barrel counted in it when that is what the score rests on}} for new structures."""
     model = model or load_model()
     if not model:
         return {}
-    return {pdb: {"p": round(p, 3), "why": why, "tmTable": table} for pdb, p, why, table in _scored(ids, db, model)}
+    return {pdb: {"p": round(p, 3), "why": why, "tmTable": table, **({"barrel": f["barrel_found"]} if f.get("barrel_found") else {})}
+            for pdb, p, why, table, f in _scored(ids, db, model)}
+
+
+def barrel_effect(write: bool = True) -> dict:
+    """What counting barrels changes on the test period, with the model as it is (no
+    retraining): scores with and without the counted barrels, the structures that cross
+    50%, and recall by mpstruc group. Writes reports/barrel_membrane.{json,md}."""
+    db = load(source_xml())
+    model = load_model()
+    ctx = Context(db, model.get("fam_stats"))
+    groups = mpstruc_groups(db)
+    mono_ids = {p for p, g in groups.items() if g == MONOTOPIC}
+    ids_te, pos_te, all_te = _labels(*TEST, ctx.mpstruc_ids, mono_ids, model.get("monotopic_label") or MONOTOPIC_LABEL)
+    used = set(ids_te)
+    ext, fam, det, cov, seg = _fetch(all_te)
+    counted = counted_barrels(all_te, ext, fam, seg, None, cov)
+    eligible = sum(1 for pdb in all_te if eligible_proteins(pdb, ext, fam, seg))
+    before, after, moved = [], [], []
+    for pdb in all_te:
+        args = (pdb, ext.get(pdb), fam.get(pdb), det.get(pdb), cov.get(pdb), seg)
+        got = score_facts(*args, None, ctx, model)
+        if not got:
+            continue
+        y = int(pdb in pos_te) if pdb in used else None
+        f0, _, _, p0 = got
+        f1, p1 = f0, p0
+        if counted.get(pdb):
+            f1, _, _, p1 = score_facts(*args, counted[pdb], ctx, model)
+        before.append((pdb, p0, y, f0))
+        after.append((pdb, p1, y, f1))
+        if f1["barrel_counted"]:
+            moved.append({"pdb": pdb, "before": round(p0, 3), "after": round(p1, 3), "label": y,
+                          "mpstruc": groups.get(pdb), "strands": max(f1["barrel_counted"].values()),
+                          "title": f1["title"][:100]})
+    ev = lambda rows: evaluate_preds([(p, y) for _, p, y, _ in rows if y is not None])
+    b, a = ev(before), ev(after)
+    crossed = [m for m in moved if m["before"] < 0.5 <= m["after"]]
+    result = {"window": TEST, "structures": len(after), "outer_membrane_proteins_checked": eligible,
+              "barrel_counted": len(moved), "crossed_50": len(crossed),
+              "crossed_labelled_membrane": sum(1 for m in crossed if m["label"] == 1),
+              "crossed_labelled_not": [m for m in crossed if m["label"] == 0],
+              "crossed_unlabelled": [m for m in crossed if m["label"] is None],
+              "before": {k: b[k] for k in ("n", "membrane", "auc", "brier", "at_50")},
+              "after": {k: a[k] for k in ("n", "membrane", "auc", "brier", "at_50")},
+              "by_kind_before": group_recall(before, groups), "by_kind_after": group_recall(after, groups),
+              "moved": sorted(moved, key=lambda m: m["pdb"])}
+    if write:
+        (ROOT / "reports" / "barrel_membrane.json").write_text(json.dumps(result, indent=1))
+        (ROOT / "reports" / "barrel_membrane.md").write_text(barrel_effect_md(result))
+    return result
+
+
+def barrel_effect_md(r: dict) -> str:
+    b, a = r["before"], r["after"]
+    L = ["# Membrane score: barrels counted from coordinates", "",
+         "A barrel of at least %d strands counted in a chain of an outer-membrane protein (UniProt: transmembrane" % CORE_MIN_STRANDS,
+         "beta strand, cell outer membrane and not only a lipoprotein, or an Omp85 family) now counts as a resolved",
+         "membrane barrel when UniProt maps neither strands nor a barrel domain for the protein, and the ring lies in",
+         "the protein's membrane part (`membrane.membrane_barrel`). The model was not retrained. Measured on the test",
+         "period (%s to %s) with `python -m mpstruc.membrane barrels`." % tuple(r["window"]), "",
+         f"- Structures in the period: {r['structures']}; with such a protein: {r['outer_membrane_proteins_checked']}; "
+         f"the counted barrel raised the score of {r['barrel_counted']} (it is not used where it would lower one).",
+         f"- Crossed 50%: {r['crossed_50']} ({r['crossed_labelled_membrane']} labelled membrane proteins, "
+         f"{len(r['crossed_labelled_not'])} labelled not, {len(r['crossed_unlabelled'])} left out of the labels).",
+         f"- **What this period can and cannot show.** Only {r['outer_membrane_proteins_checked']} of its structures have a protein "
+         f"the count applies to, so \"no false positive here\" says little about soluble fragments of outer-membrane",
+         "  proteins. Those are tested on purpose: the guard set in `reports/barrel_validation.md` (heads and stalks of",
+         "  trimeric autotransporters, POTRA-only, passenger, usher and TonB-dependent receptor soluble domains, lipoprotein",
+         "  barrels) must give no membrane barrel, and `tests/test_rules.py` fails if the report says otherwise.",
+         "- Structures below that are labelled \"not membrane\" although a 22-strand TonB-dependent receptor barrel is in them",
+         "  (FoxA, FemA) are wrong in the labels (PDBTM and MemProtMD had not listed them yet), not in the score; they",
+         "  lower the precision reported here before and after alike.", "",
+         "| | Called membrane (>= 50%) | Precision | Recall | AUC | Brier |", "|---|---|---|---|---|---|"]
+    for name, x in (("Before", b), ("After", a)):
+        L.append(f"| {name} | {x['at_50']['called_membrane']} | {x['at_50']['precision_pct']}% | {x['at_50']['recall_pct']}% | "
+                 f"{x['auc']} | {x['brier']} |")
+    L += ["", "## Recall by kind (share scored at least 50%)", "", "| Kind | n | Before | After |", "|---|---|---|---|"]
+    for k, v in r["by_kind_after"].items():
+        L.append(f"| {k} | {v['n']} | {r['by_kind_before'][k]['recall_pct']}% | {v['recall_pct']}% |")
+    L += ["", "## Structures in which a barrel was counted", "",
+          "| PDB | Strands | Before | After | Label | In mpstruc | Title |", "|---|---|---|---|---|---|---|"]
+    lab = {1: "membrane", 0: "not membrane", None: "left out"}
+    for m in r["moved"]:
+        L.append(f"| {m['pdb']} | {m['strands']} | {round(100 * m['before'])}% | {round(100 * m['after'])}% | {lab[m['label']]} | "
+                 f"{'yes' if m['mpstruc'] else 'no'} | {m['title']} |")
+    return "\n".join(L) + "\n"
 
 
 def backfill_table(path: Path | None = None, today: datetime.date | None = None) -> dict:
@@ -1259,7 +1616,13 @@ def backfill_table(path: Path | None = None, today: datetime.date | None = None)
     network for anything missing), replaces membraneWhy only where its text changed and
     the score is still the one stored, and rewrites the file as automation.main writes it
     (compact separators), leaving everything else as it was, except "tmChecked": the day
-    the tables were computed."""
+    the tables were computed.
+
+    One kind of candidate also gets its score replaced: a structure in which a membrane
+    beta-barrel was counted from the coordinates although UniProt names no barrel domain
+    (BamA in a BAM complex; see counted_barrels). Its score, reasons and table are the ones
+    a weekly run would now give ("score_changed" in the result lists them, before -> after),
+    and the candidates are put back in the weekly run's order (highest score first)."""
     from .automation import SITE_DATA
     path = path or SITE_DATA / "candidates.json"
     text = path.read_text()
@@ -1270,18 +1633,35 @@ def backfill_table(path: Path | None = None, today: datetime.date | None = None)
     if not model:
         raise SystemExit("no membrane_model.json: train the model first (python -m mpstruc.membrane)")
     cands = data.get("candidates") or []
-    got = {pdb: (p, why, table) for pdb, p, why, table in _scored([c["pdb"] for c in cands], None, model)}
-    n = {"candidates": len(cands), "with_table": 0, "without_table": 0, "why_changed": 0, "why_kept_score_moved": 0}
+    got = {pdb: (p, why, table, f) for pdb, p, why, table, f in _scored([c["pdb"] for c in cands], None, model)}
+    n = {"candidates": len(cands), "with_table": 0, "without_table": 0, "why_changed": 0, "why_kept_score_moved": 0,
+         "score_changed": []}
     for c in cands:
         hit = got.get(c["pdb"])
         if not hit or not hit[2]:
             n["without_table"] += 1
             c.pop("tmEvidence", None)
             continue
-        p, why, table = hit
+        p, why, table, f = hit
+        # A barrel counted last time that is not read as a membrane barrel any more (the
+        # guard in membrane_barrel): the score that rested on it goes too.
+        was_counted = any(isinstance(r, dict) and isinstance(r.get("barrel"), dict) and r["barrel"].get("strands")
+                          for r in c.get("tmEvidence") or [])
         c["tmEvidence"] = table
         n["with_table"] += 1
-        if why != c.get("membraneWhy"):
+        if not c.get("ruleCheck"):  # (a candidate a curators' rule checked keeps what automation.apply_rules noted)
+            if f.get("barrel_found"):
+                c["barrelStrands"] = f["barrel_found"]
+            else:
+                c.pop("barrelStrands", None)
+        if (f.get("barrel_counted") or was_counted) and (round(p, 3) != c.get("membrane") or why != c.get("membraneWhy")):
+            if round(p, 3) != c.get("membrane"):
+                n["score_changed"].append({"pdb": c["pdb"], "before": c.get("membrane"), "after": round(p, 3),
+                                           "strands": max(f["barrel_counted"].values(), default=0)})
+            else:
+                n["why_changed"] += 1
+            c["membrane"], c["membraneWhy"] = round(p, 3), why
+        elif why != c.get("membraneWhy"):
             if abs(p - (c.get("membrane") or 0)) < 0.0015:
                 c["membraneWhy"] = why
                 n["why_changed"] += 1
@@ -1290,6 +1670,8 @@ def backfill_table(path: Path | None = None, today: datetime.date | None = None)
     # The PDB and UniProt records move; the site says when the tables were last checked
     # against them (a weekly run's tables are as old as "generated").
     data["tmChecked"] = (today or datetime.date.today()).isoformat()
+    if n["score_changed"]:
+        cands.sort(key=lambda c: (-(c.get("membrane") or 0), c["pdb"]))
     path.write_text(json.dumps(data, separators=(",", ":")))
     return n
 
@@ -1413,6 +1795,10 @@ def report_md(r: dict, model: dict) -> str:
 
 if __name__ == "__main__":
     import sys
+    if sys.argv[1:2] == ["barrels"]:  # python -m mpstruc.membrane barrels: what counted barrels change (no retraining)
+        res = barrel_effect()
+        print(barrel_effect_md(res))
+        raise SystemExit(0)
     if sys.argv[1:2] == ["table"]:  # python -m mpstruc.membrane table: backfill tmEvidence
         print(json.dumps(backfill_table(Path(sys.argv[2]) if len(sys.argv) > 2 else None)))
         raise SystemExit(0)
