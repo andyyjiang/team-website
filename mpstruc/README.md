@@ -168,3 +168,6 @@ them are added), picks the right subfamily first 93% of the time, and gets the w
   - The rules were designed on the full snapshot, which includes the test period.
 - **Curator decisions** are saved in the browser and leave it only as downloaded CSV or mpstruc XML
   blocks. The weekly job re-checks the last 26 weeks, so suggestions improve as papers are linked.
+  A paper's structures released before those 26 weeks and not in mpstruc are taken in too (`mpstruc/siblings.py`,
+  marked `sibling` in `data/candidates.json`), so a study is suggested whole; `python -m mpstruc.automation siblings`
+  adds them to the current file without a weekly run.

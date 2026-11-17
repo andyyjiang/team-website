@@ -298,6 +298,11 @@ def title_names(title: str, aliases: set[str] = frozenset()) -> list[str]:
             found.append(item)
     for m in re.finditer(r"([\w.+]+(?:-[\w.+]+)+)(?=\s+(?:protein\s+)?complex\b)", t):
         found.append(m[1])
+    # 'Cryo-EM structure of GGCX-proP2': the same hyphen chain with 'complex' left out, taken
+    # only when the protein itself is one of its members.
+    m = re.search(r"\bstructure of ([\w.+]+(?:-[\w.+]+)+)\s*$", t, re.I)
+    if m and any(_is_alias(x, aliases) for x in _chain(m[1])):
+        found.append(m[1])
     for m in re.finditer(r"(?<![\w(,+-])((?:\d+,)*(?:[\w.+-]*\([\w,']+\))?[\w.+-]+)-(?:bound|occupied|loaded)\b", t):
         found.append(m[1])   # 'LSD-bound', 'PI(3,5)P2-bound', '2,4-DB-CoA-bound'
     # 'AR234958 bound Mas1 receptor', 'structure of ThT bound type1 amyloid' (not 'GPR3 bound to X')
