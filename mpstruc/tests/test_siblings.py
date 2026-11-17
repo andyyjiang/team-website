@@ -1,4 +1,4 @@
-"""Same-paper structures released before the weekly window (mpstruc/siblings.py)."""
+"""Same-paper structures released outside the weekly window (mpstruc/siblings.py)."""
 import json
 
 from mpstruc import automation, rcsb, siblings
@@ -85,7 +85,7 @@ def test_select_takes_what_the_run_and_mpstruc_do_not_have():
     found = {KEY: ["9WF2", "9WF3", "9WF9", "9WFC", "9WFL", "9WFN", "9WFO", "9NEW", "9XXX"]}
     released = {"9WF2": "2026-04-22", "9WF3": "2026-04-01", "9WF9": "2026-04-01", "9WFC": "2026-04-01",
                 "9WFL": "2026-04-01", "9WFN": "2026-04-01", "9NEW": "2026-05-15", "9XXX": ""}
-    sibs = siblings.select({KEY: ["9WFO"]}, found, released, WINDOW[0], have={"9WFO"}, listed={"9WF9"},
+    sibs = siblings.select({KEY: ["9WFO"]}, found, released, WINDOW, have={"9WFO"}, listed={"9WF9"},
                            decided={"9WFC"}, unpublished=lambda p: p == "9WFL")
     # 9WFO is the candidate itself, 9WF9 is in mpstruc, 9WFC was decided by a curator, 9WFL's own
     # record has no paper yet, 9NEW was released inside the window, 9XXX has no release date.
@@ -146,7 +146,7 @@ def test_note_and_evidence_say_why_an_old_structure_is_there():
     props = [{"pdb": "9WF2", "ownerPdb": "9BUM", "rule": "same-protein", "evidence": ["Same protein(s)"]},
              batch("9WF3", "9WF2"), batch("9WFO", "9WF2"), batch("9ABD", "9ABC")]
     mark_siblings(props, sibs, WINDOW)
-    assert props[0]["sibling"] == {"of": DOI, "with": ["9WFO"],
+    assert props[0]["sibling"] == {"of": DOI, "with": ["9WFO"], "when": "before",
                                    "reason": "released before the 26-week window; same paper as 9WFO"}
     assert props[0]["evidence"] == ["Same protein(s)"]
     assert props[1]["sibling"]["reason"].endswith("same paper as 9WFO and 1 more")
@@ -155,7 +155,8 @@ def test_note_and_evidence_say_why_an_old_structure_is_there():
     assert props[2]["evidence"][0] == "Same primary citation as 9WF2 (released 2026-04-22, before the window)"
     assert props[3]["evidence"][0].endswith("released in the same batch")
     assert siblings.note({"paper": "pmid:123", "with": ["9BBB"]}, ["2026-01-01", "2026-01-29"]) == \
-        {"of": "pmid:123", "with": ["9BBB"], "reason": "released before the 4-week window; same paper as 9BBB"}
+        {"of": "pmid:123", "with": ["9BBB"], "when": "before",
+         "reason": "released before the 4-week window; same paper as 9BBB"}
 
 
 # ---------------------------------------------------------------- the weekly run's step
@@ -205,7 +206,7 @@ def _fake_run(monkeypatch, sibs, mem):
     monkeypatch.setattr(automation, "mentioned_in_descriptions", lambda db: {})
     monkeypatch.setattr(automation, "strand_rules", lambda kb: {})
     monkeypatch.setattr(automation, "find_siblings",
-                        lambda cands, window, have, kb, mentioned, decided, db, discover=None:
+                        lambda cands, window, have, kb, mentioned, decided, db, discover=None, fallback=None:
                         (sibs, mem, {"papers": 1, "found": len(sibs), "seconds": 0.1, "belowFloor": 0}))
 
     def propose(kb, ids, conf, model, keep=None):
@@ -259,7 +260,8 @@ def test_add_siblings_groups_the_study_and_leaves_every_other_candidate_alone(tm
     lead = by["9WF2"]
     assert (lead["placement"], lead["ownerPdb"]) == ("daughter", "9BUM")
     assert lead["mp"]["description"] == "cryo-EM structure<br /> x: 9WF3<br /> x: 9WFO"
-    assert lead["sibling"] == {"of": DOI, "with": ["9WFO"], "reason": "released before the 26-week window; same paper as 9WFO"}
+    assert lead["sibling"] == {"of": DOI, "with": ["9WFO"], "when": "before",
+                               "reason": "released before the 26-week window; same paper as 9WFO"}
     assert lead["membrane"] == 0.7 and lead["membraneWhy"] == ["9 segments"] and lead["tmEvidence"] == [{"uniprot": "P38435"}]
     assert not {"sig", "taxa", "likelihood", "reasons"} & set(lead)
     assert by["9WF3"]["barrelStrands"] == {"count": 12}
@@ -285,3 +287,93 @@ def test_add_siblings_writes_nothing_when_there_is_nothing_to_add(tmp_path, monk
     _fake_run(monkeypatch, {}, {})
     res = automation.add_siblings(path, db=object())
     assert res["added"] == [] and path.read_text() == before
+
+
+# ---------------------------------------------------------------- review fixes and the user's rule
+
+def test_lead_is_the_first_deposited_not_the_string_minimum_for_reissued_ids():
+    from mpstruc.automation import lead_key
+    s = lambda rel, dep: {"released": rel, "deposited": dep}
+    # 24UG (deposited 2026) sorts below 7FBQ (2021) as a string but is the newer entry.
+    assert min(["24UG", "7FBQ"], key=lambda p: lead_key(p, {"24UG": s("2026-06-17", "2026-03-20"),
+                                                           "7FBQ": s("2022-07-13", "2021-07-12")}[p])) == "7FBQ"
+    d = {"28PN": s("2026-05-06", "2026-02-12"), "28PP": s("2026-05-06", "2026-02-12"), "24UG": s("2026-06-17", "2026-03-20"),
+         "9ST9": s("2026-05-06", "2025-09-26"), "9WYK": s("2026-05-20", "2025-09-27")}
+    # Classic IDs first in string order, then the reissued ones by deposit date.
+    assert sorted(d, key=lambda p: lead_key(p, d[p])) == ["9ST9", "9WYK", "28PN", "28PP", "24UG"]
+    # An old classic 1xxx-3xxx ID is a classic ID.
+    assert lead_key("1ABC", s("1999-01-01", "1998-01-01"))[0] == 0
+
+
+def test_batch_leads_use_lead_order_and_same_name_strain_variants():
+    kb = KB(entries=[])
+    nfeob = lambda u, rel, dep: {**_s([u], [KEY], rel), "deposited": dep,
+                                 "uniprot_names": {u: "ferrous iron transport protein b|vibrio cholerae"}}
+    cands = {"9PS9": nfeob("A0A655NVH2", "2026-06-03", "2025-06-01"), "9PSD": nfeob("A0A655NVH2", "2026-06-03", "2025-06-01"),
+             "9D8B": nfeob("A0A0X1KYD0", "2025-09-03", "2024-08-01"), "9D8D": nfeob("A0A0X1KYD0", "2025-09-03", "2024-08-01"),
+             "28PN": {**_s(["P9"], [KEY], "2026-05-06"), "deposited": "2026-02-12"},
+             "9ST9": {**_s(["P9"], [KEY], "2026-05-06"), "deposited": "2025-09-26"}}
+    leads = batch_leads(cands)
+    placed = {p: classify(kb, p, s, leads, {}) for p, s in cands.items()}
+    assert {p: x.owner_pdb for p, x in placed.items() if x.placement == "related"} == \
+        {"9D8D": "9D8B", "9PS9": "9D8B", "9PSD": "9D8B", "28PN": "9ST9"}
+
+
+def test_protein_ids_ignore_generic_and_fusion_names():
+    from mpstruc.automation import protein_ids
+    s = {"core": {"U1", "U2", "U3"}, "uniprot_names": {"U1": "porin|pseudomonas aeruginosa",
+                                                       "U2": "soluble cytochrome b562,receptor x|escherichia coli",
+                                                       "U3": "ferrous iron transport protein b|"}}
+    assert protein_ids(s) == {"U1", "U2", "U3"}
+
+
+def test_select_takes_entries_released_after_the_window_too():
+    found = {KEY: ["9WF2", "9NEW", "9LAT", "9LOW"]}
+    released = {"9WF2": "2026-04-22", "9NEW": "2026-06-01", "9LAT": "2026-11-18", "9LOW": "2026-07-01"}
+    sibs = siblings.select({KEY: ["9WFO"]}, found, released, WINDOW, have={"9WFO", "9NEW"}, listed=set(), decided=set())
+    # 9NEW is a window release the run has; 9LOW one it judged (under the floor): not taken again.
+    assert sorted(sibs) == ["9LAT", "9WF2"]
+    lat = siblings.note({"paper": KEY, "with": ["9WFO"], "released": "2026-11-18"}, WINDOW)
+    assert lat["when"] == "after" and lat["reason"].startswith("released after the 26-week window")
+    low = siblings.note({"paper": KEY, "with": ["9WFO"], "released": "2026-03-01", "kept": "same protein as 9WFO"}, WINDOW)
+    assert low["when"] == "before" and low["sameProteinAs"] == "9WFO"
+    assert low["reason"].endswith("under 10% likely a membrane protein, kept because it is the same protein as 9WFO")
+
+
+def test_failed_lookup_falls_back_to_the_expired_cache_then_to_the_previous_run(tmp_path, capsys):
+    cache = tmp_path / "paper_entries.json"
+    other = "doi:10.1/other"
+    cache.write_text(json.dumps({KEY: {"at": 0.0, "ids": ["9WF2", "9WFO"]}}))
+    tries = []
+
+    def down(q):
+        tries.append(q)
+        raise TimeoutError("timed out")
+
+    now = 30 * 86400.0  # the cache entry is long expired
+    found, got = siblings.find_entries([KEY, other], down, None, cache, now=now, pause=0,
+                                       fallback={other: ["9aaa", "9BBB"]})
+    assert len(tries) == 2  # asked twice before giving up
+    assert found == {KEY: ["9WF2", "9WFO"], other: ["9AAA", "9BBB"]} and got == {}
+    assert json.loads(cache.read_text())[KEY]["at"] == 0.0  # not renewed: asked again next run
+    assert "asking again" in capsys.readouterr().out
+    # A batch that fails once and then answers is used.
+    calls = iter([TimeoutError("x"), ["9WF2"]])
+
+    def flaky(q):
+        r = next(calls)
+        if isinstance(r, Exception):
+            raise r
+        return r
+    found, _ = siblings.find_entries([KEY], flaky, lambda ids: {"9WF2": PAPER}, cache, now=now, pause=0)
+    assert found == {KEY: ["9WF2"]}
+
+
+def test_the_cache_life_is_well_under_the_weekly_cadence():
+    assert siblings.MAX_AGE_S <= 4 * 86400
+
+
+def test_known_entries_are_every_structure_of_each_paper_in_the_file():
+    cands = [{"pdb": "9wfo", "doi": DOI}, {"pdb": "9WF2", "doi": DOI.upper(), "sibling": {"of": DOI}},
+             {"pdb": "9BBB", "doi": None, "pmid": "123"}, {"pdb": "9CCC"}]
+    assert siblings.known_entries(cands) == {KEY: ["9WF2", "9WFO"], "pmid:123": ["9BBB"]}

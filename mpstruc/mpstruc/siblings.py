@@ -1,4 +1,4 @@
-"""Same-paper structures released before the weekly window.
+"""Same-paper structures released outside the weekly window.
 
 The weekly run only looks at PDB releases of the last 26 weeks. A paper's
 structures are often released months apart (9WFO, GGCX with proP1, came out
@@ -6,21 +6,26 @@ on 15 July 2026; the six other GGCX complexes of the same paper on 1 and 22
 April), and mpstruc lists a paper's structures together: one entry with the
 others as related lines. So for every paper of a candidate the run asks the
 PDB for *all* entries that cite it, and takes in those that are not in the
-window, not in mpstruc and not decided by a curator: the "siblings". They are
-scored and placed with the same code as every other candidate, so the study
-groups together under one lead (the lowest PDB ID, see automation.batch_leads),
+window (released before it, or after it), not in mpstruc and not decided by a
+curator: the "siblings". They are scored and placed with the same code as every
+other candidate, so the study groups together under one lead (the first
+deposited, i.e. the lowest PDB ID in mpstruc's sense, see automation.lead_key),
 and each carries
 
     "sibling": {"of": the paper's DOI (or "pmid:<n>"), "with": [the paper's
-                structures inside the window], "reason": a sentence}
+                structures inside the window], "when": "before" | "after",
+                "reason": a sentence[, "sameProteinAs": pdb when kept under the floor]}
 
 In official mpstruc, 50 of the 2,337 entries that list same-paper related
 structures span releases more than 26 weeks apart, so curators do group them.
 
 The functions that decide (paper_key, papers, select, keep, note) are pure;
 find_entries talks to the PDB search API (batched: one request per BATCH
-papers, cached in cache/paper_entries.json for MAX_AGE_S) and tolerates
-failures: a paper that could not be looked up simply has no siblings this run.
+papers, asked twice before giving up, cached in cache/paper_entries.json for
+MAX_AGE_S). A paper that cannot be looked up keeps its last known entries: the
+cache's (however old), else the fallback the caller gives (the weekly run passes
+the structures of that paper in the previous data/candidates.json, since CI keeps
+no cache between runs).
 """
 from __future__ import annotations
 
@@ -35,13 +40,15 @@ from . import awaiting, rcsb
 
 SEARCH = "https://search.rcsb.org/rcsbsearch/v2/query"
 CACHE_NAME = "paper_entries.json"
-MAX_AGE_S = 7 * 86400  # the weekly run asks again; a second run in the same week does not
+MAX_AGE_S = 3 * 86400  # well under the weekly cadence, so every weekly run asks again
+RETRY_PAUSE_S = 5.0  # before asking a failed batch a second time
 BATCH = 50  # papers per search request
 PAUSE_S = 0.25  # between requests
 DOI_ATTR = "rcsb_primary_citation.pdbx_database_id_DOI"
 # The search API does not index rcsb_primary_citation.pdbx_database_id_PubMed; this one it does.
 PMID_ATTR = "rcsb_pubmed_container_identifiers.pubmed_id"
-STAT = "same-paper structures from before the window"
+STAT = "same-paper structures from outside the window"
+FLOOR = 0.1  # the candidates' membrane-protein floor (automation.MEMBRANE_FLOOR)
 
 
 def paper_key(doi: str | None, pmid=None) -> str | None:
@@ -74,6 +81,17 @@ def papers(cands: list[dict]) -> dict[str, list[str]]:
     return {k: sorted(set(v)) for k, v in sorted(out.items())}
 
 
+def known_entries(cands: list[dict]) -> dict[str, list[str]]:
+    """{paper: [pdb, ...]} of every structure in a candidates file (siblings included): what
+    the previous run knew of each paper, the fallback when the PDB cannot be asked."""
+    out: dict[str, set] = {}
+    for c in cands:
+        key = paper_key(c.get("doi"), c.get("pmid"))
+        if key:
+            out.setdefault(key, set()).add(c["pdb"].upper())
+    return {k: sorted(v) for k, v in sorted(out.items())}
+
+
 def search_query(keys: list[str]) -> dict:
     """One search request for every entry whose primary citation is one of these papers."""
     dois = [k[4:] for k in keys if k.startswith("doi:")]
@@ -100,14 +118,17 @@ def _search(query: dict) -> list[str]:
 def find_entries(keys: list[str], search: Callable[[dict], list[str]] | None = None,
                  citations: Callable[[list[str]], dict[str, dict | None]] | None = None,
                  cache_path: Path | None = None, now: float | None = None, pause: float = PAUSE_S,
-                 max_age_s: float = MAX_AGE_S) -> tuple[dict[str, list[str]], dict[str, dict | None]]:
+                 max_age_s: float = MAX_AGE_S, fallback: dict[str, list[str]] | None = None,
+                 retry_pause: float = RETRY_PAUSE_S) -> tuple[dict[str, list[str]], dict[str, dict | None]]:
     """Every PDB entry citing each paper: ({paper: [pdb, ...]}, {pdb: its citation}).
 
     Papers looked up less than max_age_s ago come from the cache. The others are
     asked BATCH at a time; the entries found are then matched to their paper by
     their own citation (one batched GraphQL query, awaiting.fresh_citations). A
-    batch that fails is left out of the result (and of the cache), so a later run
-    asks again; the citations returned are those fetched in this call only."""
+    batch that fails twice keeps, for each of its papers, the last answer in the
+    cache however old (its time is not renewed, so the next run asks again), else
+    fallback[paper] (the previous run's structures of that paper); a paper with
+    neither is left out. The citations returned are those fetched in this call only."""
     search = search or _search
     citations = citations or awaiting.fresh_citations
     cache_path = cache_path or rcsb.CACHE_DIR / CACHE_NAME
@@ -125,12 +146,24 @@ def find_entries(keys: list[str], search: Callable[[dict], list[str]] | None = N
         chunk = todo[i:i + BATCH]
         if i and pause:
             time.sleep(pause)
-        try:
-            ids = search(search_query(chunk))
-            got = citations(ids) if ids else {}
-        except Exception as err:  # the PDB is unreachable or refuses: these papers get no siblings this run
+        got = None
+        for attempt in range(2):
+            try:
+                ids = search(search_query(chunk))
+                got = citations(ids) if ids else {}
+                break
+            except Exception as err:  # the PDB is unreachable or refuses
+                print(f"siblings: could not look up {len(chunk)} papers ({err})"
+                      + ("; asking again" if not attempt else "; using the last known entries"))
+                if not attempt and pause:  # (pause=0: no waiting at all, as in the tests)
+                    time.sleep(retry_pause)
+        if got is None:
             failed += len(chunk)
-            print(f"siblings: could not look up {len(chunk)} papers ({err})")
+            for k in chunk:
+                if k in cache:
+                    out[k] = list(cache[k]["ids"])
+                elif fallback and k in fallback:
+                    out[k] = sorted({p.upper() for p in fallback[k]})
             continue
         found: dict[str, list[str]] = {k: [] for k in chunk}
         for pdb, cit in got.items():
@@ -145,31 +178,36 @@ def find_entries(keys: list[str], search: Callable[[dict], list[str]] | None = N
             cache[k] = {"at": now, "ids": out[k]}
     if len(todo) > failed:
         # Papers nobody asked about for a long time are dropped, so the file stays small.
-        cache = {k: v for k, v in cache.items() if now - v.get("at", 0) < 8 * max_age_s}
-        cache_path.parent.mkdir(parents=True, exist_ok=True)
-        cache_path.write_text(json.dumps(cache))
+        cache = {k: v for k, v in cache.items() if now - v.get("at", 0) < 30 * 86400}
+        try:
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_text(json.dumps(cache))
+        except OSError as err:
+            print(f"siblings: could not save the lookup cache ({err})")
     return out, cites
 
 
-def select(by_paper: dict[str, list[str]], found: dict[str, list[str]], released: dict[str, str], since: str,
-           have: set[str], listed: set[str], decided: set[str],
+def select(by_paper: dict[str, list[str]], found: dict[str, list[str]], released: dict[str, str],
+           window: list[str], have: set[str], listed: set[str], decided: set[str],
            unpublished: Callable[[str], bool] = lambda pdb: False) -> dict[str, dict]:
     """The siblings: {pdb: {"paper": key, "with": [the paper's candidates in the window]}}.
 
-    by_paper: papers(); found: find_entries(); released: {pdb: release date}; since:
-    first day of the window. Left out: structures the run already has (have: the
-    window's releases and those tracked while they wait for a paper), those in
-    official mpstruc (listed: an entry, a related code or named in a description),
-    those a curator decided (decided: autoreject.decided_ids, which leaves out 'Not
-    published yet' rejections, so those follow the usual rules), those not released
-    before the window (or with no release date), and those whose own PDB record does
-    not show the paper as out (unpublished)."""
+    by_paper: papers(); found: find_entries(); released: {pdb: release date}; window:
+    [first day, last day] of the window. Every entry citing the paper is considered,
+    whatever its release date, except: structures the run already has (have: the
+    window's releases and those tracked while they wait for a paper), those in official
+    mpstruc (listed: an entry, a related code or named in a description), those a curator
+    decided (decided: autoreject.decided_ids, which leaves out 'Not published yet'
+    rejections, so those follow the usual rules), those released inside the window (the
+    weekly run judged them already, e.g. under the 10% floor), those with no release
+    date, and those whose own PDB record does not show the paper as out (unpublished)."""
+    since, until = window[0], window[1]
     out: dict[str, dict] = {}
     for key, mates in by_paper.items():
         for pdb in found.get(key) or []:
             pdb = pdb.upper()
             rel = released.get(pdb) or ""
-            if pdb in have or pdb in listed or pdb in decided or not rel or rel >= since or unpublished(pdb):
+            if pdb in have or pdb in listed or pdb in decided or not rel or since <= rel <= until or unpublished(pdb):
                 continue
             if pdb not in out:  # (a paper found by DOI and by PubMed id is the same paper)
                 out[pdb] = {"paper": key, "with": list(mates)}
@@ -208,13 +246,27 @@ def weeks_text(since: str, until: str) -> str:
     return f"{round(days / 7)}-week"
 
 
+def when(released: str, window: list[str]) -> str:
+    """'before', 'after' or 'inside' the window."""
+    released = released or ""
+    return "before" if released < window[0] else "after" if released > window[1] else "inside"
+
+
 def note(sib: dict, window: list[str]) -> dict:
-    """The candidate's "sibling" field."""
+    """The candidate's "sibling" field: {"of", "with", "when", "reason"[, "sameProteinAs"]}."""
     mates = sib["with"]
     names = mates[0] if len(mates) == 1 else f"{mates[0]} and {len(mates) - 1} more"
     key = sib["paper"]
-    return {"of": key[4:] if key.startswith("doi:") else key, "with": list(mates),
-            "reason": f"released before the {weeks_text(*window)} window; same paper as {names}"}
+    w = when(sib.get("released") or "", window)
+    where = "inside the" if w == "inside" else f"{w} the"
+    out = {"of": key[4:] if key.startswith("doi:") else key, "with": list(mates), "when": w,
+           "reason": f"released {where} {weeks_text(*window)} window; same paper as {names}"}
+    kept = str(sib.get("kept") or "")
+    if kept.startswith("same protein as "):
+        out["sameProteinAs"] = kept[len("same protein as "):]
+        out["reason"] += (f"; under {round(100 * FLOOR)}% likely a membrane protein, kept because it is the same "
+                          f"protein as {out['sameProteinAs']}")
+    return out
 
 
 def stale(cached: dict[str, dict | None], cites: dict[str, dict | None]) -> list[str]:
@@ -224,16 +276,19 @@ def stale(cached: dict[str, dict | None], cites: dict[str, dict | None]) -> list
 
 
 def discover(cands: list[dict], window: list[str], have: set[str], listed: set[str], decided: set[str],
-             find=find_entries) -> tuple[dict[str, dict], dict]:
+             find=find_entries, fallback: dict[str, list[str]] | None = None) -> tuple[dict[str, dict], dict]:
     """select() for these candidates, with the PDB lookups: (siblings, counts).
 
-    Each sibling also gets "released". A sibling whose own PDB record still says
-    'To be published' or names only a preprint is left for the week that changes.
+    fallback: {paper: [pdb, ...]} known from the previous run, used for a paper whose
+    lookup fails and is not cached (and a citation that cannot be fetched now is the
+    one in the local PDB record). Each sibling also gets "released". A sibling whose own
+    PDB record still says 'To be published' or names only a preprint is left for the
+    week that changes.
     Entries whose citation changed since they were cached are dropped from the
     local PDB caches (awaiting.forget), so they are placed by today's paper."""
     by_paper = papers(cands)
     t0 = time.time()
-    found, cites = find(sorted(by_paper))
+    found, cites = find(sorted(by_paper), fallback=fallback) if fallback else find(sorted(by_paper))
     others = sorted({p for k in by_paper for p in found.get(k) or []} - have - listed - decided)
     released = {}
     if others:
@@ -250,9 +305,12 @@ def discover(cands: list[dict], window: list[str], have: set[str], listed: set[s
         except Exception as err:
             print(f"siblings: could not refresh the PDB caches ({err})")
         ents = rcsb.entry_entities(others)
+        for p in others:  # citations that could not be fetched now: the PDB record's last known one
+            if p not in cites and (ents.get(p) or {}).get("rcsb_primary_citation"):
+                cites[p] = ents[p]["rcsb_primary_citation"]
         released = {p: (((ents.get(p) or {}).get("rcsb_accession_info") or {}).get("initial_release_date") or "")[:10]
                     for p in others}
-    sibs = select(by_paper, found, released, window[0], have, listed, decided,
+    sibs = select(by_paper, found, released, window, have, listed, decided,
                   unpublished=lambda p: p not in cites or bool(awaiting.citation_status(cites[p])))
     for p, s in sibs.items():
         s["released"] = released[p]

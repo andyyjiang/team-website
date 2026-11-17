@@ -989,6 +989,11 @@ FACETS = [
 ]
 # Point mutations: one-letter residue, 2-4 digit position, new residue ('E123A'; 'A2A' is a name, not a mutation).
 MUTATION = re.compile(r"(?<![A-Za-z0-9])([ACDEFGHIKLMNPQRSTVWY]\d{2,4}[ACDEFGHIKLMNPQRSTVWY*])(?![A-Za-z0-9])")
+ONE_LETTER = {"Ala": "A", "Arg": "R", "Asn": "N", "Asp": "D", "Cys": "C", "Gln": "Q", "Glu": "E", "Gly": "G",
+              "His": "H", "Ile": "I", "Leu": "L", "Lys": "K", "Met": "M", "Phe": "F", "Pro": "P", "Ser": "S",
+              "Thr": "T", "Trp": "W", "Tyr": "Y", "Val": "V"}
+# 'Trp718Ala variant': mpstruc writes substitutions with one-letter codes ('W718A mutant').
+MUTATION3 = re.compile(r"(?<![A-Za-z0-9])(" + "|".join(ONE_LETTER) + r")(\d{1,4})(" + "|".join(ONE_LETTER) + r")(?![A-Za-z0-9])")
 
 
 def _state_phrase(m: re.Match) -> str:
@@ -1029,7 +1034,8 @@ def title_facets(title: str) -> dict[str, list[str]]:
         out["cls"] = [c for c in out["cls"] if not any(c in s for s in out["state"])]
         if not out["cls"]:
             del out["cls"]
-    muts = _dedupe_mutations(MUTATION.findall(title or ""))
+    muts = _dedupe_mutations(MUTATION.findall(title or "") +
+                             [ONE_LETTER[m[1]] + m[2] + ONE_LETTER[m[3]] for m in MUTATION3.finditer(title or "")])
     if muts:
         out["mut"] = muts
     return out
@@ -1285,8 +1291,15 @@ def _distinct_title(titles: list[str], i: int, covered: str) -> str | None:
             run = []
             continue
         ident = j > 0 and re.fullmatch(r"[A-Z]", w)  # 'chain A', 'form B'
+        if k == "ph" and re.fullmatch(r"\d+(?:\.\d+)?", nxt):  # the pH is a facet of its own
+            if run:
+                runs.append(run)
+            run = []
+            continue
         if k not in common and (ident or (k not in STOP and not TITLE_NOISE.match(k))):
-            run.append(w.strip("(),"))
+            if not run and j and key(words[j - 1]) == "with" and w[:1].isalpha():
+                run.append("with")  # 'with HQE', not a bare 'HQE'
+            run.append(w.strip("(),").rstrip(".") if j == len(words) - 1 else w.strip("(),"))
             if re.fullmatch(r"\d+", k) and len(run) == 1 and nxt and nxt not in STOP:
                 run.append(words[j + 1].strip("(),"))  # '2493 GW/cm2', not a bare '2493'
                 taken = j + 1
@@ -1303,13 +1316,13 @@ def _distinct_title(titles: list[str], i: int, covered: str) -> str | None:
     for r in runs:
         while r and (r[-1].lower() in STOP or (FILLER.match(r[-1]) and len(r) == 1)):
             r = r[:-1]
-        while r and (r[0].lower() in STOP or FILLER.match(r[0])):
+        while r and (r[0].lower() in STOP or FILLER.match(r[0])) and not (r[0] == "with" and len(r) > 1):
             r = r[1:]
         txt = " ".join(r)
         if txt and _norm(txt) not in cov and not re.fullmatch(r"[\d.]+", txt) and txt not in out:
             out.append(txt)
     s = ", ".join(out)
-    return s if 0 < len(s.split()) <= 8 else None
+    return s if 0 < len([w for w in s.split() if w != "with"]) <= 8 else None
 
 
 PRIMARY = ("mut", "g", "cplx", "bound", "conc", "ph", "state", "dom", "ab")  # compared with the whole group

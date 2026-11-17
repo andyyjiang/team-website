@@ -1035,7 +1035,7 @@ links.addEventListener("click", (event) => {
   // appears. Such a structure then counts as new from that date.
   const runDay = () => auto.cands.runDate || String(auto.cands.generated || "").slice(0, 10);
   const ownDay = (c) => (c.publishedOn && c.publishedOn > (c.released || "") ? c.publishedOn : c.released || "");
-  // Same-paper structures from before the window (c.sibling, mpstruc/siblings.py) are
+  // Same-paper structures from outside the window (c.sibling, mpstruc/siblings.py) are
   // not new themselves: for the date filters and 'Newest first' they count as their
   // paper's newest structure inside the window, so a study stays in one place.
   function paperDay(c) {
@@ -1056,7 +1056,12 @@ links.addEventListener("click", (event) => {
     const s = c.sibling || {}, w = Array.isArray(s.with) ? s.with.map(String) : [];
     const weeks = Math.round((Date.parse(auto.cands.window[1]) - Date.parse(auto.cands.window[0])) / 6048e5);
     const mates = w.length ? ` as ${esc(w[0])}${w.length > 1 ? ` and ${w.length - 1} more` : ""}` : "";
-    return `<p class="mp-sib-note">Released ${esc(c.released || "")}, before the ${Number.isFinite(weeks) ? `${weeks}-week ` : ""}window; included because it is from the same paper${mates}.</p>`;
+    const span = `${Number.isFinite(weeks) ? `${weeks}-week ` : ""}window`;
+    const rel = c.released || "";
+    const when = s.when || (rel > auto.cands.window[1] ? "after" : rel >= auto.cands.window[0] ? "inside" : "before");
+    const where = when === "inside" ? `in the ${span} but under 10% likely a membrane protein` : `${when === "after" ? "after" : "before"} the ${span}`;
+    const why = s.sameProteinAs ? `it is the same protein as ${esc(String(s.sameProteinAs))}, from the same paper` : `it is from the same paper${mates}`;
+    return `<p class="mp-sib-note">Released ${esc(rel)}, ${where}; included because ${why}.</p>`;
   }
   const newlyPublished = (c) => !!c.publishedOn && c.publishedOn === runDay();
   const shortDay = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -2365,7 +2370,7 @@ links.addEventListener("click", (event) => {
       ${fbHeaderLink()}
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
         ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins${
-          c.candidates.some((x) => x.sibling) ? ` (${c.candidates.filter((x) => x.sibling).length.toLocaleString()} of them released before the window, in the same paper as one of the others)` : ""}</p>
+          c.candidates.some((x) => x.sibling) ? ` (${c.candidates.filter((x) => x.sibling).length.toLocaleString()} of them released outside the window, in the same paper as one of the others)` : ""}</p>
       ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} in 'To decide' matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
         (marked <i>Awaiting paper</i>: the PDB lists ${waiting === 1 ? "it" : "them"} as 'To be published' or as a preprint). The weekly check moves
         ${waiting === 1 ? "it" : "them"} to Decisions › Rejected under 'Not published yet' until the paper is out.` : ""}
@@ -4017,7 +4022,7 @@ links.addEventListener("click", (event) => {
         + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "")
         + (r.awaiting ? `, ${Number(r.awaiting).toLocaleString()} waiting for their paper` : "")
         + (r.newly_published ? `, ${Number(r.newly_published).toLocaleString()} with a paper newly published` : "")
-        + (Number(r.siblings) ? `, ${Number(r.siblings).toLocaleString()} same-paper structures from before the window` : "") });
+        + (Number(r.siblings) ? `, ${Number(r.siblings).toLocaleString()} same-paper structures from outside the window` : "") });
     }
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).
