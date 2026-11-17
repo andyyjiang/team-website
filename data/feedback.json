@@ -1,1 +1,33 @@
-{"version":1,"items":[]}
+{
+ "version": 1,
+ "items": [
+  {
+   "id": "fb-mwk3aqdu-wu0vj2",
+   "pdb": "9WFO",
+   "category": "description",
+   "text": "missing 9WF2, 9WF3, 9WF9, 9WFC, 9WFL, 9WFN, 9WFO daughter proteins.",
+   "similar": true,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-17T02:45:07.986Z",
+   "status": "open",
+   "context": {
+    "title": "Cryo-EM structure of GGCX-proP1 complex",
+    "placement": "daughter",
+    "subgroup": "G03-S157",
+    "subgroupName": "Carboxylases",
+    "ownerPdb": "9BUM",
+    "membrane": 0.7,
+    "membraneWhy": [
+     "9 membrane-crossing segments are resolved in the structure, all in Vitamin K-dependent gamma-carboxylase (P38435)",
+     "UniProt lists a protein in it as crossing the membrane",
+     "lipids are bound (CLR, POV)"
+    ],
+    "name": "VKGC vitamin K-dependent gamma-carboxylase (also known as GGCX) with bound proP1",
+    "description": "cryo-EM structure",
+    "relatedLine": "",
+    "generated": "2026-11-13T01:52+00:00"
+   }
+  }
+ ]
+}
