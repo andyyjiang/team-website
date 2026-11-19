@@ -20085,6 +20085,46 @@
    "suggestedSubgroup": "G03-S102",
    "suggestedOwner": "6M18",
    "membrane": 0.953
+  },
+  "24VA": {
+   "status": "rejected",
+   "reasonCode": "not_membrane",
+   "reason": "Not a membrane protein",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-19T22:50:28.388Z",
+   "title": "Cryo-EM structure of recombinant Botulinum neurotoxin A",
+   "released": "2026-11-11",
+   "organism": "Clostridium botulinum A str. Hall",
+   "res": 3.24,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": "42911674",
+   "doi": "10.1107/S2053230X26009830",
+   "mp": {
+    "name": "Synaptic vesicle glycoprotein 2B (SV2B, SLC22)",
+    "species": "Clostridium botulinum A str. Hall",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "3.24",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": "42911674",
+     "authors": "Yao Z, Xu L, Lu Y, Gong H, Sun X, Zhao Y, Chen J, Yang L, Chen Q, &amp; Yang W",
+     "year": "2026",
+     "title": "Recombinant versus native botulinum neurotoxin type A: structural and pharmacodynamic comparison.",
+     "journal": "Acta Crystallogr.,Sect.F",
+     "volume": "82",
+     "issue": null,
+     "pages": "391-401",
+     "doi": "10.1107/S2053230X26009830"
+    },
+    "pdbTitle": "Cryo-EM structure of recombinant Botulinum neurotoxin A",
+    "ligandNotes": []
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9F1R",
+   "membrane": 0.932
   }
  },
  "log": [
@@ -24215,6 +24255,14 @@
    "action": "approve",
    "pdb": "34OA",
    "detail": "Added 34OA as a daughter of 6M18 in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (suggested: curator to decide); changed Placement"
+  },
+  {
+   "at": "2026-11-19T22:50:28.388Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "reject",
+   "pdb": "24VA",
+   "detail": "Rejected 24VA: Not a membrane protein"
   }
  ]
 }
