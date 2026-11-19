@@ -1,7 +1,7 @@
 {
- "version": "1.15",
- "pr": 15,
- "title": "Curators' rules (β-barrel strands, ligand naming), AI feedback and Re-generate, mpstruc links, version label",
- "mergedAt": "2026-11-16T21:39:33Z",
- "sha": "10fa450c51765f547bcd10b8dee03c6a89a2c423"
+ "version": "1.17",
+ "pr": 17,
+ "title": "Copied mpstruc entries: smaller font, no underline, light green highlight",
+ "mergedAt": "2026-11-19T22:51:52Z",
+ "sha": "764e80c40261d4e2d2274ae379781ea255155bd9"
 }
