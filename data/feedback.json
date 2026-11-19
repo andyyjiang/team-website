@@ -56,6 +56,34 @@
     "relatedLine": "",
     "generated": "2026-11-19T03:39+00:00"
    }
+  },
+  {
+   "id": "fb-mwo7p1p8-lkkzlg",
+   "pdb": "33WJ",
+   "category": "name",
+   "text": "you can't just say additional structure. it's either very similar, as in it adds a small molecule or is a different state of this structure in which it would be a related protein, or it is just a unique protein / daughter protein",
+   "similar": false,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-19T23:59:19.004Z",
+   "status": "open",
+   "context": {
+    "title": "Structural and functional evaluation of the classical RND efflux pumps inhibitor PAbN, a systematic study.",
+    "placement": "related",
+    "subgroup": "G03-S094",
+    "subgroupName": "Multi-Drug Efflux Transporters",
+    "ownerPdb": "32VC",
+    "membrane": 0.944,
+    "membraneWhy": [
+     "12 membrane-crossing segments are resolved in the structure",
+     "its protein family (IPR004764) is a membrane protein in 8 of 8 training structures",
+     "the sample contains detergent (LMT)"
+    ],
+    "name": "MexB bacterial multi-drug efflux transporter",
+    "description": "x-ray structure",
+    "relatedLine": "x-ray: additional structure, 3.56 &Aring;: 33WJ",
+    "generated": "2026-11-19T03:39+00:00"
+   }
   }
  ]
 }
