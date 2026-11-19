@@ -1,5 +1,5 @@
 from mpstruc import awaiting
-from mpstruc.awaiting import PREPRINT_ONLY, TO_BE_PUBLISHED, citation_status, update
+from mpstruc.awaiting import ACCEPTED, PREPRINT_ONLY, TO_BE_PUBLISHED, citation_status, update
 
 
 def test_citation_status_unpublished_any_case():
@@ -19,7 +19,7 @@ def test_citation_status_preprints():
 
 def test_citation_status_published():
     assert citation_status({"journal_abbrev": "Nat Commun", "pdbx_database_id_DOI": "10.1038/x"}) is None
-    assert citation_status({"journal_abbrev": "Acta Pharmacol.Sin.", "page_first": None}) is None
+    assert citation_status({"journal_abbrev": "Acta Pharmacol.Sin.", "journal_volume": "47"}) is None
     # Cold Spring Harbor journals share bioRxiv's DOI prefix.
     assert citation_status({"journal_abbrev": "Genes Dev.", "pdbx_database_id_DOI": "10.1101/gad.1234"}) is None
     assert citation_status({"journal_abbrev": None, "pdbx_database_id_DOI": "10.1038/s41586-026-1"}) is None
@@ -124,3 +124,40 @@ def test_tracked_ids_rejoin_the_run(tmp_path):
     assert awaiting.load(tmp_path / "missing.json") == awaiting.empty()
     p.write_text('{"22xq": {"since": "2026-11-05", "released": "2026-11-04"}}')
     assert awaiting.load(p)["awaiting"] == {"22XQ": {"since": "2026-11-05", "released": "2026-11-04"}}
+
+
+def test_a_journal_name_alone_is_accepted_not_published():
+    # 9I1Z: the PDB swapped 'To be published' for 'Nat Commun' 2026, with no DOI, PubMed ID or pages.
+    cit = {"title": "Membrane Protein Transporter", "journal_abbrev": "Nat Commun", "year": 2026}
+    assert citation_status(cit) == ACCEPTED
+    # Found by its title (the PDB had not added the DOI yet): published.
+    assert citation_status({**cit, "found": {"pmid": "42919912", "doi": "10.1038/x", "source": "pubmed"}}) is None
+
+
+def test_resolve_titles_and_fill_found(monkeypatch):
+    from mpstruc import pubmed
+    papers = {"Sustained antidepressant-like effects of psychedelics": {"pmid": "42919912", "doi": "10.1038/s41593-026-02497-5",
+                                                                       "source": "pubmed"}}
+    monkeypatch.setattr(pubmed, "find_paper", lambda title, year: papers.get(title))
+    cits = {"9WZO": {"title": "Sustained antidepressant-like effects of psychedelics", "journal_abbrev": "Nat.Neurosci.",
+                     "year": 2026},
+            "9I1Z": {"title": "Membrane Protein Transporter", "journal_abbrev": "Nat Commun", "year": 2026},
+            "9AAA": {"title": "x", "journal_abbrev": "Nature", "pdbx_database_id_DOI": "10.1038/y"}}
+    assert awaiting.resolve_titles(cits) == 1
+    assert citation_status(cits["9WZO"]) is None and citation_status(cits["9I1Z"]) == ACCEPTED
+    cands = [{"pdb": "9WZO", "pmid": None, "doi": None, "mp": {"bibliography": {"pubMedId": None, "doi": None}}}]
+    awaiting.fill_found(cands, cits)
+    assert cands[0]["pmid"] == "42919912" and cands[0]["mp"]["bibliography"]["doi"] == "10.1038/s41593-026-02497-5"
+
+
+def test_find_paper_needs_the_exact_title_and_year(monkeypatch, tmp_path):
+    from mpstruc import pubmed
+    monkeypatch.setattr(pubmed, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(pubmed.time, "sleep", lambda s: None)
+    monkeypatch.setattr(pubmed, "_fetch", lambda url: {"esearchresult": {"idlist": ["31637997"]}} if "esearch" in url
+                        else {"message": {"items": []}})
+    monkeypatch.setattr(pubmed, "summaries", lambda ids, max_age_s=0: {
+        "31637997": {"title": "Membrane protein transporter structure.", "year": "2019", "doi": "10.1/old"}})
+    # Same words, but a 2019 paper: a placeholder title never matches an old paper.
+    assert pubmed.find_paper("Membrane Protein Transporter Structure", 2026) is None
+    assert pubmed.find_paper("Membrane Protein", 2026) is None  # too short to look up

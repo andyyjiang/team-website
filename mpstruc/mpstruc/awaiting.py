@@ -38,6 +38,9 @@ GIVE_UP_DAYS = 730  # ~2 years
 
 TO_BE_PUBLISHED = "To be published"
 PREPRINT_ONLY = "preprint only"
+# The PDB names a journal but no DOI, PubMed ID or pages, and the paper cannot be
+# found by its title: accepted, but not out yet (9I1Z, 'Nat Commun 2026').
+ACCEPTED = "accepted, not out yet"
 
 # Journal names the PDB uses for "no paper yet" (seen in any capitalisation).
 _UNPUBLISHED = {"to be published", "not published", "unpublished", "in preparation", "submitted",
@@ -70,7 +73,52 @@ def citation_status(cit: dict | None) -> str | None:
             return PREPRINT_ONLY
         if not doi and not cit.get("pdbx_database_id_PubMed"):
             return TO_BE_PUBLISHED
+    # A journal name alone is what the PDB shows once a paper is accepted, and
+    # also for a published paper whose DOI it has not added yet: published only
+    # if it has a DOI, PubMed ID, pages or volume, or was found by its title
+    # (resolve_titles sets "found").
+    if journal and not (doi or cit.get("pdbx_database_id_PubMed") or cit.get("page_first")
+                        or cit.get("journal_volume") or cit.get("found")):
+        return ACCEPTED
     return None
+
+
+def resolve_titles(citations: dict[str, dict | None | bool]) -> int:
+    """Look up, by title, the papers of citations that name only a journal, and
+    mark those found as published (cit["found"] = {"pmid", "doi", "source"}).
+    Returns how many were found. Network trouble leaves a citation as it was."""
+    from . import pubmed
+    n = 0
+    for cit in citations.values():
+        if not isinstance(cit, dict) or citation_status(cit) != ACCEPTED:
+            continue
+        try:
+            got = pubmed.find_paper(cit.get("title"), cit.get("year"))
+        except Exception as err:
+            print(f"awaiting: could not look up '{str(cit.get('title'))[:60]}' ({err})")
+            continue
+        if got:
+            cit["found"] = got
+            n += 1
+    return n
+
+
+def fill_found(cands: list[dict], citations: dict[str, dict | None | bool]) -> None:
+    """Put the PubMed ID and DOI found by title into each candidate and its
+    draft listing, where the PDB has none yet."""
+    for c in cands:
+        f = (citations.get(c["pdb"].upper()) or {}).get("found") if isinstance(citations.get(c["pdb"].upper()), dict) else None
+        if not f:
+            continue
+        bib = ((c.get("mp") or {}).get("bibliography")) if isinstance(c.get("mp"), dict) else None
+        if f.get("pmid") and not c.get("pmid"):
+            c["pmid"] = f["pmid"]
+            if isinstance(bib, dict) and not bib.get("pubMedId"):
+                bib["pubMedId"] = f["pmid"]
+        if f.get("doi") and not c.get("doi"):
+            c["doi"] = f["doi"]
+            if isinstance(bib, dict) and not bib.get("doi"):
+                bib["doi"] = f["doi"]
 
 
 def empty() -> dict:
