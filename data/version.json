@@ -1,7 +1,7 @@
 {
- "version": "1.16",
- "pr": 16,
- "title": "Always group a paper's structures, whatever their release date (fixes 9WFO)",
- "mergedAt": "2026-11-19T22:52:25Z",
- "sha": "3e0ce54bcf3f5c94c69b0857552e7e8c9332e40c"
+ "version": "1.14",
+ "pr": 14,
+ "title": "Awaiting papers: a journal name alone is not \"published\"",
+ "mergedAt": "2026-11-19T22:52:38Z",
+ "sha": "10a2788c34092c167d15f16b98d4411ad6e6f1fe"
 }
