@@ -2914,12 +2914,15 @@ links.addEventListener("click", (event) => {
   //   <name> : <species> <E|B|A|V> (expressed in <host>), 3.10 Å
   //   cryo-EM structure
   //   <what differs>, 3.10 Å: 9ABC        (one line per related structure)
-  // in two flavours: plain text, and HTML in a document font (Arial 11pt, name
-  // bold, species italic, real sub/superscripts) for Word, Google Docs and email.
+  // in two flavours: plain text, and HTML in a document font (Arial 10pt, highlighted
+  // light green, not underlined; name bold, species italic, real sub/superscripts) for Word, Google Docs and email.
   // The fields are untrusted mpstruc markup: everything goes through safeMarkup().
   const COPY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
   const COPY_DONE_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-  const COPY_FONT = "font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 1.35; color: #000";
+  const COPY_FONT = "font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; color: #000; text-decoration: none";
+  // Each line's text is highlighted light green (a background on an inline span, which Word, Google
+  // Docs and email keep) and never underlined, whatever style the place it is pasted into has.
+  const COPY_MARK = "background-color: #d4f7c5; text-decoration: none";
   // The decision and the mpstruc fields a copy uses: the curator's edit when there is one.
   function copySource(pdb) {
     const c = candOf(pdb), d = curation.entries[pdb] || (c && decisionOf(c)) || null;
@@ -2962,7 +2965,7 @@ links.addEventListener("click", (event) => {
   function copyEntry(pdb, relatedOnly = false) {
     const { c, d, raw } = copySource(pdb);
     if (!c || !isObj(raw)) return { error: `${pdb} has no drafted mpstruc entry to copy.` };
-    const wrap = (rows) => `<div style="${COPY_FONT}">${rows.map((r) => `<div>${r}</div>`).join("")}</div>`;
+    const wrap = (rows) => `<div style="${COPY_FONT}">${rows.map((r) => `<div style="text-decoration: none"><span style="${COPY_MARK}">${r}</span></div>`).join("")}</div>`;
     if (relatedOnly) {
       if (!plain(raw.relatedLine).trim()) return { error: `${pdb} has no related line drafted.` };
       return { plain: copyPlain(raw.relatedLine), html: wrap([copyHtml(raw.relatedLine)]) };
