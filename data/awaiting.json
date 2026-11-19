@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-12",
+ "updated": "2026-11-19",
  "awaiting": {
   "10AC": {
    "since": "2026-11-06",
@@ -119,6 +119,11 @@
   "21WY": {
    "since": "2026-11-06",
    "released": "2026-08-12",
+   "reason": "To be published"
+  },
+  "22AD": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
    "reason": "To be published"
   },
   "22AY": {
@@ -401,6 +406,11 @@
    "released": "2026-11-04",
    "reason": "To be published"
   },
+  "26PB": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
   "27CK": {
    "since": "2026-11-06",
    "released": "2026-10-28",
@@ -546,14 +556,14 @@
    "released": "2026-08-19",
    "reason": "preprint only"
   },
-  "33WJ": {
-   "since": "2026-11-12",
-   "released": "2026-11-11",
-   "reason": "To be published"
-  },
   "35TE": {
    "since": "2026-11-06",
    "released": "2026-07-15",
+   "reason": "To be published"
+  },
+  "36AI": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
    "reason": "To be published"
   },
   "36OO": {
@@ -641,14 +651,14 @@
    "released": "2026-09-30",
    "reason": "To be published"
   },
-  "43YC": {
-   "since": "2026-11-12",
-   "released": "2026-11-11",
+  "40BF": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
    "reason": "To be published"
   },
-  "43YG": {
-   "since": "2026-11-12",
-   "released": "2026-11-11",
+  "40BG": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
    "reason": "To be published"
   },
   "44KH": {
@@ -974,12 +984,12 @@
   "9OY9": {
    "since": "2026-11-12",
    "released": "2026-11-11",
-   "reason": "To be published"
+   "reason": "preprint only"
   },
   "9OZ3": {
    "since": "2026-11-12",
    "released": "2026-11-11",
-   "reason": "To be published"
+   "reason": "preprint only"
   },
   "9P0O": {
    "since": "2026-11-06",
@@ -989,6 +999,11 @@
   "9P4U": {
    "since": "2026-11-12",
    "released": "2026-06-24",
+   "reason": "To be published"
+  },
+  "9PEL": {
+   "since": "2026-11-19",
+   "released": "2026-08-12",
    "reason": "To be published"
   },
   "9PEW": {
@@ -1186,11 +1201,6 @@
    "released": "2026-07-08",
    "reason": "To be published"
   },
-  "9S15": {
-   "since": "2026-11-06",
-   "released": "2026-10-07",
-   "reason": "To be published"
-  },
   "9S2C": {
    "since": "2026-11-06",
    "released": "2026-07-29",
@@ -1299,6 +1309,16 @@
   "9SX9": {
    "since": "2026-11-06",
    "released": "2026-10-21",
+   "reason": "To be published"
+  },
+  "9T5G": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9T5I": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
    "reason": "To be published"
   },
   "9THK": {
@@ -2026,6 +2046,26 @@
    "released": "2026-11-11",
    "reason": "To be published"
   },
+  "9XNV": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9XO6": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9XO7": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9XSG": {
+   "since": "2026-11-19",
+   "released": "2026-09-09",
+   "reason": "To be published"
+  },
   "9Y1Q": {
    "since": "2026-11-06",
    "released": "2026-09-09",
@@ -2216,6 +2256,71 @@
    "released": "2026-11-04",
    "reason": "To be published"
   },
+  "9Z6G": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z6H": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z6J": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z6K": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9M": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9N": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9O": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9P": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9Q": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9R": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9T": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9U": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
+  "9Z9V": {
+   "since": "2026-11-19",
+   "released": "2026-11-18",
+   "reason": "To be published"
+  },
   "9ZJT": {
    "since": "2026-11-06",
    "released": "2026-06-24",
@@ -2233,29 +2338,21 @@
   }
  },
  "published": {
-  "36QU": {
-   "on": "2026-11-12",
-   "released": "2026-09-09"
+  "33WJ": {
+   "on": "2026-11-19",
+   "released": "2026-11-11"
   },
-  "36QV": {
-   "on": "2026-11-12",
-   "released": "2026-09-09"
+  "43YC": {
+   "on": "2026-11-19",
+   "released": "2026-11-11"
   },
-  "36QW": {
-   "on": "2026-11-12",
-   "released": "2026-09-09"
+  "43YG": {
+   "on": "2026-11-19",
+   "released": "2026-11-11"
   },
-  "36QX": {
-   "on": "2026-11-12",
-   "released": "2026-09-09"
-  },
-  "9I1Z": {
-   "on": "2026-11-12",
-   "released": "2026-07-29"
-  },
-  "9WFO": {
-   "on": "2026-11-12",
-   "released": "2026-07-15"
+  "9S15": {
+   "on": "2026-11-19",
+   "released": "2026-10-07"
   }
  }
 }

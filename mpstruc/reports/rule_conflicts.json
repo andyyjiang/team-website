@@ -1,21 +1,7 @@
 [
  {
-  "pdb": "4C00",
-  "key": "G02-S006-P0011",
-  "name": "TamA Autotransporter, full length",
-  "subgroup": "G02-S006",
-  "subgroupName": "Outer Membrane Autotransporters",
-  "expected": 12,
-  "count": 16,
-  "chain": "A",
-  "closed": true,
-  "uniprot": "P0ADE4",
-  "fits": "G02-S007",
-  "fitsName": "Omp85-TpsB Outer Membrane Transporter Superfamily"
- },
- {
   "pdb": "6WIL",
-  "key": "G02-S006-P0014",
+  "key": "G02-S006-P0013",
   "name": "CdiB autotransporter",
   "subgroup": "G02-S006",
   "subgroupName": "Outer Membrane Autotransporters",
@@ -29,7 +15,7 @@
  },
  {
   "pdb": "6WIM",
-  "key": "G02-S006-P0015",
+  "key": "G02-S006-P0014",
   "name": "CdiB autotransporter",
   "subgroup": "G02-S006",
   "subgroupName": "Outer Membrane Autotransporters",
