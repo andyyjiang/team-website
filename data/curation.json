@@ -18797,7 +18797,7 @@
    "title": "Melanocortin receptor 4 (MC4R) Gs protein complex",
    "released": "2026-11-18",
    "organism": "Homo sapiens",
-   "res": 3.0,
+   "res": 3,
    "method": "ELECTRON MICROSCOPY",
    "pmid": null,
    "doi": null,
@@ -20024,6 +20024,67 @@
    "suggestedSubgroup": "G03-S038",
    "suggestedOwner": "9Z9M",
    "membrane": 0.856
+  },
+  "34OA": {
+   "status": "approved",
+   "placement": "daughter",
+   "subgroup": "G03-S102",
+   "owner": "6M18",
+   "edited": true,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-19T22:45:45.128Z",
+   "title": "Structure of the human apo B0AT1-collectrin complex",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.37,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": "42971502",
+   "doi": "10.1016/j.jmb.2026.170086",
+   "mp": {
+    "name": "B<sup>0</sup>AT1 (SLC6A19), apo form",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.37",
+    "description": "cryo-EM structure<br /> in complex with ACE2, apo, 3.19 &Aring;: 34OC<br /> in complex with ACE2 with bound alanine, occluded state, 3.18 &Aring;: 34OD<br /> in complex with ACE2 with bound leucine, occluded state, 3.05 &Aring;: 34OE<br /> in complex with ACE2 with bound tryptophan, occluded state, 2.90 &Aring;: 34OH",
+    "bibliography": {
+     "pubMedId": "42971502",
+     "authors": "Pedersen CN, Christensen ME, Heger T, Prakaash D, Khalid S, Shahsavar A, Nissen P, &amp; Stock C",
+     "year": "2026",
+     "title": "Structural mechanisms of B 0 AT1 substrate recognition and complex assembly.",
+     "journal": "J.Mol.Biol.",
+     "volume": null,
+     "issue": null,
+     "pages": "170086",
+     "doi": "10.1016/j.jmb.2026.170086"
+    },
+    "pdbTitle": "Structure of the human apo B0AT1-collectrin complex",
+    "ligandNotes": [
+     {
+      "id": "NAG",
+      "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+      "decision": "omitted",
+      "why": "curators named 2-acetamido-2-deoxy-beta-D-glucopyranose in 5 of the 1147 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A2G",
+      "name": "2-acetamido-2-deoxy-alpha-D-galactopyranose",
+      "decision": "omitted",
+      "why": "sugar: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has this one in 1 such structure, named in 0"
+     }
+    ]
+   },
+   "suggested": "review",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "6M18",
+   "membrane": 0.953
   }
  },
  "log": [
@@ -24146,6 +24207,14 @@
    "action": "auto-unreject",
    "pdb": "9S15",
    "detail": "Paper for 9S15 is now published (2026-11-19): back in To decide"
+  },
+  {
+   "at": "2026-11-19T22:45:45.128Z",
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "action": "approve",
+   "pdb": "34OA",
+   "detail": "Added 34OA as a daughter of 6M18 in Solute Carrier (SLC) Transporter Superfamily (G03-S102) (suggested: curator to decide); changed Placement"
   }
  ]
 }
