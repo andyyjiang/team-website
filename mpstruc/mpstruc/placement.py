@@ -55,6 +55,13 @@ def entity_summary(entry: dict | None) -> dict | None:
         "citation": {x for x in (str(cit.get("pdbx_database_id_DOI") or "").lower(),
                                  str(pm) if pm and int(pm) > 0 else "") if x},
         "released": (entry.get("rcsb_accession_info") or {}).get("initial_release_date", "")[:10],
+        "deposited": ((entry.get("rcsb_accession_info") or {}).get("deposit_date") or "")[:10],
+        # {UniProt: 'protein name|species'}: the same protein of another strain (another accession)
+        # has the same name and species (automation.protein_ids).
+        "uniprot_names": {u: f"{str((e.get('rcsb_polymer_entity') or {}).get('pdbx_description') or '').strip().lower()}|"
+                             f"{' '.join(str(o.get('ncbi_scientific_name') or '').lower().split()[:2])}"
+                          for e in proteins for o in (e.get("rcsb_entity_source_organism") or [{}])[:1]
+                          for u in (e.get("rcsb_polymer_entity_container_identifiers") or {}).get("uniprot_ids") or []},
         "n_protein_entities": len(proteins),
     }
 

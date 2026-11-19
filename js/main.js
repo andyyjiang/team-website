@@ -1034,7 +1034,35 @@ links.addEventListener("click", (event) => {
   // them, and sets c.publishedOn (the run that first saw the paper) when it
   // appears. Such a structure then counts as new from that date.
   const runDay = () => auto.cands.runDate || String(auto.cands.generated || "").slice(0, 10);
-  const sortDay = (c) => (c.publishedOn && c.publishedOn > (c.released || "") ? c.publishedOn : c.released || "");
+  const ownDay = (c) => (c.publishedOn && c.publishedOn > (c.released || "") ? c.publishedOn : c.released || "");
+  // Same-paper structures from outside the window (c.sibling, mpstruc/siblings.py) are
+  // not new themselves: for the date filters and 'Newest first' they count as their
+  // paper's newest structure inside the window, so a study stays in one place.
+  function paperDay(c) {
+    if (paperDay.src !== auto.cands) {
+      paperDay.src = auto.cands;
+      paperDay.map = new Map();
+      for (const x of auto.cands.candidates) {
+        if (x.sibling) continue;
+        const k = String(x.doi || "").toLowerCase() || (x.pmid ? `pmid:${x.pmid}` : "");
+        if (k && ownDay(x) > (paperDay.map.get(k) || "")) paperDay.map.set(k, ownDay(x));
+      }
+    }
+    const of = String((c.sibling && c.sibling.of) || "").toLowerCase();
+    return paperDay.map.get(of) || "";
+  }
+  const sortDay = (c) => (c.sibling && paperDay(c)) || ownDay(c);
+  function siblingNote(c) {
+    const s = c.sibling || {}, w = Array.isArray(s.with) ? s.with.map(String) : [];
+    const weeks = Math.round((Date.parse(auto.cands.window[1]) - Date.parse(auto.cands.window[0])) / 6048e5);
+    const mates = w.length ? ` as ${esc(w[0])}${w.length > 1 ? ` and ${w.length - 1} more` : ""}` : "";
+    const span = `${Number.isFinite(weeks) ? `${weeks}-week ` : ""}window`;
+    const rel = c.released || "";
+    const when = s.when || (rel > auto.cands.window[1] ? "after" : rel >= auto.cands.window[0] ? "inside" : "before");
+    const where = when === "inside" ? `in the ${span} but under 10% likely a membrane protein` : `${when === "after" ? "after" : "before"} the ${span}`;
+    const why = s.sameProteinAs ? `it is the same protein as ${esc(String(s.sameProteinAs))}, from the same paper` : `it is from the same paper${mates}`;
+    return `<p class="mp-sib-note">Released ${esc(rel)}, ${where}; included because ${why}.</p>`;
+  }
   const newlyPublished = (c) => !!c.publishedOn && c.publishedOn === runDay();
   const shortDay = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   function awaitingNote(c) {
@@ -1666,6 +1694,7 @@ links.addEventListener("click", (event) => {
         <h3>${shownMp && shownMp.name ? safeMarkup(shownMp.name) : esc(c.title || c.pdb)}</h3>
       </div>
       ${c.awaiting ? awaitingNote(c) : ""}
+      ${c.sibling ? siblingNote(c) : ""}
       ${mpListing(c, shownMp, shownRel)}
       <div class="mp-like">
         <span>Membrane protein</span><meter min="0" max="1" low="0.3" high="0.7" optimum="1" value="${c.membrane}"></meter><b>${pct(c.membrane)} likely</b>
@@ -1785,7 +1814,7 @@ links.addEventListener("click", (event) => {
     if (v.age) {
       // A structure whose paper just came out counts as new from that day.
       const days = (Date.parse(auto.cands.window[1]) - Date.parse(sortDay(c))) / 864e5;
-      if ((v.age === "latest" && c.released !== latest && !newlyPublished(c)) || (v.age === "new" && days > 28)
+      if ((v.age === "latest" && (c.sibling ? sortDay(c) : c.released) !== latest && !newlyPublished(c)) || (v.age === "new" && days > 28)
           || (v.age === "mid" && (days <= 28 || days > 91)) || (v.age === "old" && days <= 91)) return "released outside the chosen dates";
     }
     if (v.q && !matchesSearch(c, v.q)) return "does not match the search";
@@ -2031,6 +2060,7 @@ links.addEventListener("click", (event) => {
         <p class="mp-relitem-facts"><span class="mp-relitem-mem${c.membrane < Number(auto.view.min || 0) ? " low" : ""}">${pct(c.membrane)} membrane protein</span>
           <span>released ${esc(c.released || "")}</span>${why ? `<span class="mp-relitem-why">${esc(why)}</span>` : ""}
           ${ap && !saving ? `<span>Editing is done in Decisions › Approved${signedIn() ? `: <a href="#/approved/edit/${id}">edit ${id} there</a>` : ""}</span>` : ""}</p>
+        ${c.sibling && !open ? siblingNote(c) : ""}
         ${open ? "" : fbBlock(c.pdb)}
         <div class="mp-relitem-acts">
           ${open ? "" : `${ap ? "" : needsPlacement(c)
@@ -2177,7 +2207,7 @@ links.addEventListener("click", (event) => {
   }
 
   function latestRelease() {
-    return auto.cands.candidates.reduce((m, c) => (c.released && c.released > m ? c.released : m), "");
+    return auto.cands.candidates.reduce((m, c) => (c.released && !c.sibling && c.released > m ? c.released : m), "");
   }
 
   // "UniProt lists ... membrane", "the sample contains detergent", "but ..." -> one plain sentence.
@@ -2339,7 +2369,8 @@ links.addEventListener("click", (event) => {
         missed, and structures it lists that are not membrane proteins.</p>
       ${fbHeaderLink()}
       <p class="mp-summary">PDB releases from ${esc(c.window[0])} to ${esc(c.window[1])} not yet in mpstruc · checked ${esc(c.generated.slice(0, 10))} ·
-        ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins</p>
+        ${c.stats.released.toLocaleString()} released, ${c.candidates.length.toLocaleString()} at least 10% likely to be membrane proteins${
+          c.candidates.some((x) => x.sibling) ? ` (${c.candidates.filter((x) => x.sibling).length.toLocaleString()} of them released outside the window, in the same paper as one of the others)` : ""}</p>
       ${waiting || nowOut ? `<p class="mp-summary">${waiting ? `${waiting.toLocaleString()} ${waiting === 1 ? "suggestion" : "suggestions"} in 'To decide' matching the filters below ${waiting === 1 ? "is" : "are"} waiting for the paper
         (marked <i>Awaiting paper</i>: the PDB lists ${waiting === 1 ? "it" : "them"} as 'To be published' or as a preprint). The weekly check moves
         ${waiting === 1 ? "it" : "them"} to Decisions › Rejected under 'Not published yet' until the paper is out.` : ""}
@@ -3993,7 +4024,8 @@ links.addEventListener("click", (event) => {
         + `${Number(r.candidates || 0).toLocaleString()} suggestions, ${Number(r.membrane50 || 0).toLocaleString()} at least 50% likely to be membrane proteins`
         + (r.already_decided ? `, ${r.already_decided} already decided by curators` : "")
         + (r.awaiting ? `, ${Number(r.awaiting).toLocaleString()} waiting for their paper` : "")
-        + (r.newly_published ? `, ${Number(r.newly_published).toLocaleString()} with a paper newly published` : "") });
+        + (r.newly_published ? `, ${Number(r.newly_published).toLocaleString()} with a paper newly published` : "")
+        + (Number(r.siblings) ? `, ${Number(r.siblings).toLocaleString()} same-paper structures from outside the window` : "") });
     }
     // The snapshot the database was built from goes in its place in time
     // (normally the oldest line, at the bottom, like a terminal's first line).

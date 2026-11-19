@@ -168,3 +168,10 @@ them are added), picks the right subfamily first 93% of the time, and gets the w
   - The rules were designed on the full snapshot, which includes the test period.
 - **Curator decisions** are saved in the browser and leave it only as downloaded CSV or mpstruc XML
   blocks. The weekly job re-checks the last 26 weeks, so suggestions improve as papers are linked.
+  Every other PDB entry citing a candidate's paper, released before or after those 26 weeks and not in
+  mpstruc or decided, is taken in too (`mpstruc/siblings.py`, marked `sibling` in `data/candidates.json`) when
+  it is at least 10% likely to be a membrane protein, or is the same protein as a kept candidate of the paper,
+  so a study is suggested whole under its first-deposited structure (reissued IDs such as 24UG count as newer
+  than every 9xxx ID); `python -m mpstruc.automation siblings` adds them to the current file without a weekly
+  run. The paper lookup is cached for 3 days; if the PDB search fails, a paper keeps its last cached entries,
+  or in CI (no cache) the entries the previous `data/candidates.json` held.

@@ -925,6 +925,7 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
 .mp-final { font-size: 0.9rem; margin: 8px 0; }
 /* Structures waiting for their paper ("To be published" in the PDB) */
 .mp-await-note { margin: 10px 0 4px; max-width: 75ch; overflow-wrap: anywhere; }
+.mp-sib-note { margin: 4px 0; max-width: 75ch; font-size: 0.8rem; color: var(--color-muted); overflow-wrap: anywhere; }
 .mp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .mp-edit {
   display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: end; margin-top: 12px; padding: 14px;

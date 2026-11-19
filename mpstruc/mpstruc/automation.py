@@ -3,11 +3,15 @@
     python -m mpstruc.automation run [--since YYYY-MM-DD] [--until YYYY-MM-DD]
     python -m mpstruc.automation backtest
     python -m mpstruc.automation apply-rules   # curator_rules.json on the current candidates, no weekly run
+    python -m mpstruc.automation siblings      # add same-paper structures from outside the window, no weekly run
 
 `run` writes ../data/candidates.json for the site's Automation tab.
 `apply-rules` re-reads curator_rules.json, recounts barrel strands, rescores
 and re-places the candidates a rule touches in ../data/candidates.json, and
 rewrites ../data/curator_rules.json and reports/rule_conflicts.md.
+`siblings` adds, for every paper of a candidate, the paper's structures that
+were released before or after the window and are not in mpstruc (siblings.py), placed
+and drafted like every other candidate; `run` does the same every week.
 `backtest` replays past periods against mpstruc's own decisions, fits the
 likelihood model and cut-off on the first, reports on the second, and
 writes model.json, reports/backtest.{md,json} and ../data/backtest.json.
@@ -38,7 +42,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import rcsb, rules as rules_mod
+from . import rcsb, rules as rules_mod, siblings as siblings_mod
 from .model import Database, load
 from .placement import MEMBRANE_SOURCES, entity_summary
 from .report import ROOT, source_xml
@@ -319,9 +323,10 @@ def classify(kb: KB, pdb: str, s: dict, batch_leads: dict[str, str], conf: dict[
 
     # 1b. Same paper and a shared protein with other new structures this week:
     #     related to the lowest ID among them (the batch lead).
+    mine = protein_ids(s)
     for c in paper_keys(s):
-        members = [p for p, cr in batch_leads.get(c, []) if cr & core]
-        lead = min(members) if len(members) > 1 else None
+        members = [p for p, cr in batch_leads.get(c, []) if cr & mine]  # (in lead order, see batch_leads)
+        lead = members[0] if len(members) > 1 else None
         if lead and lead != pdb:
             ev.append(f"Same primary citation as {lead}, released in the same batch")
             return Proposal(pdb, "related", None, alts, lead, None, conf.get("related-batch", 0.85),
@@ -447,17 +452,52 @@ def paper_keys(s: dict) -> set[str]:
     return set(s["citation"]) or ({s["authors_key"]} if s.get("authors_key") else set())
 
 
-def batch_leads(cands: dict[str, dict]) -> dict[str, list[tuple[str, set]]]:
-    """New structures grouped by paper: {citation: [(pdb, proteins), ...]}.
+NEW_ID_FROM = "2025-01-01"  # IDs 1xxx-3xxx released from here on are the PDB's reissued ones (after 9ZZZ)
+GENERIC_NAMES = {"", "protein", "uncharacterized protein", "putative uncharacterized protein", "hypothetical protein"}
 
-    A paper's structures that share a protein are listed under the lowest
-    PDB ID among them: in the snapshot the entry a paper's related structures
-    hang under is the lowest ID 70% of the time, the best resolution 52%.
+
+def lead_key(pdb: str, s: dict | None) -> tuple:
+    """Sort key for 'the lowest PDB ID' in mpstruc's sense: the first deposited.
+
+    Classic IDs (1xxx-9xxx) were issued in order, so among them the lowest ID is
+    the earliest deposit and the string order is kept. Once 9ZZZ was reached
+    (2025) the PDB issued IDs again from 1xxx-3xxx (e.g. 24UG, 28PN), which sort
+    below every classic ID but are newer than all of them, and are not issued in
+    string order (28PN was deposited before 24UG). Those come after every classic
+    ID, ordered by deposit date (then release date, then ID)."""
+    pdb = pdb.upper()
+    s = s or {}
+    rel = s.get("released") or ""
+    if pdb[:1] in "123" and rel >= NEW_ID_FROM:
+        return (1, s.get("deposited") or rel, rel, pdb)
+    return (0, "", "", pdb)
+
+
+def protein_ids(s: dict) -> set:
+    """What 'the same protein' means between structures of one paper: a shared membrane
+    UniProt accession, or the same protein name in the same species (strain variants
+    of a protein carry different accessions, e.g. Vibrio cholerae NFeoB in 9D8B and 9PS9)."""
+    names = s.get("uniprot_names") or {}
+    def specific(v: str) -> bool:  # not 'Porin', not a fusion's 'Soluble cytochrome b562,Receptor'
+        name, species = v.split("|", 1)
+        return bool(species) and name not in GENERIC_NAMES and "," not in name and len(name.split()) >= 3
+    named = {f"name:{names[u]}" for u in s["core"] if u in names and specific(names[u])}
+    return set(s["core"]) | named
+
+
+def batch_leads(cands: dict[str, dict]) -> dict[str, list[tuple[str, set]]]:
+    """New structures grouped by paper: {citation: [(pdb, proteins), ...]}, in lead order.
+
+    A paper's structures that share a protein (protein_ids) are listed under the
+    lowest PDB ID among them, in the sense of lead_key (the first deposited): in
+    the snapshot the entry a paper's related structures hang under is the lowest ID
+    70% of the time, the best resolution 52%.
     """
     by_cit: dict[str, list[tuple[str, set]]] = defaultdict(list)
-    for pdb, s in cands.items():
+    for pdb in sorted(cands, key=lambda p: lead_key(p, cands[p])):
+        s = cands[pdb]
         for c in paper_keys(s):
-            by_cit[c].append((pdb, s["core"]))
+            by_cit[c].append((pdb, protein_ids(s)))
     return {c: v for c, v in by_cit.items() if len(v) > 1}
 
 
@@ -818,8 +858,21 @@ def add_listings(props: list[dict], db: Database | None = None,
                     by_core.setdefault(frozenset(s["core"]), []).append(e)
         return by_core
 
+    by_pdb = {p["pdb"]: p for p in props}
     for p in props:
         core = set(p.get("uniprot") or []) - FUSION_UNIPROT
+        lead = by_pdb.get(p.get("ownerPdb") or "") if p["placement"] == "related" else None
+        if lead:
+            # A related structure of a new lead whose extra membrane protein is in no other
+            # structure of the study is drafted as its lead's protein, the way the lead's
+            # description lists it: 9WFL (GGCX with the membrane protein PRGP1 bound, each of
+            # its six siblings with another partner) is 'GGCX with bound PRGP1', not a
+            # GGCX-PRGP1 complex. (A KCNQ2/3 heteromer among several stays a heteromer.)
+            lead_core = set(lead.get("uniprot") or []) - FUSION_UNIPROT
+            mates = [by_pdb[x] for x in by_owner.get(p["ownerPdb"], []) if x != p["pdb"] and x in by_pdb]
+            if lead_core < core and len(mates) >= 2 and \
+                    all(set(m.get("uniprot") or []) - FUSION_UNIPROT == lead_core for m in mates):
+                core = lead_core
         family, group = plan[p["pdb"]]
 
         def proteins(e):
@@ -1400,6 +1453,219 @@ def relist(path: Path | None = None, db: Database | None = None) -> dict:
     path.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
     return out
 
+# ---------------------------------------------------------------- same-paper siblings
+
+DROPPED_FIELDS = ("sig", "taxa", "likelihood", "reasons")  # of propose(): not written to the site's file
+MEMBRANE_FLOOR = 0.1
+
+
+def _cores(ids: list[str]) -> dict[str, set]:
+    """{pdb: its membrane protein(s)} as summarise() gives them (from the caches)."""
+    ents, extras, fams = rcsb.entry_entities(ids), rcsb.entry_extras(ids), rcsb.entry_families(ids)
+    out = {}
+    for p in ids:
+        s = summarise(ents.get(p), extras.get(p), fams.get(p))
+        if s:
+            out[p] = set(s["core"])
+    return out
+
+
+def window_candidates(ids: list[str], fresh_cits: dict[str, dict | None] | None = None) -> list[dict]:
+    """[{"pdb", "doi", "pmid", "awaiting"}] for the structures the weekly run keeps, before
+    they are placed: their paper from the PDB (the citation just fetched for those tracked
+    while they wait, else the cached summary), and whether it is out (awaiting.py)."""
+    from . import awaiting
+    summ = rcsb.entry_summaries(ids)
+    out = []
+    for p in ids:
+        cit = (fresh_cits or {})[p] if p in (fresh_cits or {}) else (summ.get(p) or {}).get("rcsb_primary_citation")
+        cit = cit or {}
+        out.append({"pdb": p, "doi": cit.get("pdbx_database_id_DOI"), "pmid": cit.get("pdbx_database_id_PubMed"),
+                    "awaiting": bool(awaiting.citation_status(cit or None))})
+    return out
+
+
+def find_siblings(cands: list[dict], window: list[str], have: set[str], kb: KB, mentioned: dict[str, str],
+                  decided: set[str], db: Database | None = None, floor: float = MEMBRANE_FLOOR,
+                  discover=None, score=None, cores=None,
+                  fallback: dict[str, list[str]] | None = None) -> tuple[dict[str, dict], dict[str, dict], dict]:
+    """A paper's other structures released before or after the window (siblings.py), scored.
+
+    cands: the window's candidates ({"pdb", "doi", "pmid"[, "awaiting", "uniprot"]});
+    have: every structure the run already has;
+    fallback: {paper: [pdb, ...]} from the previous run, for a lookup that fails. Returns (siblings kept: {pdb: {"paper",
+    "with", "released", "kept": "score" | "same protein as X"}}, their
+    membrane.score_structures records, counts). discover, score and cores stand in for
+    siblings.discover, membrane.score_structures and _cores in the tests."""
+    from . import membrane
+    listed = set(kb.by_pdb) | set(mentioned)
+    sibs, counts = ((discover or siblings_mod.discover)(cands, window, have, listed, decided, fallback=fallback)
+                    if fallback else (discover or siblings_mod.discover)(cands, window, have, listed, decided))
+    if not sibs:
+        return {}, {}, {**counts, "kept": 0, "belowFloor": 0}
+    ids = sorted(sibs)
+    mem = score(ids) if score else membrane.score_structures(ids, db)
+    kept_cands = {c["pdb"] for c in cands}
+    mates = sorted({m for s in sibs.values() for m in s["with"]} & kept_cands)
+    core = (cores or _cores)(ids + mates)
+    why = siblings_mod.keep(sibs, {p: v["p"] for p, v in mem.items()}, floor, core, kept_cands)
+    out = {p: {**sibs[p], "kept": why[p]} for p in ids if p in why}
+    counts = {**counts, "kept": len(out), "belowFloor": sum(v["p"] < floor for p, v in mem.items() if p not in why),
+              "keptBySameProtein": sum(w != "score" for w in why.values()),
+              "papersWithSiblings": len({s["paper"] for s in out.values()})}
+    return out, {p: mem[p] for p in out}, counts
+
+
+def _with_membrane(p: dict, m: dict) -> dict:
+    """A propose() suggestion as the site's file holds it."""
+    p = {k: v for k, v in p.items() if k not in DROPPED_FIELDS}
+    p["membrane"], p["membraneWhy"] = m["p"], m["why"]
+    if m.get("tmTable"):
+        p["tmEvidence"] = m["tmTable"]
+    return p
+
+
+BATCH_TEXT = ", released in the same batch"  # classify(), rule same-paper-batch
+
+
+def mark_siblings(props: list[dict], sibs: dict[str, dict], window: list[str]) -> None:
+    """Set "sibling" on the suggestions that are siblings, and say what is true of them
+    where classify() wrote 'released in the same batch' of a structure and its lead."""
+    for p in props:
+        own, lead = p["pdb"] in sibs, p.get("ownerPdb") in sibs
+        if own:
+            p["sibling"] = siblings_mod.note(sibs[p["pdb"]], window)
+        if p.get("rule") == "same-paper-batch" and (own or lead) and p.get("evidence"):
+            first = str(p["evidence"][0])
+            if first.endswith(BATCH_TEXT):
+                where = lambda pdb: {"before": "before the window", "after": "after the window",
+                                     "inside": "in the window"}[siblings_mod.when(sibs[pdb].get("released"), window)]
+                if lead and not own:
+                    what = f" (released {sibs[p['ownerPdb']]['released']}, {where(p['ownerPdb'])})"
+                elif lead and where(p["pdb"]) == where(p["ownerPdb"]):
+                    what = f"; both were released {where(p['pdb'])}"
+                elif lead:
+                    what = f"; this one was released {where(p['pdb'])}, {p['ownerPdb']} {where(p['ownerPdb'])}"
+                else:
+                    what = f"; this one was released {where(p['pdb'])}"
+                p["evidence"] = [first[:-len(BATCH_TEXT)] + what] + list(p["evidence"][1:])
+
+
+def add_siblings(path: Path | None = None, db: Database | None = None, find=None) -> dict:
+    """Add a paper's structures from outside the window to data/candidates.json, in place.
+
+    For every paper of a candidate whose paper is out, the paper's other PDB entries are
+    looked up (siblings.py). Those released before or after the window, not in mpstruc
+    and not decided by a curator are scored, placed together with the paper's candidates (same
+    code as the weekly run: propose, apply_rules), given their draft listing, and added
+    with "sibling": {...}. The paper's candidates already in the file are placed again
+    with them (the lead may now be an older structure: batch_leads takes the first deposited),
+    keep every field the placement does not own, and have their listing re-drafted (the
+    lead's description gains the related lines). Every other candidate, and the compact
+    JSON format, stay as they are. Returns {"added": [...], "studies": [{paper, before,
+    after}], "counts": {...}}; nothing is written when there is nothing to add."""
+    from . import autoreject
+    path = path or SITE_DATA / "candidates.json"
+    db = db or load(source_xml())
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    cands = doc.get("candidates") or []
+    window = doc["window"]
+    settings_path = ROOT / "model.json"
+    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+    conf, model = settings.get("confidence", {}), settings.get("model")
+    kb = build_kb(db, _full_summaries(db))
+    mentioned = mentioned_in_descriptions(db)
+    curation_path = path.parent / "curation.json"
+    curation = json.loads(curation_path.read_text(encoding="utf-8")) if curation_path.exists() else {}
+    decided = autoreject.decided_ids(curation)
+    # As in the weekly run: a structure a curator decided is not a candidate any more, so
+    # it brings in no siblings (it is still in the file until the next run).
+    live = [c for c in cands if c["pdb"].upper() not in decided]
+    # This window's releases mpstruc already lists bring their papers in too (their other
+    # structures go under the mpstruc entry), as in the weekly run.
+    in_mp = sorted({str(r.get("pdb", "")).upper() for r in doc.get("inMpstruc") or [] if isinstance(r, dict)} - {c["pdb"].upper() for c in live})
+    if in_mp:
+        try:
+            live = live + window_candidates(in_mp)
+        except Exception as err:
+            print(f"siblings: could not read the papers of the structures already in mpstruc ({err})")
+    have = {c["pdb"].upper() for c in cands} | set(in_mp)
+    sibs, mem, counts = find_siblings(live, window, have, kb, mentioned, decided, db, discover=find,
+                                      fallback=siblings_mod.known_entries(cands))
+    out = {"added": [], "studies": [], "counts": counts}
+    if not sibs:
+        return out
+    key_of = lambda c: siblings_mod.paper_key(c.get("doi"), c.get("pmid"))
+    touched_papers = {s["paper"] for s in sibs.values()}
+    old = {c["pdb"]: c for c in cands if key_of(c) in touched_papers and not c.get("awaiting")}
+    ids = sorted(set(old) | set(sibs))
+    fresh, _ = propose(kb, ids, conf, model, keep=set(ids))
+    fresh = {p["pdb"]: p for p in fresh}
+    show = lambda c: f"{c['pdb']} {c['placement']}" + (f" of {c['ownerPdb']}" if c.get("ownerPdb") else "")
+    before = defaultdict(list)
+    for c in old.values():
+        before[key_of(c)].append(show(c))
+    work, moved = [], set()
+    for pdb in ids:
+        f = fresh.get(pdb)
+        if not f:
+            continue  # the PDB gave nothing to place: an old candidate stays as it is
+        if pdb in sibs:
+            w = _with_membrane(f, mem[pdb])
+        else:
+            c = old[pdb]
+            w = json.loads(json.dumps(c))
+            if any(c.get(k) != f[k] for k in ("placement", "subgroup", "ownerPdb", "ownerKey", "rule")):
+                moved.add(pdb)
+                w.update({k: f[k] for k in PLACEMENT_FIELDS})
+                for k in RULE_FIELDS:
+                    w.pop(k, None)
+        work.append(w)
+    mark_siblings([w for w in work if w["pdb"] in sibs or w["pdb"] in moved], sibs, window)
+    # The curators' rules, for the new and the moved ones only (the others keep what the
+    # last run or apply-rules noted).
+    ruled = strand_rules(kb)
+    check = [w for w in work if w["pdb"] in sibs or w["pdb"] in moved]
+    if ruled and any(touched_by_rules(w, ruled) for w in check):
+        names = {w["pdb"] for w in check}
+        rest = [json.loads(json.dumps(w)) for w in work if w["pdb"] not in names]  # leads the checked ones may follow
+        apply_rules(check + rest, kb, ruled, *rule_inputs(check + rest, ruled), conf, _conflicts(db, kb, ruled))
+    for w in check:
+        b = (mem.get(w["pdb"]) or {}).get("barrel")
+        if b and "barrelStrands" not in w:
+            w["barrelStrands"] = b
+    # Draft listings for the whole of each paper: the lead lists every related line, and a
+    # related line names what differs from the others.
+    drafts = json.loads(json.dumps(work))
+    add_listings(drafts, db)
+    for w, d in zip(work, drafts):
+        new_mp = d.get("mp")
+        if not new_mp:
+            continue
+        merged = {**(w.get("mp") or {}), **new_mp}
+        if "relatedLine" not in new_mp:
+            merged.pop("relatedLine", None)
+        w["mp"] = merged
+    by_pdb = {w["pdb"]: w for w in work}
+    after = defaultdict(list)
+    for w in work:
+        after[key_of(w)].append(show(w))
+    ordered = cands == sorted(cands, key=lambda c: (-(c.get("membrane") or 0), c["pdb"]))
+    doc["candidates"] = [by_pdb.get(c["pdb"], c) for c in cands] + [by_pdb[p] for p in sorted(sibs) if p in by_pdb]
+    if ordered:  # the weekly run's order
+        doc["candidates"].sort(key=lambda c: (-(c.get("membrane") or 0), c["pdb"]))
+    added = [p for p in sorted(sibs) if p in by_pdb]
+    stats = doc.setdefault("stats", {})
+    stats[siblings_mod.STAT] = stats.get(siblings_mod.STAT, 0) + len(added)
+    stats["candidates"] = len(doc["candidates"])
+    doc["siblingsAdded"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes")
+    path.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+    out["added"] = [{"pdb": p, "released": by_pdb[p].get("released"), "membrane": by_pdb[p].get("membrane"),
+                     "kept": sibs[p]["kept"], "paper": sibs[p]["paper"]} for p in added]
+    out["studies"] = [{"paper": k, "before": sorted(before.get(k, [])), "after": sorted(after.get(k, []))}
+                      for k in sorted(touched_papers)]
+    return out
+
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -1409,6 +1675,8 @@ def main() -> None:
     r.add_argument("--until")
     sub.add_parser("backtest")
     sub.add_parser("apply-rules", aliases=["replace-rules"])
+    sb = sub.add_parser("siblings", help="add same-paper structures released outside the window to data/candidates.json")
+    sb.add_argument("--file", help="candidates file to rewrite (default: data/candidates.json)")
     rl = sub.add_parser("relist", help="re-draft the listings in data/candidates.json; nothing is re-scored or re-placed")
     rl.add_argument("--file", help="candidates file to rewrite (default: data/candidates.json)")
     args = ap.parse_args()
@@ -1423,6 +1691,18 @@ def main() -> None:
         r = relist(Path(args.file) if args.file else None, db)
         print(f"relist: re-drafted {r['redrafted']} of {r['candidates']} candidates; changed: {r['names']} names, "
               f"{r['descriptions']} descriptions, {r['relatedLines']} related lines")
+        return
+
+    if args.cmd == "siblings":
+        r = add_siblings(Path(args.file) if args.file else None, db)
+        c = r["counts"]
+        print(f"siblings: {c.get('papers', 0)} papers of candidates checked in {c.get('seconds', 0)} s; "
+              f"{c.get('found', 0)} structures from outside the window not in mpstruc, "
+              f"{c.get('belowFloor', 0)} of them under {round(100 * MEMBRANE_FLOOR)}% membrane protein (left out), "
+              f"{len(r['added'])} added ({c.get('keptBySameProtein', 0)} kept for having the protein of a candidate "
+              f"of the same paper) to {len(r['studies'])} papers")
+        for st in r["studies"]:
+            print(f"  {st['paper']}\n    before: {'; '.join(st['before'])}\n    after:  {'; '.join(st['after'])}")
         return
 
     if args.cmd == "backtest":
@@ -1497,18 +1777,43 @@ def main() -> None:
     ids = [p for p in ids if p not in mentioned or p in kb.by_pdb]
     fresh = [p for p in ids if p not in kb.by_pdb and p.upper() not in decided]
     mem = membrane.score_structures(fresh, db)
-    floor = 0.1
+    floor = MEMBRANE_FLOOR
     keep = {p for p, v in mem.items() if v["p"] >= floor}
+    n_scored, n_below = len(mem), sum(v["p"] < floor for v in mem.values())
+    # A paper's structures released before or after the window, not in mpstruc and not decided
+    # (siblings.py), join the run here, so they are placed with the paper's candidates
+    # and tracked, checked against the rules and drafted like them. They are neither in
+    # the window's 'released' count nor in the 'Already in mpstruc' list (they are not there).
+    sibs, sib_counts = {}, {}
+    try:
+        # What last week's file knew of each paper: CI keeps no lookup cache between runs,
+        # so this is what a paper keeps if the PDB search fails this week.
+        try:
+            prev = json.loads((SITE_DATA / "candidates.json").read_text(encoding="utf-8")).get("candidates") or []
+        except (OSError, ValueError):
+            prev = []
+        # The papers of this window's releases mpstruc already lists count too: their other
+        # structures go under the mpstruc entry (e.g. 9WF2-9WFN with 9WFO, listed alone).
+        in_mp = sorted({r["pdb"] for r in already} - set(keep))
+        sibs, sib_mem, sib_counts = find_siblings(window_candidates(sorted(keep) + in_mp, fresh_cits), [since, until],
+                                                  {p.upper() for p in ids}, kb, mentioned, decided, db, floor,
+                                                  fallback=siblings_mod.known_entries(prev))
+        mem.update(sib_mem)
+        ids = ids + sorted(sibs)
+        keep |= set(sibs)
+    except Exception as err:  # the weekly run goes on without them
+        print(f"siblings: skipped this run ({err})")
+        sibs = {}
     props, stats = propose(kb, ids, conf, model, keep=keep)
-    stats["scored"] = len(mem)
+    stats["released"] -= len(sibs)
+    stats["candidates"] = len(props)
+    stats["scored"] = n_scored
     stats["already listed"] += len(in_text)
     stats["mentioned only in an mpstruc description"] = len(in_text)
-    stats["below 10% membrane protein (not shown)"] = sum(v["p"] < floor for v in mem.values())
-    for p in props:
-        p["membrane"], p["membraneWhy"] = mem[p["pdb"]]["p"], mem[p["pdb"]]["why"]
-        if mem[p["pdb"]].get("tmTable"):  # per-protein 'Check it yourself' table on the site
-            p["tmEvidence"] = mem[p["pdb"]]["tmTable"]
-    props = [{k: v for k, v in p.items() if k not in ("sig", "taxa", "likelihood", "reasons")} for p in props]
+    stats["below 10% membrane protein (not shown)"] = n_below
+    stats[siblings_mod.STAT] = sum(p["pdb"] in sibs for p in props)
+    props = [_with_membrane(p, mem[p["pdb"]]) for p in props]  # with the per-protein 'Check it yourself' table
+    mark_siblings(props, sibs, [since, until])
     props.sort(key=lambda p: (-p["membrane"], p["pdb"]))
     # The curators' rules (curator_rules.json): barrel strands counted in the structure
     # against the typical number of the suggested subfamily.
@@ -1569,7 +1874,8 @@ def main() -> None:
                  "candidates": len(props), "membrane50": sum(p["membrane"] >= 0.5 for p in props),
                  "already_decided": len(decided & set(ids)),
                  "awaiting": wait_stats["awaiting"], "newly_published": wait_stats["newly_published"],
-                 "autoRejected": len(auto["rejected"]), "autoUnrejected": len(auto["unrejected"])})
+                 "autoRejected": len(auto["rejected"]), "autoUnrejected": len(auto["unrejected"]),
+                 "siblings": stats[siblings_mod.STAT], "siblingSeconds": sib_counts.get("seconds", 0)})
     log_path.write_text(json.dumps({"runs": runs[-200:]}, indent=1))
     print(f"{stats}; {sum(p['membrane'] >= 0.5 for p in props)} at least 50% likely to be membrane proteins; "
           f"wrote {SITE_DATA / 'candidates.json'}")

@@ -544,3 +544,17 @@ def test_a_complex_is_named_from_its_title():
     fl = [entity("Flagellar biosynthetic protein FliQ", ["Q1"]), entity("Flagellar biosynthetic protein FliR", ["Q2"]),
           entity("Flagellar biosynthesis protein FlhA", ["Q3"])]
     assert complex_name("Flagellar export apparatus FliPQR-FlhA", fl) is None
+
+
+def test_title_fallback_drops_a_final_full_stop_and_the_ph_and_keeps_with():
+    t = ["CryoEM structure of native quinol dependent Nitric Oxide Reductase at pH 6.5",
+         "CryoEM structure of native quinol dependent Nitric Oxide Reductase with HQE at pH 6.5",
+         "CryoEM structure of native quinol dependent Nitric Oxide Reductase at pH 8.0 on gold grid."]
+    assert _distinct_title(t, 1, "") == "with HQE"
+    assert _distinct_title(t, 2, "") == "gold grid"
+
+
+def test_three_letter_substitutions_are_mutations_in_one_letter_code():
+    from mpstruc.listing import title_facets
+    f = title_facets("Nitric Oxide Reductase Trp718Ala variant with quino at pH 6.5 on gold grid.")
+    assert f["mut"] == ["W718A"]

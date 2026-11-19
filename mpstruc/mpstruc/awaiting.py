@@ -257,6 +257,18 @@ def forget_changed(fresh: dict[str, dict | None]) -> list[str]:
         cached = {}
     changed = [p for p, cit in fresh.items()
                if p in cached and _cite_key((cached.get(p) or {}).get("rcsb_primary_citation")) != _cite_key(cit)]
+    return forget(changed)
+
+
+def forget(changed: list[str]) -> list[str]:
+    """Drop these entries from the local per-entry PDB caches (see forget_changed)."""
+    import os
+    import time
+    from . import rcsb
+
+    def expired(f: Path) -> bool:
+        return time.time() - f.stat().st_mtime >= _CACHES[f.name]
+
     if not changed:
         return []
     for name in _CACHES:
