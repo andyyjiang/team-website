@@ -1,7 +1,7 @@
 {
- "version": "1.17",
- "pr": 17,
- "title": "Copied mpstruc entries: smaller font, no underline, light green highlight",
- "mergedAt": "2026-11-19T22:51:52Z",
- "sha": "764e80c40261d4e2d2274ae379781ea255155bd9"
+ "version": "1.16",
+ "pr": 16,
+ "title": "Always group a paper's structures, whatever their release date (fixes 9WFO)",
+ "mergedAt": "2026-11-19T22:52:25Z",
+ "sha": "3e0ce54bcf3f5c94c69b0857552e7e8c9332e40c"
 }
