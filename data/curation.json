@@ -9318,46 +9318,6 @@
    "suggestedOwner": "9RQL",
    "membrane": 0.746
   },
-  "9S15": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "MspA-M2 in a POPC nanodisc",
-   "released": "2026-10-07",
-   "organism": "Mycolicibacterium smegmatis MC2 155",
-   "res": 2.5,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "MspA mycobacterial porin, in nanodiscs",
-    "species": "Mycolicibacterium smegmatis MC2 155",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Escherichia coli BL21(DE3)",
-    "resolution": "2.5",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Ashworth M, Bayfield OW, Noble OW, Plevin MJ, &amp; Antson AA",
-     "year": null,
-     "title": "M2-MspA in a POPC nanodisc",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "MspA-M2 in a POPC nanodisc"
-   },
-   "suggested": "daughter",
-   "suggestedSubgroup": "G02-S003",
-   "suggestedOwner": "1UUN",
-   "membrane": 0.468
-  },
   "9S2C": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -17719,128 +17679,6 @@
    "suggestedOwner": "8EF5",
    "membrane": 0.364
   },
-  "33WJ": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-12T15:35:40.336Z",
-   "auto": true,
-   "title": "Structural and functional evaluation of the classical RND efflux pumps inhibitor PAbN, a systematic study.",
-   "released": "2026-11-11",
-   "organism": "Pseudomonas aeruginosa",
-   "res": 3.56,
-   "method": "X-RAY DIFFRACTION",
-   "pmid": null,
-   "doi": "10.3389/fphar.2026.1906963",
-   "mp": {
-    "name": "MexB bacterial multi-drug efflux transporter",
-    "species": "Pseudomonas aeruginosa",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Escherichia coli",
-    "resolution": "3.56",
-    "description": "x-ray structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wehbi H, Megret M, Phan G, &amp; Broutin I",
-     "year": null,
-     "title": "To Be Published",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": "10.3389/fphar.2026.1906963"
-    },
-    "pdbTitle": "Structural and functional evaluation of the classical RND efflux pumps inhibitor PAbN, a systematic study.",
-    "relatedLine": "x-ray: additional structure, 3.56 &Aring;: 33WJ"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S094",
-   "suggestedOwner": "32VC",
-   "membrane": 0.944
-  },
-  "43YC": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-12T15:35:40.336Z",
-   "auto": true,
-   "title": "Cryo-EM structure of AGAP001487 in a nanodisc",
-   "released": "2026-11-11",
-   "organism": "Anopheles gambiae",
-   "res": 3,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Innexin shaking-B, in nanodiscs",
-    "species": "Anopheles gambiae",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "3",
-    "description": "cryo-EM structure<br /> N-terminal deletion mutant, 2.76 &Aring;: 43YG",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Kawaguchi S, Hirano H, Watanabe M, Suzuki S, Nishikawa K, Fujiyoshi Y, &amp; Oshima A",
-     "year": null,
-     "title": "N-terminal integrity governs heptamer assembly and maturation in an Anopheles innexin",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Cryo-EM structure of AGAP001487 in a nanodisc"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S041",
-   "suggestedOwner": "",
-   "membrane": 0.947
-  },
-  "43YG": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-12T15:35:40.336Z",
-   "auto": true,
-   "title": "Cryo-EM structure of an N-terminal deletion mutant of AGAP001487 in a nanodisc",
-   "released": "2026-11-11",
-   "organism": "Anopheles gambiae",
-   "res": 2.76,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Innexin shaking-B, in nanodiscs",
-    "species": "Anopheles gambiae",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "2.76",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Kawaguchi S, Hirano H, Watanabe M, Suzuki S, Nishikawa K, Fujiyoshi Y, &amp; Oshima A",
-     "year": null,
-     "title": "N-terminal integrity governs heptamer assembly and maturation in an Anopheles innexin",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Cryo-EM structure of an N-terminal deletion mutant of AGAP001487 in a nanodisc",
-    "relatedLine": "N-terminal deletion mutant, 2.76 &Aring;: 43YG"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S041",
-   "suggestedOwner": "43YC",
-   "membrane": 0.947
-  },
   "9OY9": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -18750,6 +18588,1442 @@
    "suggestedSubgroup": "G02-S010",
    "suggestedOwner": "",
    "membrane": 0.869
+  },
+  "22AD": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 3",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.7,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound biotin, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.7",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, Dai Z, &amp; Liang L",
+     "year": null,
+     "title": "Stepwise roto-translocation of substrates by human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 3",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "BTN",
+      "name": "BIOTIN",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 2 such structures, named in 1"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "7UUV",
+   "membrane": 0.953
+  },
+  "26PB": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Cryo-EM structure of Sus scrofa S1P transporter MFSD2B",
+   "released": "2026-11-18",
+   "organism": "Sus scrofa",
+   "res": 3.65,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Sphingosine-1-phosphate transporter MFSD2B",
+    "species": "Sus scrofa",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "3.65",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Yu LY, &amp; Ren RB",
+     "year": null,
+     "title": "Cryo-EM structure of Sus scrofa S1P transporter MFSD2B",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of Sus scrofa S1P transporter MFSD2B",
+    "ligandNotes": []
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S116",
+   "suggestedOwner": "",
+   "membrane": 0.949
+  },
+  "36AI": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Structure of Photosystem I from Acaryochloris marina strain MU05",
+   "released": "2026-11-18",
+   "organism": "Acaryochloris marina MU05",
+   "res": 1.77,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Photosystem I",
+    "species": "Acaryochloris marina MU05",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": null,
+    "resolution": "1.77",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Mehra HM, Magdaong NCM, Flesher DA, Shen G, Ulrich NK, Brininger CM, Niedzwiedzki DM, Miller SR, &amp; Gisriel CJ",
+     "year": null,
+     "title": "Multiple routes to red-shifted chlorophyll d-based photosynthesis",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of Photosystem I from Acaryochloris marina strain MU05",
+    "ligandNotes": [
+     {
+      "id": "G9R",
+      "name": "CHLOROPHYLL D ISOMER",
+      "decision": "omitted",
+      "why": "cofactor, pigment or metal cluster: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has this one in 4 such structures, named in 0"
+     },
+     {
+      "id": "PHO",
+      "name": "PHEOPHYTIN A",
+      "decision": "omitted",
+      "why": "curators named PHEOPHYTIN A in 0 of the 82 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CL7",
+      "name": "CHLOROPHYLL D",
+      "decision": "omitted",
+      "why": "cofactor, pigment or metal cluster: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has this one in 3 such structures, named in 0"
+     },
+     {
+      "id": "LHG",
+      "name": "1,2-DIPALMITOYL-PHOSPHATIDYL-GLYCEROLE",
+      "decision": "omitted",
+      "why": "curators named 1,2-DIPALMITOYL-PHOSPHATIDYL-GLYCEROLE in 0 of the 198 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PQN",
+      "name": "PHYLLOQUINONE",
+      "decision": "omitted",
+      "why": "curators named PHYLLOQUINONE in 0 of the 80 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LMT",
+      "name": "DODECYL-BETA-D-MALTOSIDE",
+      "decision": "omitted",
+      "why": "curators named DODECYL-BETA-D-MALTOSIDE in 1 of the 347 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "WVN",
+      "name": "1,3,3-trimethyl-2-[(1E,3E,5E,7E,9E,11E,13E,15E,17E)-3,7,12,16-tetramethyl-18-[(1R)-2,6,6-trimethylcyclohex-2-en-1-yl]octadeca-1,3,5,7,9,11,13,15,17-nonaenyl]cyclohexene",
+      "decision": "omitted",
+      "why": "cofactor, pigment or metal cluster: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has this one in 1 such structure, named in 0"
+     },
+     {
+      "id": "SF4",
+      "name": "IRON/SULFUR CLUSTER",
+      "decision": "omitted",
+      "why": "curators named IRON/SULFUR CLUSTER in 0 of the 357 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LMG",
+      "name": "1,2-DISTEAROYL-MONOGALACTOSYL-DIGLYCERIDE",
+      "decision": "omitted",
+      "why": "curators named 1,2-DISTEAROYL-MONOGALACTOSYL-DIGLYCERIDE in 0 of the 148 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "omitted",
+      "why": "curators named CALCIUM ION in 32 of the 629 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "review",
+   "suggestedSubgroup": "G03-S149",
+   "suggestedOwner": "7COY",
+   "membrane": 0.955
+  },
+  "40BF": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Melanocortin receptor 4 (MC4R) Gs protein complex",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.0,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Melanocortin-4 Receptor (MC4R) - G<sub>s</sub> complex",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Trichoplusia ni",
+    "resolution": "3",
+    "description": "cryo-EM structure<br /> with bound setmelanotide, 2.60 &Aring;: 40BG",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Catalano C, Scapin G, Muccini AJ, Senko S, Poweleit N, Luksic WR, Fisher B, Byrne S, Haineault J, Fencil K, Mishra A, &amp; Gottler L",
+     "year": null,
+     "title": "From Gene to Structure: Exploring MC4R in Unliganded and Ligand-Bound Conformations",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Melanocortin receptor 4 (MC4R) Gs protein complex",
+    "ligandNotes": []
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S051",
+   "suggestedOwner": "6W25",
+   "membrane": 0.943
+  },
+  "40BG": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "MC4R co-expressed with a heterotrimeric Gs protein and the stabilizing antibody fragment scFv16, in complex with setmelanotide.",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.6,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Melanocortin-4 Receptor (MC4R) - G<sub>s</sub> complex with bound setmelanotide",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Trichoplusia ni",
+    "resolution": "2.6",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Catalano C, Scapin G, Muccini AJ, Senko S, Poweleit N, Luksic WR, Fisher B, Byrne S, Haineault J, Fencil K, Mishra A, &amp; Gottler L",
+     "year": null,
+     "title": "From Gene to Structure: Exploring MC4R in Unliganded and Ligand-Bound Conformations",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "MC4R co-expressed with a heterotrimeric Gs protein and the stabilizing antibody fragment scFv16, in complex with setmelanotide.",
+    "ligandNotes": [
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "omitted",
+      "why": "curators named CALCIUM ION in 32 of the 629 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "with bound setmelanotide, 2.60 &Aring;: 40BG"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S051",
+   "suggestedOwner": "40BF",
+   "membrane": 0.912
+  },
+  "9PEL": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Structure of EBOV GP, MWAC-3634, and Nanosota-EB2 ternary complex",
+   "released": "2026-08-12",
+   "organism": "Ebola virus - Mayinga, Zaire, 1976",
+   "res": 2.54,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Envelope glycoprotein GP2 / Envelope glycoprotein GP1 in complex with nanosota-EB2",
+    "species": "Ebola virus - Mayinga, Zaire, 1976",
+    "taxonomicDomain": "Viruses",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.54",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Bu F, Ye G, &amp; Li F",
+     "year": null,
+     "title": "Structure of EBOV GP, MWAC-3634, and Nanosota-EB2 ternary complex",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of EBOV GP, MWAC-3634, and Nanosota-EB2 ternary complex",
+    "ligandNotes": [
+     {
+      "id": "A1CIK",
+      "name": "(3S,4R)-1-{(2P)-2-(6-chloroquinolin-4-yl)-1-[(1R)-1-(naphthalen-1-yl)ethyl]-1H-1,3-benzimidazole-6-carbonyl}-N-methyl-4-[3-(trifluoromethyl)phenyl]pyrrolidine-3-carboxamide",
+      "decision": "omitted",
+      "why": "curators would name a ligand like this, but the PDB gives it no readable name and the title names no compound for it"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S124",
+   "suggestedOwner": "",
+   "membrane": 0.191
+  },
+  "9T5G": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Structure of a stalled E. coli 70S RNC-NuoK-86 in complex with the SecYEG translocon",
+   "released": "2026-11-18",
+   "organism": "Escherichia",
+   "res": 2.55,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Respiratory Complex I",
+    "species": "Escherichia coli",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.55",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Busch M, Rosales-Hernandez C, Kamel M, Schaumkessel Y, van der Sluis E, Berninghausen O, Becker T, Beckmann R, &amp; Kedrov A",
+     "year": null,
+     "title": "Substrate-induced assembly and functional mechanism of the bacterial membrane protein insertase SecYEG-YidC",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of a stalled E. coli 70S RNC-NuoK-86 in complex with the SecYEG translocon",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "MG",
+      "name": "MAGNESIUM ION",
+      "decision": "omitted",
+      "why": "curators named MAGNESIUM ION in 16 of the 919 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PRO",
+      "name": "PROLINE",
+      "decision": "omitted",
+      "why": "amino acid: curators name such ligands in 12% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     },
+     {
+      "id": "SPM",
+      "name": "SPERMINE",
+      "decision": "omitted",
+      "why": "curators named SPERMINE in 0 of the 10 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "review",
+   "suggestedSubgroup": "G03-S142",
+   "suggestedOwner": "3M9C",
+   "membrane": 0.849
+  },
+  "9T5I": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "mechanosensitive channel MscS from Francisella tularensis, mutant W27A",
+   "released": "2026-11-18",
+   "organism": "Francisella tularensis",
+   "res": 2.53,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Small-conductance mechanosensitive channel, W27A mutant",
+    "species": "Francisella tularensis",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.53",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Rasmussen A, Hemmelmann N, Bahner J, Hove TT, Flegler VJ, Kraft C, Hedrich R, Rasmussen T, &amp; Bottcher B",
+     "year": null,
+     "title": "An asymmetric gate in the homoheptameric mechanosensitive channel MscS from Francisella tularensis",
+     "journal": "to be published",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "mechanosensitive channel MscS from Francisella tularensis, mutant W27A",
+    "ligandNotes": [
+     {
+      "id": "PEE",
+      "name": "1,2-dioleoyl-sn-glycero-3-phosphoethanolamine",
+      "decision": "omitted",
+      "why": "curators named 1,2-dioleoyl-sn-glycero-3-phosphoethanolamine in 0 of the 86 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "OCT",
+      "name": "N-OCTANE",
+      "decision": "omitted",
+      "why": "curators named N-OCTANE in 0 of the 147 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "C14",
+      "name": "TETRADECANE",
+      "decision": "omitted",
+      "why": "curators named TETRADECANE in 0 of the 86 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "D10",
+      "name": "DECANE",
+      "decision": "omitted",
+      "why": "curators named DECANE in 0 of the 155 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "D12",
+      "name": "DODECANE",
+      "decision": "omitted",
+      "why": "curators named DODECANE in 0 of the 122 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "W27A mutant, 2.53 &Aring;: 9T5I"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S036",
+   "suggestedOwner": "9SDB",
+   "membrane": 0.955
+  },
+  "9XNV": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Cryo-EM structure of a PSI supercomplex in the leaves of Hevea brasiliensis",
+   "released": "2026-11-18",
+   "organism": "Hevea brasiliensis",
+   "res": 2.75,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Photosystem I P700 chlorophyll a apoprotein A1 / Photosystem I P700 chlorophyll a apoprotein A2",
+    "species": "Hevea brasiliensis",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "2.75",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang M, Yang Y, Li ZH, Wang WD, &amp; Wang XC",
+     "year": null,
+     "title": "Cryo-EM structure of a PSI-dimer supercomplex in the leaves of Hevea brasiliensis",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of a PSI supercomplex in the leaves of Hevea brasiliensis",
+    "ligandNotes": [
+     {
+      "id": "CLA",
+      "name": "CHLOROPHYLL A",
+      "decision": "omitted",
+      "why": "curators named CHLOROPHYLL A in 2 of the 195 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PQN",
+      "name": "PHYLLOQUINONE",
+      "decision": "omitted",
+      "why": "curators named PHYLLOQUINONE in 0 of the 80 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LHG",
+      "name": "1,2-DIPALMITOYL-PHOSPHATIDYL-GLYCEROLE",
+      "decision": "omitted",
+      "why": "curators named 1,2-DIPALMITOYL-PHOSPHATIDYL-GLYCEROLE in 0 of the 198 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "BCR",
+      "name": "BETA-CAROTENE",
+      "decision": "omitted",
+      "why": "curators named BETA-CAROTENE in 0 of the 170 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "SF4",
+      "name": "IRON/SULFUR CLUSTER",
+      "decision": "omitted",
+      "why": "curators named IRON/SULFUR CLUSTER in 0 of the 357 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "DGD",
+      "name": "DIGALACTOSYL DIACYL GLYCEROL (DGDG)",
+      "decision": "omitted",
+      "why": "curators named DIGALACTOSYL DIACYL GLYCEROL (DGDG) in 0 of the 124 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LMT",
+      "name": "DODECYL-BETA-D-MALTOSIDE",
+      "decision": "omitted",
+      "why": "curators named DODECYL-BETA-D-MALTOSIDE in 1 of the 347 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "additional structure, 2.75 &Aring;: 9XNV"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S149",
+   "suggestedOwner": "9XKK",
+   "membrane": 0.951
+  },
+  "9XO6": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Cryo-EM structure of the ABTS-1",
+   "released": "2026-11-18",
+   "organism": "Caenorhabditis elegans",
+   "res": 3.64,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Abts-1 Anion exchange protein",
+    "species": "Caenorhabditis elegans",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Baculovirus expression vector pFastBac1-HM",
+    "resolution": "3.64",
+    "description": "cryo-EM structure<br /> HCO<sub>3</sub> bound states, 2.94 &Aring;: 9XO7",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "You ZL, &amp; Bai L",
+     "year": null,
+     "title": "Cryo-EM structure of the ABTS-1",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of the ABTS-1",
+    "ligandNotes": [
+     {
+      "id": "NAG",
+      "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+      "decision": "omitted",
+      "why": "curators named 2-acetamido-2-deoxy-beta-D-glucopyranose in 5 of the 1147 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S107",
+   "suggestedOwner": "",
+   "membrane": 0.944
+  },
+  "9XO7": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Cryo-EM structure of ABTS-1 in complex with HCO3 bound states",
+   "released": "2026-11-18",
+   "organism": "Caenorhabditis elegans",
+   "res": 2.94,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Abts-1 Anion exchange protein",
+    "species": "Caenorhabditis elegans",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Baculovirus expression vector pFastBac1-HM",
+    "resolution": "2.94",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "You ZL, &amp; Bai L",
+     "year": null,
+     "title": "Cryo-EM structure of the ABTS-1",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of ABTS-1 in complex with HCO3 bound states",
+    "ligandNotes": [
+     {
+      "id": "BCT",
+      "name": "BICARBONATE ION",
+      "decision": "omitted",
+      "why": "curators named BICARBONATE ION in 0 of the 73 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "NA",
+      "name": "SODIUM ION",
+      "decision": "omitted",
+      "why": "curators named SODIUM ION in 4 of the 745 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CL",
+      "name": "CHLORIDE ION",
+      "decision": "omitted",
+      "why": "curators named CHLORIDE ION in 2 of the 560 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "NAG",
+      "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+      "decision": "omitted",
+      "why": "curators named 2-acetamido-2-deoxy-beta-D-glucopyranose in 5 of the 1147 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "POV",
+      "name": "(2S)-3-(hexadecanoyloxy)-2-[(9Z)-octadec-9-enoyloxy]propyl 2-(trimethylammonio)ethyl phosphate",
+      "decision": "omitted",
+      "why": "curators named (2S)-3-(hexadecanoyloxy)-2-[(9Z)-octadec-9-enoyloxy]propyl 2-(trimethylammonio)ethyl phosphate in 1 of the 278 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "HCO<sub>3</sub> bound states, 2.94 &Aring;: 9XO7"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S107",
+   "suggestedOwner": "9XO6",
+   "membrane": 0.948
+  },
+  "9XSG": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "CryoEM structure of hGZMA-hGSDMB",
+   "released": "2026-09-09",
+   "organism": "Homo sapiens",
+   "res": 3.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Gasdermin GSDMB pore",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "3.4",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhao X, Zhang K, &amp; Liu Z",
+     "year": null,
+     "title": "CryoEM structure of hGZMA-hGSDMB",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "CryoEM structure of hGZMA-hGSDMB",
+    "ligandNotes": []
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G02-S017",
+   "suggestedOwner": "8ET2",
+   "membrane": 0.378
+  },
+  "9Z6G": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Apo Structure of the Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector",
+   "released": "2026-11-18",
+   "organism": "Parafilimonas terrae",
+   "res": 3.37,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Cap1 (CRISPR associated Pore I), apo form",
+    "species": "Parafilimonas terrae",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "3.37",
+    "description": "cryo-EM structure<br /> apo, Y75 side chain flipped-into pore, 3.09 &Aring;: 9Z6H<br /> cA4 signal molecule bound, 2.90 &Aring;: 9Z6J<br /> cA4 signal molecule bound, DUF domain., 3.60 &Aring;: 9Z6K",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Majumder P, Cahir CW, Roberts CG, Patel DJ, &amp; Marraffini LA",
+     "year": null,
+     "title": "Cap1 forms a cyclic tetra-adenylate-induced membrane pore during the type III-A CRISPR-Cas immune response",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Apo Structure of the Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector",
+    "ligandNotes": []
+   },
+   "suggested": "review",
+   "suggestedSubgroup": null,
+   "suggestedOwner": "",
+   "membrane": 0.785
+  },
+  "9Z6H": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Apo Structure of the Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector (Y75 side chain flipped-into pore)",
+   "released": "2026-11-18",
+   "organism": "Parafilimonas terrae",
+   "res": 3.09,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Cap1 (CRISPR associated Pore I), apo form",
+    "species": "Parafilimonas terrae",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "3.09",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Majumder P, Cahir CW, Roberts CG, Patel DJ, &amp; Marraffini LA",
+     "year": null,
+     "title": "Cap1 forms a cyclic tetra-adenylate-induced membrane pore during the type III-A CRISPR-Cas immune response",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Apo Structure of the Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector (Y75 side chain flipped-into pore)",
+    "ligandNotes": [],
+    "relatedLine": "apo, Y75 side chain flipped-into pore, 3.09 &Aring;: 9Z6H"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": null,
+   "suggestedOwner": "9Z6G",
+   "membrane": 0.752
+  },
+  "9Z6J": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "cA4 signal molecule bound structure of Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector.",
+   "released": "2026-11-18",
+   "organism": "Parafilimonas sp.",
+   "res": 2.9,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Cap1 (CRISPR associated Pore I)",
+    "species": "Parafilimonas sp.",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.9",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Majumder P, Cahir CW, Roberts CG, Patel DJ, &amp; Marraffini LA",
+     "year": null,
+     "title": "Cap1 forms a cyclic tetra-adenylate-induced membrane pore during the type III-A CRISPR-Cas immune response",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "cA4 signal molecule bound structure of Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector.",
+    "ligandNotes": [],
+    "relatedLine": "cA4 signal molecule bound, 2.90 &Aring;: 9Z6J"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": null,
+   "suggestedOwner": "9Z6G",
+   "membrane": 0.723
+  },
+  "9Z6K": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "cA4 signal molecule bound structure of Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector with DUF domain.",
+   "released": "2026-11-18",
+   "organism": "Parafilimonas terrae",
+   "res": 3.6,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Apo Cap1 (CRISPR associated Pore I)",
+    "species": "Parafilimonas terrae",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "3.6",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Majumder P, Cahir CW, Roberts CG, Patel DJ, &amp; Marraffini LA",
+     "year": null,
+     "title": "Cap1 forms a cyclic tetra-adenylate-induced membrane pore during the type III-A CRISPR-Cas immune response",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "cA4 signal molecule bound structure of Type III CRISPR-Associated, Membrane Pore-Forming Cap1 Effector with DUF domain.",
+    "ligandNotes": [],
+    "relatedLine": "cA4 signal molecule bound, DUF domain., 3.60 &Aring;: 9Z6K"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": null,
+   "suggestedOwner": "9Z6G",
+   "membrane": 0.653
+  },
+  "9Z9M": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Closed-state T4825I mouse/rabbit RyR1 under non-activating condition (5 mM EGTA)",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.67,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor, T4825I mutant, closed state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Mus musculus",
+    "resolution": "2.67",
+    "description": "cryo-EM structure<br /> with bound Ca<sup>2+</sup> and ATP, open state, T4825I mouse/rabbit, 2.76 &Aring;: 9Z9N<br /> with bound Ca<sup>2+</sup>, ATP and dantrolene, open state, 2.80 &Aring;: 9Z9O<br /> with bound Ca<sup>2+</sup>, ATP and activating ligands, 3.02 &Aring;: 9Z9P<br /> with bound Ca<sup>2+</sup> and ATP, open state, T4825I rabbit, S107, 2.83 &Aring;: 9Z9Q<br /> with bound Ca<sup>2+</sup> and ATP, closed state, 3.08 &Aring;: 9Z9R<br /> with bound Ca<sup>2+</sup> and ATP, open state, rabbit, 2.97 &Aring;: 9Z9T<br /> with bound Ca<sup>2+</sup> and ATP, 3.02 &Aring;: 9Z9U<br /> with bound Ca<sup>2+</sup> and ATP, open state, rabbit, S107, 2.91 &Aring;: 9Z9V",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Closed-state T4825I mouse/rabbit RyR1 under non-activating condition (5 mM EGTA)",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "3J8H",
+   "membrane": 0.814
+  },
+  "9Z9N": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Open-state T4825I mouse/rabbit RyR1 with activating ligands (Ca2+/ATP)",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.76,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor, T4825I mutant with bound Ca<sup>2+</sup> and ATP, open state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Mus musculus",
+    "resolution": "2.76",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Open-state T4825I mouse/rabbit RyR1 with activating ligands (Ca2+/ATP)",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, open state, T4825I mouse/rabbit, 2.76 &Aring;: 9Z9N"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.824
+  },
+  "9Z9O": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Open-state T4825I mouse/rabbit RyR1 with activating ligands (Ca2+/ATP) and dantrolene",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.8,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor, T4825I mutant with bound Ca<sup>2+</sup>, ATP and dantrolene, open state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Mus musculus",
+    "resolution": "2.8",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Open-state T4825I mouse/rabbit RyR1 with activating ligands (Ca2+/ATP) and dantrolene",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "U1C",
+      "name": "Dantrolene",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 1 such structure, named in 1"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup>, ATP and dantrolene, open state, 2.80 &Aring;: 9Z9O"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.824
+  },
+  "9Z9P": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Skewed-state T4825I rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.02,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor, T4825I mutant with bound Ca<sup>2+</sup>, ATP and activating ligands",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Mus musculus",
+    "resolution": "3.02",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Skewed-state T4825I rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "A1C1R",
+      "name": "7-methoxy-4-methyl-2,3,4,5-tetrahydro-1,4-benzothiazepine",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup>, ATP and activating ligands, 3.02 &Aring;: 9Z9P"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
+  },
+  "9Z9Q": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Open-state T4825I rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.83,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor, T4825I mutant with bound Ca<sup>2+</sup> and ATP, open state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Mus musculus",
+    "resolution": "2.83",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Open-state T4825I rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, open state, T4825I rabbit, S107, 2.83 &Aring;: 9Z9Q"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
+  },
+  "9Z9R": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Closed-state rabbit RyR1 with activating ligands (Ca2+/ATP)",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.08,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor with bound Ca<sup>2+</sup> and ATP, closed state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "3.08",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Closed-state rabbit RyR1 with activating ligands (Ca2+/ATP)",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, closed state, 3.08 &Aring;: 9Z9R"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
+  },
+  "9Z9T": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Open-state rabbit RyR1 with activating ligands (Ca2+/ATP)",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.97,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor with bound Ca<sup>2+</sup> and ATP, open state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "2.97",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Open-state rabbit RyR1 with activating ligands (Ca2+/ATP)",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, open state, rabbit, 2.97 &Aring;: 9Z9T"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
+  },
+  "9Z9U": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Skewed-state rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 3.02,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor with bound Ca<sup>2+</sup> and ATP",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "3.02",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Skewed-state rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, 3.02 &Aring;: 9Z9U"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
+  },
+  "9Z9V": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-19T03:39:47.930Z",
+   "auto": true,
+   "title": "Open-state rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+   "released": "2026-11-18",
+   "organism": "Homo sapiens",
+   "res": 2.91,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "RyR1 ryanodine receptor with bound Ca<sup>2+</sup> and ATP, open state",
+    "species": "Oryctolagus cuniculus",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "2.91",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen YS, Garcia-Castaneda M, Hu RB, Allen PD, &amp; Van Petegem F",
+     "year": null,
+     "title": "Cryo-EM analysis of a malignant hyperthermia-causing mutation in the S4-S5 linker of Ryanodine Receptor 1 and its modulation by dantrolene and S107",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Open-state rabbit RyR1 with activating ligands (Ca2+/ATP) and S107",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "named",
+      "why": "curators named CALCIUM ION in 169 of the 192 mpstruc structures that have it and where the PDB title mentions it"
+     },
+     {
+      "id": "ATP",
+      "name": "ADENOSINE-5'-TRIPHOSPHATE",
+      "decision": "named",
+      "why": "curators named ADENOSINE-5'-TRIPHOSPHATE in 163 of the 184 mpstruc structures that have it and where the PDB title mentions it"
+     }
+    ],
+    "relatedLine": "with bound Ca<sup>2+</sup> and ATP, open state, rabbit, S107, 2.91 &Aring;: 9Z9V"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S038",
+   "suggestedOwner": "9Z9M",
+   "membrane": 0.856
   }
  },
  "log": [
@@ -22640,6 +23914,238 @@
    "action": "approve",
    "pdb": "38AQ",
    "detail": "Added 38AQ as a daughter of 5FQ8 in Polysaccharide Utilization Proteins (G02-S010) (suggested: a new parent in Polysaccharide Utilization Proteins (G02-S010)); changed Placement, Parent or owner PDB ID"
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "22AD",
+   "detail": "Rejected 22AD automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "26PB",
+   "detail": "Rejected 26PB automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "36AI",
+   "detail": "Rejected 36AI automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "40BF",
+   "detail": "Rejected 40BF automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "40BG",
+   "detail": "Rejected 40BG automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9PEL",
+   "detail": "Rejected 9PEL automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9T5G",
+   "detail": "Rejected 9T5G automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9T5I",
+   "detail": "Rejected 9T5I automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XNV",
+   "detail": "Rejected 9XNV automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XO6",
+   "detail": "Rejected 9XO6 automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XO7",
+   "detail": "Rejected 9XO7 automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XSG",
+   "detail": "Rejected 9XSG automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z6G",
+   "detail": "Rejected 9Z6G automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z6H",
+   "detail": "Rejected 9Z6H automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z6J",
+   "detail": "Rejected 9Z6J automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z6K",
+   "detail": "Rejected 9Z6K automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9M",
+   "detail": "Rejected 9Z9M automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9N",
+   "detail": "Rejected 9Z9N automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9O",
+   "detail": "Rejected 9Z9O automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9P",
+   "detail": "Rejected 9Z9P automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9Q",
+   "detail": "Rejected 9Z9Q automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9R",
+   "detail": "Rejected 9Z9R automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9T",
+   "detail": "Rejected 9Z9T automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9U",
+   "detail": "Rejected 9Z9U automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9Z9V",
+   "detail": "Rejected 9Z9V automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "33WJ",
+   "detail": "Paper for 33WJ is now published (2026-11-19): back in To decide"
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "43YC",
+   "detail": "Paper for 43YC is now published (2026-11-19): back in To decide"
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "43YG",
+   "detail": "Paper for 43YG is now published (2026-11-19): back in To decide"
+  },
+  {
+   "at": "2026-11-19T03:39:47.930Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9S15",
+   "detail": "Paper for 9S15 is now published (2026-11-19): back in To decide"
   }
  ]
 }

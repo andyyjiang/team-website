@@ -1581,7 +1581,15 @@ def add_siblings(path: Path | None = None, db: Database | None = None, find=None
     # As in the weekly run: a structure a curator decided is not a candidate any more, so
     # it brings in no siblings (it is still in the file until the next run).
     live = [c for c in cands if c["pdb"].upper() not in decided]
-    have = {c["pdb"].upper() for c in cands}
+    # This window's releases mpstruc already lists bring their papers in too (their other
+    # structures go under the mpstruc entry), as in the weekly run.
+    in_mp = sorted({str(r.get("pdb", "")).upper() for r in doc.get("inMpstruc") or [] if isinstance(r, dict)} - {c["pdb"].upper() for c in live})
+    if in_mp:
+        try:
+            live = live + window_candidates(in_mp)
+        except Exception as err:
+            print(f"siblings: could not read the papers of the structures already in mpstruc ({err})")
+    have = {c["pdb"].upper() for c in cands} | set(in_mp)
     sibs, mem, counts = find_siblings(live, window, have, kb, mentioned, decided, db, discover=find,
                                       fallback=siblings_mod.known_entries(cands))
     out = {"added": [], "studies": [], "counts": counts}
@@ -1784,7 +1792,10 @@ def main() -> None:
             prev = json.loads((SITE_DATA / "candidates.json").read_text(encoding="utf-8")).get("candidates") or []
         except (OSError, ValueError):
             prev = []
-        sibs, sib_mem, sib_counts = find_siblings(window_candidates(sorted(keep), fresh_cits), [since, until],
+        # The papers of this window's releases mpstruc already lists count too: their other
+        # structures go under the mpstruc entry (e.g. 9WF2-9WFN with 9WFO, listed alone).
+        in_mp = sorted({r["pdb"] for r in already} - set(keep))
+        sibs, sib_mem, sib_counts = find_siblings(window_candidates(sorted(keep) + in_mp, fresh_cits), [since, until],
                                                   {p.upper() for p in ids}, kb, mentioned, decided, db, floor,
                                                   fallback=siblings_mod.known_entries(prev))
         mem.update(sib_mem)

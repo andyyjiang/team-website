@@ -377,3 +377,22 @@ def test_known_entries_are_every_structure_of_each_paper_in_the_file():
     cands = [{"pdb": "9wfo", "doi": DOI}, {"pdb": "9WF2", "doi": DOI.upper(), "sibling": {"of": DOI}},
              {"pdb": "9BBB", "doi": None, "pmid": "123"}, {"pdb": "9CCC"}]
     assert siblings.known_entries(cands) == {KEY: ["9WF2", "9WFO"], "pmid:123": ["9BBB"]}
+
+
+def test_papers_of_window_releases_already_in_mpstruc_bring_their_other_structures_in(tmp_path, monkeypatch):
+    # 9WFO was added to mpstruc on its own; its paper's other structures (9WF2, ...) must still be found.
+    doc = {"generated": "2026-11-19T10:00+00:00", "window": WINDOW, "stats": {"candidates": 1},
+           "candidates": [_cand("9AAA", 0.9)], "inMpstruc": [{"pdb": "9WFO", "as": "daughter"}]}
+    path = tmp_path / "candidates.json"
+    path.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+    seen = {}
+    _fake_run(monkeypatch, {}, {})
+    monkeypatch.setattr(automation, "window_candidates",
+                        lambda ids, fresh=None: [{"pdb": p, "doi": DOI, "pmid": "41888148", "awaiting": False} for p in ids])
+
+    def find(cands, window, have, kb, mentioned, decided, db, discover=None, fallback=None):
+        seen["cands"], seen["have"] = [c["pdb"] for c in cands], set(have)
+        return {}, {}, {"papers": 1, "found": 0, "seconds": 0.1, "belowFloor": 0}
+    monkeypatch.setattr(automation, "find_siblings", find)
+    automation.add_siblings(path, db=object())
+    assert seen["cands"] == ["9AAA", "9WFO"] and "9WFO" in seen["have"]
