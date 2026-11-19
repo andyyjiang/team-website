@@ -28,6 +28,34 @@
     "relatedLine": "",
     "generated": "2026-11-13T01:52+00:00"
    }
+  },
+  {
+   "id": "fb-mwo58ay6-qchu42",
+   "pdb": "24VA",
+   "category": "membrane",
+   "text": "Not a membrane protein due to no trans membrane segments.",
+   "similar": false,
+   "by": "andyyjiang",
+   "byName": "andyyjiang",
+   "at": "2026-11-19T22:50:18.606Z",
+   "status": "open",
+   "context": {
+    "title": "Cryo-EM structure of recombinant Botulinum neurotoxin A",
+    "placement": "daughter",
+    "subgroup": "G03-S102",
+    "subgroupName": "Solute Carrier (SLC) Transporter Superfamily",
+    "ownerPdb": "9F1R",
+    "membrane": 0.932,
+    "membraneWhy": [
+     "2 membrane-crossing segments are resolved in the structure",
+     "its protein family (IPR013104) is a membrane protein in 8 of 9 training structures",
+     "UniProt lists a protein in it as crossing the membrane"
+    ],
+    "name": "Synaptic vesicle glycoprotein 2B (SV2B, SLC22)",
+    "description": "cryo-EM structure",
+    "relatedLine": "",
+    "generated": "2026-11-19T03:39+00:00"
+   }
   }
  ]
 }
