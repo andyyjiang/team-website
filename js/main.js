@@ -92,6 +92,69 @@ links.addEventListener("click", (event) => {
     `<img class="${cls}" loading="lazy" decoding="async" src="${esc(thumbSrc(id))}" data-pdb="${esc(id)}"
       alt="3D structure of PDB ${esc(id)} (image: RCSB PDB)" onerror="mpThumbFallback(this)">`;
   const fmtRes = (v) => (v == null ? "" : `${Number(v).toFixed(2).replace(/0$/, "")} Å`);
+  // ---- links out: a structure's PDB ID goes to its RCSB PDB page, and each
+  // EMDB map it was built from (cryo-EM) gets its own link. EMDB IDs come from
+  // data/mpstruc.json ("emdb" in an entry's x and in relPdb) and from
+  // data/candidates.json (c.emdb), written by python -m mpstruc.web. Every ID is
+  // checked before it goes into a URL, and everything is escaped.
+  const EMD_RE = /^EMD-\d{4,6}$/;
+  // A 4-character PDB ID, or an extended one (pdb_00001abc).
+  const linkablePdb = (id) => /^(?:[0-9][A-Z0-9]{3}|PDB_\d{4}[0-9][A-Z0-9]{3})$/.test(String(id ?? "").trim().toUpperCase());
+  const emdbUrl = (m) => `https://www.ebi.ac.uk/emdb/${encodeURIComponent(m)}`;
+  // The EMDB maps of a PDB ID, from the database file, or else from this week's suggestions.
+  function emdbOf(id) {
+    const k = String(id ?? "").trim().toUpperCase(), out = [];
+    const add = (list) => {
+      if (!Array.isArray(list)) return;
+      for (const m of list) { const v = String(m ?? "").trim().toUpperCase(); if (EMD_RE.test(v) && !out.includes(v)) out.push(v); }
+    };
+    if (state.data) {
+      const r = state.data.relPdb && Object.hasOwn(state.data.relPdb, k) ? state.data.relPdb[k] : null;
+      if (r && typeof r === "object") add(r.emdb);
+      for (const ref of state.byPdb.get(k) || []) {
+        const e = ref.entry;
+        if (ref.type !== "mentioned" && ref.type !== "related" && e && String(e.pdb).toUpperCase() === k && e.x && typeof e.x === "object") add(e.x.emdb);
+      }
+    }
+    if (!out.length && auto.cands) { const c = candIndex().get(k); if (c) add(c.emdb); }
+    return out;
+  }
+  // The PDB ID as a link to its RCSB PDB page (new tab). labelId: an id for the
+  // visible ID alone, for a row whose aria-labelledby names it by its PDB ID.
+  function pdbOut(id, { cls = "mp-pdb", labelId = "", title = "", extra = "" } = {}) {
+    const ID = String(id ?? "").trim();
+    const shown = labelId ? `<span id="${esc(labelId)}">${esc(ID)}</span>` : esc(ID);
+    if (!linkablePdb(ID)) return `<span class="${esc(cls)}">${shown}</span>`;
+    return `<a class="${esc(cls)} mp-out" href="${esc(rcsb(ID))}" target="_blank" rel="noopener"`
+      + ` aria-label="${esc(`${ID}${extra} on the RCSB PDB (new tab)`)}"${title ? ` title="${esc(title)}"` : ""}>`
+      + `${shown}<span class="mp-out-arrow" aria-hidden="true">↗</span></a>`;
+  }
+  // One link per EMDB map ("EMD-12345 ↗"); with more than 3, the first 2 and a
+  // '+N more' button that shows the rest. list: the maps when the caller has them.
+  function emdbLinks(id, list) {
+    const maps = Array.isArray(list)
+      ? [...new Set(list.map((m) => String(m ?? "").trim().toUpperCase()).filter((m) => EMD_RE.test(m)))]
+      : emdbOf(id);
+    if (!maps.length) return "";
+    const one = (m) => `<a class="mp-emdb" href="${esc(emdbUrl(m))}" target="_blank" rel="noopener"`
+      + ` aria-label="${esc(m)} on EMDB, the map of PDB ${esc(String(id ?? "").toUpperCase())} (new tab)">${esc(m)}<span class="mp-out-arrow" aria-hidden="true">↗</span></a>`;
+    const shown = maps.length > 3 ? maps.slice(0, 2) : maps, rest = maps.slice(shown.length);
+    return `<span class="mp-emdbs">${shown.map(one).join("")}${rest.length
+      ? `<button type="button" class="mp-emdb-more" data-emdb-more aria-expanded="false" aria-label="Show ${rest.length} more EMDB maps of ${esc(String(id ?? "").toUpperCase())}">+${rest.length} more</button><span class="mp-emdb-rest" hidden>${rest.map(one).join("")}</span>` : ""}</span>`;
+  }
+  // '+N more': show the other maps and move focus to the first of them.
+  app.addEventListener("click", (ev) => {
+    const btn = ev.target instanceof Element ? ev.target.closest("[data-emdb-more]") : null;
+    if (!btn) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    const rest = btn.nextElementSibling;
+    if (!rest) return;
+    rest.hidden = false;
+    btn.remove();
+    const first = rest.querySelector("a");
+    if (first) first.focus();
+  });
   // Interactive 3D preview of a structure (C-alpha trace from the RCSB
   // ModelServer, drawn by window.mpMol below), with the PDB's own picture one
   // click away and as the fallback. "sm" previews (Automation cards) are still
@@ -452,7 +515,10 @@ links.addEventListener("click", (event) => {
       const tip = x ? `From PDB: ${x.method || ""}${x.res ? `, ${fmtRes(x.res)}` : ""}. ${x.title || ""}` : "Not found in the PDB";
       const fresh = state.newRel.get(id.toUpperCase());
       const hit = state.focusPdb === id.toUpperCase() ? " mp-hit-chip" : "";
-      return `<a class="mp-chip${fresh ? " new" : ""}${hit}" href="#/pdb/${esc(id.toUpperCase())}/about" title="${esc(fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip)}">${esc(id)}${fresh ? '<span class="mp-visually-hidden"> (new)</span>' : ""}</a>`;
+      const emdb = emdbLinks(id);
+      const link = pdbOut(id, { cls: `mp-chip${fresh ? " new" : ""}${hit}`, extra: fresh ? " (new)" : "",
+                                title: fresh ? `New · added ${fmtDate(fresh.at)} by ${fresh.byName || fresh.by}. ${tip}` : tip });
+      return emdb ? `<span class="mp-chipset">${link}${emdb}</span>` : link;
     };
     // Grouped by whether the line is in the official mpstruc, each group with its marker.
     const groups = { in: [], out: [], sent: [] };
@@ -484,10 +550,10 @@ links.addEventListener("click", (event) => {
         <span class="mp-badge${isD ? " daughter" : ""}">${isD ? "Daughter" : "Parent"}</span>
         ${newBadge(e)}
         ${mpMark(markOf(e), e.pdb)}
-        <a class="mp-pdb" href="#/entry/${e.k}">${esc(e.pdb)}</a>
-        <a href="${rcsb(e.pdb)}" rel="noopener" class="mp-of">RCSB ↗</a>
-        ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a></span>` : ""}
-        <h3>${e.name || esc(e.pdb)}</h3>
+        ${pdbOut(e.pdb)}${emdbLinks(e.pdb)}
+        ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${esc(e.parent.k)}">${esc(e.parent.pdb)}</a></span>` : ""}
+        <h3>${opts.self ? e.name || esc(e.pdb)
+          : `<a class="mp-entry-link" href="#/entry/${esc(e.k)}" title="Open the listing of ${esc(e.pdb)}">${e.name || esc(e.pdb)}</a>`}</h3>
       </div>
       <dl class="mp-meta">
         <dt>Species</dt><dd>${e.species || "—"}${e.domain ? ` <span class="mp-frompdb">(${esc(e.domain)})</span>` : ""}</dd>
@@ -742,7 +808,7 @@ links.addEventListener("click", (event) => {
       </section>` : "";
     return `<div class="mp-view">
       <p class="mp-crumbs"><a href="#/">Database</a> › PDB</p>
-      <h2><span class="mp-pdb">${esc(id)}</span></h2>
+      <h2 class="mp-pdb-h">${pdbOut(id)}${emdbLinks(id)}</h2>
       ${listingHash(id) ? `<p><a class="mp-btn" href="${esc(listingHash(id))}">Go to its listing in the database</a></p>` : ""}
       ${rejectedNote(id)}
       ${stagedNote(id)}
@@ -860,8 +926,8 @@ links.addEventListener("click", (event) => {
     const relRows = (e.rel || []).map((id) => {
       const x = state.data.relPdb[id.toUpperCase()];
       const hit = focus === id.toUpperCase() ? ' class="mp-hit"' : "";
-      return `<tr id="rel-${esc(id.toUpperCase())}"${hit}><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td><a class="mp-chip" href="#/pdb/${esc(id.toUpperCase())}/about">${esc(id)}</a></td>
-        <td>${x ? esc(x.title || "") : '<span class="mp-frompdb">Not found in the PDB</span>'}</td>
+      return `<tr id="rel-${esc(id.toUpperCase())}"${hit}><td class="mp-td-thumb">${thumb(id, "mp-thumb-sm")}</td><td class="mp-td-ids">${pdbOut(id, { cls: "mp-chip" })}${emdbLinks(id)}</td>
+        <td><a href="#/pdb/${esc(id.toUpperCase())}/about" title="This site's page about ${esc(id.toUpperCase())}">${x && x.title ? esc(x.title) : "PDB details"}</a>${x ? "" : ' <span class="mp-frompdb">Not found in the PDB</span>'}</td>
         <td>${x ? esc(x.method || "") : ""}</td><td>${x && x.res ? fmtRes(x.res) : ""}</td><td>${mpMark(relMark(e, id), id)}</td></tr>`;
     }).join("");
     const daughters = e.kind === "p" && e.d && e.d.length
@@ -874,7 +940,7 @@ links.addEventListener("click", (event) => {
       ${focus && focus !== e.pdb.toUpperCase() ? `${rejectedNote(focus)}${stagedNote(focus)}` : ""}
       <h2 class="mp-visually-hidden">${esc(e.pdb)}: ${asText(e.name)}</h2>
       <div class="mp-entry-top">
-        ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true })}
+        ${entryCard(e, { showParent: true, noDaughters: true, noThumb: true, self: true })}
         ${preview(e.pdb, "lg")}
       </div>
       <p class="mp-links">
@@ -1686,7 +1752,7 @@ links.addEventListener("click", (event) => {
     return `<article class="mp-entry mp-cand has-thumb${d ? ` decided ${d.status}` : ""}" id="c-${esc(c.pdb)}">${preview(c.pdb, "sm")}
       <div class="mp-entry-head">
         <span class="mp-badge${c.placement === "daughter" ? " daughter" : c.placement === "related" ? " related" : ""}">${esc(PLACEMENT_LABEL[c.placement])}</span>
-        <a class="mp-pdb" href="https://www.rcsb.org/structure/${esc(c.pdb)}" rel="noopener">${esc(c.pdb)} ↗</a>
+        ${pdbOut(c.pdb)}${emdbLinks(c.pdb, c.emdb)}
         ${copyBtn(c.pdb, placeOf(c).placement === "related")}
         ${status}
         ${c.awaiting ? `<span class="mp-badge related">Awaiting paper</span>` : ""}
@@ -2052,7 +2118,7 @@ links.addEventListener("click", (event) => {
     return `<li class="mp-relnode">
       <div class="mp-relitem${miss ? " dim" : ""}${d ? ` decided ${d.status}` : ""}" id="${open ? "rr" : "c"}-${id}">
         <div class="mp-relitem-head">
-          <h5 class="mp-relitem-id"><a class="mp-pdb" href="${rcsb(c.pdb)}" rel="noopener">${id} ↗</a></h5>
+          <h5 class="mp-relitem-id">${pdbOut(c.pdb)}</h5>${emdbLinks(c.pdb, c.emdb)}
           ${copyBtn(c.pdb, true)}
           ${status}${who}${saving ? '<span class="mp-saving">Saving…</span>' : ""}
           ${c.awaiting ? '<span class="mp-badge related">Awaiting paper</span>' : ""}
@@ -4220,7 +4286,8 @@ links.addEventListener("click", (event) => {
       <input type="checkbox" class="mp-rej-check" id="rej-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
       <div class="mp-rej-main">
         <div class="mp-rej-head">
-          <a class="mp-pdb" id="rej-h-${id}" href="#/pdb/${id}">${id}</a>
+          ${pdbOut(r.pdb, { labelId: `rej-h-${r.pdb}` })}${emdbLinks(r.pdb)}
+          <a class="mp-of" href="#/pdb/${id}">PDB details</a>
           <span class="mp-badge mp-reason reason-${r.code}">${esc(r.label)}</span>
           ${r.deleted ? '<span class="mp-badge related">Deleted</span>' : ""}
           ${saving ? '<span class="mp-saving">Saving…</span>' : ""}
@@ -4751,8 +4818,8 @@ links.addEventListener("click", (event) => {
       <input type="checkbox" class="mp-rej-check mp-appr-check" id="ap-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
       <div class="mp-rej-main">
         <div class="mp-rej-head">
-          <a class="mp-pdb" id="ap-h-${id}" href="#/pdb/${id}">${id}</a>
-          <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          ${pdbOut(r.pdb, { labelId: `ap-h-${r.pdb}` })}${emdbLinks(r.pdb)}
+          <a class="mp-of" href="#/pdb/${id}">PDB details</a>
           ${copyBtn(r.pdb, d.placement === "related")}
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${r.pushed ? '<span class="mp-badge in-db">In the database</span>' : '<span class="mp-badge staged">Not yet pushed</span>'}
@@ -5624,8 +5691,8 @@ links.addEventListener("click", (event) => {
       <input type="checkbox" class="mp-rej-check mp-up-check" id="up-sel-${id}" data-pdb="${id}"${checked ? " checked" : ""}${off} aria-label="Select ${id}">
       <div class="mp-rej-main">
         <div class="mp-rej-head">
-          <a class="mp-pdb" id="up-h-${id}" href="${listing ? esc(listing) : `#/pdb/${id}/about`}">${id}</a>
-          <a class="mp-of" href="${rcsb(r.pdb)}" rel="noopener">RCSB ↗</a>
+          ${pdbOut(r.pdb, { labelId: `up-h-${r.pdb}` })}${emdbLinks(r.pdb)}
+          <a class="mp-of" href="${listing ? esc(listing) : `#/pdb/${id}/about`}">${listing ? "View listing" : "PDB details"}</a>
           ${copyBtn(r.pdb, d.placement === "related")}
           <span class="mp-badge${badge}">${esc(PLACEMENT_LABEL[d.placement] || d.placement)}</span>
           ${mpMark(sent ? "sent" : "out")}
