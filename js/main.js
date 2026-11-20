@@ -129,6 +129,17 @@ links.addEventListener("click", (event) => {
       + ` aria-label="${esc(`${ID}${extra} on the RCSB PDB (new tab)`)}"${title ? ` title="${esc(title)}"` : ""}>`
       + `${shown}<span class="mp-out-arrow" aria-hidden="true">↗</span></a>`;
   }
+  // Beside an internal link to a PDB ID (its listing or #/pdb page): a small
+  // "↗" to its RCSB PDB page and its EMDB maps, so every database PDB ID reaches the PDB.
+  function pdbSide(id) {
+    const ID = String(id ?? "").trim().toUpperCase();
+    if (!linkablePdb(ID)) return "";
+    return `<a class="mp-side-out" href="${esc(rcsb(ID))}" target="_blank" rel="noopener" aria-label="${esc(ID)} on the RCSB PDB (new tab)" title="${esc(ID)} on the RCSB PDB">↗</a>${emdbLinks(ID)}`;
+  }
+  // An entry description (HTML from data/mpstruc.json, IDs linked as
+  // <a class="pdb-link" href="#/pdb/ID">): each ID keeps its link and gains pdbSide.
+  const descOut = (html) => String(html || "").replace(/(<a class="pdb-link" href="#\/pdb\/([0-9A-Z]{4})">[^<]*<\/a>)/g,
+    (all, a, id) => a + pdbSide(id));
   // One link per EMDB map ("EMD-12345 ↗"); with more than 3, the first 2 and a
   // '+N more' button that shows the rest. list: the maps when the caller has them.
   function emdbLinks(id, list) {
@@ -551,7 +562,7 @@ links.addEventListener("click", (event) => {
         ${newBadge(e)}
         ${mpMark(markOf(e), e.pdb)}
         ${pdbOut(e.pdb)}${emdbLinks(e.pdb)}
-        ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${esc(e.parent.k)}">${esc(e.parent.pdb)}</a></span>` : ""}
+        ${isD && opts.showParent ? `<span class="mp-of">daughter of <a href="#/entry/${esc(e.parent.k)}">${esc(e.parent.pdb)}</a>${pdbSide(e.parent.pdb)}</span>` : ""}
         <h3>${opts.self ? e.name || esc(e.pdb)
           : `<a class="mp-entry-link" href="#/entry/${esc(e.k)}" title="Open the listing of ${esc(e.pdb)}">${e.name || esc(e.pdb)}</a>`}</h3>
       </div>
@@ -560,7 +571,7 @@ links.addEventListener("click", (event) => {
         <dt>Expressed in</dt><dd>${e.host ? esc(e.host) : "Not stated"}</dd>
         <dt>Resolution</dt><dd>${resolutionCell(e)}</dd>
       </dl>
-      ${e.desc ? `<div class="mp-desc">${e.desc}</div>` : ""}
+      ${e.desc ? `<div class="mp-desc">${descOut(e.desc)}</div>` : ""}
       ${citation((e.bib || [])[0], false)}
       ${relatedChips(e)}
       ${flagsBlock(e)}`;
@@ -790,8 +801,8 @@ links.addEventListener("click", (event) => {
     const rows = refs.map((r) => {
       const e = r.entry;
       const where = `${esc(e.sg.group.topology)} › <a href="#/sg/${e.sg.k}">${e.sg.name}</a>`;
-      const role = r.type === "related" ? `Related entry of <a href="#/entry/${e.k}">${esc(e.pdb)}</a> (${e.kind === "p" ? "parent" : "daughter"})`
-        : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>` : ""}`;
+      const role = r.type === "related" ? `Related entry of <a href="#/entry/${e.k}">${esc(e.pdb)}</a>${pdbSide(e.pdb)} (${e.kind === "p" ? "parent" : "daughter"})`
+        : `<a href="#/entry/${e.k}">${r.type === "parent" ? "Parent" : "Daughter"}</a>${e.parent ? ` of <a href="#/entry/${e.parent.k}">${esc(e.parent.pdb)}</a>${pdbSide(e.parent.pdb)}` : ""}`;
       return `<tr><td>${role} ${mpMark(r.type === "related" ? relMark(e, id) : markOf(e), id)}</td><td>${where}</td><td><code>${esc(r.type === "related" ? `${e.k}-R${String(r.n).padStart(3, "0")}` : e.k)}</code></td></tr>`;
     }).join("");
     // One of this week's suggestions: how likely it is a membrane protein, and which of its proteins to check.
@@ -821,7 +832,7 @@ links.addEventListener("click", (event) => {
         <div class="mp-table-wrap"><table class="mp-table"><thead><tr><th>Listed as</th><th>Where</th><th>Record key</th></tr></thead><tbody>${rows}</tbody></table></div>`
         : '<p class="mp-empty">This PDB ID is not listed in mpstruc.</p>'}
       ${mentions.length ? `<p>Cited in the description of ${mentions.map((r) =>
-          `<a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>`).join(", ")}${refs.length ? "" : ", but not listed as an entry or related entry there (possibly a typo in the description)"}.</p>` : ""}
+          `<a href="#/entry/${r.entry.k}">${esc(r.entry.pdb)}</a>${pdbSide(r.entry.pdb)}`).join(", ")}${refs.length ? "" : ", but not listed as an entry or related entry there (possibly a typo in the description)"}.</p>` : ""}
       ${!refs.length && !mentions.length && !x ? `<p><a href="#/search/${encodeURIComponent(id)}">Search the text of the database for “${esc(id)}”</a></p>` : ""}
     </div>`;
   }
@@ -911,8 +922,8 @@ links.addEventListener("click", (event) => {
     const one = (r) => {
       const x = r.entry, sg = `${esc(x.sg.group.topology)} › <a href="#/sg/${x.sg.k}">${x.sg.name}</a>`;
       const what = r.type === "parent" ? "a parent"
-        : r.type === "daughter" ? `a daughter of <a href="#/entry/${x.parent.k}">${esc(x.parent.pdb)}</a>`
-        : `a related entry of <a href="#/entry/${x.k}">${esc(x.pdb)}</a>${x.parent ? ` (a daughter of ${esc(x.parent.pdb)})` : ""}`;
+        : r.type === "daughter" ? `a daughter of <a href="#/entry/${x.parent.k}">${esc(x.parent.pdb)}</a>${pdbSide(x.parent.pdb)}`
+        : `a related entry of <a href="#/entry/${x.k}">${esc(x.pdb)}</a>${pdbSide(x.pdb)}${x.parent ? ` (a daughter of ${esc(x.parent.pdb)})` : ""}`;
       return `${what} in ${sg} ${mpMark(r.type === "related" ? relMark(x, focus) : markOf(x), r.type === "related" ? focus : x.pdb)}`;
     };
     return `<nav class="mp-placed" aria-label="Where ${esc(focus)} is placed"><span class="mp-of">Where it is placed:</span>

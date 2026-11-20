@@ -195,7 +195,11 @@ def build(db: Database, online: bool = True) -> dict:
     if online:
         from . import rcsb
         pdb = rcsb.entry_summaries([e.pdbCode for e in ents])
-        emdb = rcsb.emdb_ids(sorted({e.pdbCode for e in ents} | set(related)))
+        try:  # optional: without it the page still links to the PDB; the "links" step fills the maps in later
+            emdb = rcsb.emdb_ids(sorted({e.pdbCode for e in ents} | set(related)))
+        except Exception as ex:  # noqa: BLE001
+            print(f"::warning::EMDB maps not fetched ({type(ex).__name__}: {ex}); building without them")
+            emdb = {}
         for pid, s in rcsb.entry_summaries(related).items():
             if info := _pdb_info(s, emdb.get(pid)):
                 rel_info[pid] = info

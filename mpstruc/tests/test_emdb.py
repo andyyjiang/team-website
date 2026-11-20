@@ -126,3 +126,20 @@ def test_links_command_runs_patch(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "mpstruc.json: 2 of 4 structures have EMDB maps" in out
     assert json.loads(cand_path.read_text())["candidates"][0]["emdb"] == ["EMD-33333"]
+
+
+def test_build_survives_an_emdb_outage(monkeypatch, capsys):
+    """The EMDB maps are optional: a failed lookup must not fail the weekly rebuild."""
+    from urllib.error import URLError
+
+    from mpstruc.model import load
+    from mpstruc.report import source_xml
+
+    def down(*a, **k):
+        raise URLError("simulated EMDB outage")
+
+    monkeypatch.setattr(rcsb, "emdb_ids", down)
+    monkeypatch.setattr(rcsb, "entry_summaries", lambda ids, *a, **k: {})
+    out = web.build(load(source_xml()), online=True)
+    assert out["groups"]
+    assert "EMDB maps not fetched" in capsys.readouterr().out
