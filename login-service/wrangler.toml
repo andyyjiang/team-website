@@ -1,0 +1,22 @@
+# Cloudflare Worker settings, used only when deploying from the command line
+# (npx wrangler deploy). Deploying in the Cloudflare dashboard does not need it.
+name = "mpstruc-login"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Curator accounts, signed-out sessions and sign-in attempt counts. The Worker
+# creates its tables itself. Create the database (npx wrangler d1 create mpstruc-users)
+# and paste the database_id it prints here.
+[[d1_databases]]
+binding = "DB"
+database_name = "mpstruc-users"
+database_id = "PASTE_D1_DATABASE_ID_HERE"
+
+[vars]
+ALLOWED_ORIGIN = "https://andyyjiang.github.io"
+# PBKDF2_ITERATIONS = "100000"   # only on the Workers Paid plan (see README)
+
+# Secrets are NOT written here. Add them with:
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put SESSION_SECRET
+#   npx wrangler secret put SETUP_CODE

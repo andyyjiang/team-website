@@ -2834,11 +2834,33 @@ links.addEventListener("click", (event) => {
   // URL or the record. By default it is kept in memory only (gone on reload);
   // it is written to localStorage only when the curator ticks "Keep me signed
   // in", because web storage is shared by every page on andyyjiang.github.io.
+  //
+  // Curators can also sign in with a username and password, through the
+  // login service in login-service/ (a Cloudflare Worker). It checks the
+  // password and makes the same GitHub calls with one bot token, so those
+  // curators need no GitHub account. Paste the Worker's address here once it
+  // is deployed (see login-service/README.md); while it is empty, only the
+  // GitHub-token sign-in is offered.
+  const LOGIN_SERVICE_URL = "";
   const GH_API = "https://api.github.com", REPO = "andyyjiang/team-website", BRANCH = "main";
   const REPO_OWNER = REPO.split("/")[0];
   const TOKEN_KEY = "mpstruc-curator-token-v1", OFFER_KEY = "mpstruc-upload-offered-v1";
+  const SESSION_KEY = "mpstruc-curator-session-v1";
+  // Device tokens from the login service, by username: proof that this browser signed in to that
+  // account before, so other people's failed guesses do not pause its sign-in. Not a sign-in by itself.
+  const DEVICE_KEY = "mpstruc-curator-devices-v1";
+  // For trying the site against a login service running on this computer:
+  // ?login-service=http://localhost:8787 is honoured only when the page itself is served from localhost.
+  const LOGIN_URL = (() => {
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      const t = new URLSearchParams(location.search).get("login-service");
+      if (t && /^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(t)) return t;
+    }
+    return LOGIN_SERVICE_URL.trim().replace(/\/+$/, "");
+  })();
   const PDB_RE = /^[0-9][A-Z0-9]{3}$/;
-  const cur = { token: null, user: null, verifying: false, error: "", signingIn: false, note: "", focusToken: false };
+  // mode: "github" (a personal GitHub token) or "password" (a login-service session token).
+  const cur = { token: null, mode: "github", user: null, verifying: false, error: "", signingIn: false, note: "", focusToken: false };
   let remote = emptyCuration();   // the record as last read from (or written to) the repository
   let curation = emptyCuration(); // what the page shows: remote plus changes still being saved
   let remoteSha = null, importRuns = [], logLoaded = null, logBusy = false, logFilter = "";
@@ -3123,21 +3145,28 @@ links.addEventListener("click", (event) => {
   // ---- token storage ----
   // Only a token the curator chose to keep is read back (older versions of this
   // page kept it in sessionStorage too: that copy is removed, not used).
+  // A password sign-in keeps its session token the same way, under SESSION_KEY.
   function readToken() {
     try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
-    try { return localStorage.getItem(TOKEN_KEY) || null; } catch { return null; }
+    try {
+      const session = LOGIN_URL ? localStorage.getItem(SESSION_KEY) : null;
+      if (session) return { token: session, mode: "password" };
+      const token = localStorage.getItem(TOKEN_KEY);
+      return token ? { token, mode: "github" } : null;
+    } catch { return null; }
   }
   function forgetToken() {
     for (const kind of ["localStorage", "sessionStorage"]) {
-      try { window[kind].removeItem(TOKEN_KEY); } catch { /* storage blocked */ }
+      try { window[kind].removeItem(TOKEN_KEY); window[kind].removeItem(SESSION_KEY); } catch { /* storage blocked */ }
     }
   }
-  function keepToken(token, persist) {
+  function keepToken(token, persist, mode = "github") {
     forgetToken();
     if (!persist) return; // memory only (cur.token): signed out on reload or when the tab closes
-    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* kept in memory for this page only */ }
+    try { localStorage.setItem(mode === "password" ? SESSION_KEY : TOKEN_KEY, token); } catch { /* kept in memory for this page only */ }
   }
-  cur.token = readToken();
+  const tokenKept = () => { try { return Boolean(localStorage.getItem(SESSION_KEY) || localStorage.getItem(TOKEN_KEY)); } catch { return false; } };
+  { const t = readToken(); if (t) { cur.token = t.token; cur.mode = t.mode; } }
 
   // ---- GitHub API ----
   class GhError extends Error {
@@ -3150,25 +3179,31 @@ links.addEventListener("click", (event) => {
     const stop = new AbortController();
     const timer = setTimeout(() => stop.abort(), method === "GET" ? 30000 : 120000);
     try { return await ghSend(path, { method, body, token, withHeaders, signal: stop.signal }); } catch (e) {
-      if (stop.signal.aborted) throw new GhError(0, "GitHub did not answer in time. Check your connection and try again.");
+      if (stop.signal.aborted) throw new GhError(0, `${viaService(token) ? "The sign-in service" : "GitHub"} did not answer in time. Check your connection and try again.`);
       throw e;
     } finally { clearTimeout(timer); }
   }
+  // Signed in with a password, the same calls go through the login service's
+  // /gh/ proxy with the session token (it allows only the calls this page makes).
+  const viaService = (token) => cur.mode === "password" && Boolean(LOGIN_URL) && token === cur.token;
   async function ghSend(path, { method, body, token, withHeaders, signal }) {
+    const svc = viaService(token);
     let r;
     try {
-      r = await fetch(GH_API + path, {
+      r = await fetch((svc ? `${LOGIN_URL}/gh` : GH_API) + path, {
         method, cache: "no-store", signal,
         headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${token}`, "X-GitHub-Api-Version": "2022-11-28",
                    ...(body ? { "Content-Type": "application/json" } : {}) },
         body: body ? JSON.stringify(body) : undefined,
       });
     } catch {
-      throw new GhError(0, "Could not reach GitHub. Check your connection and try again.");
+      throw new GhError(0, svc ? SVC_DOWN : "Could not reach GitHub. Check your connection and try again.");
     }
     if (!r.ok) {
-      let message = "";
-      try { message = (await r.json()).message || ""; } catch { /* not JSON */ }
+      let message = "", data = null;
+      try { data = await r.json(); message = (data && data.message) || ""; } catch { /* not JSON */ }
+      // The login service's own answers (sign-in ended, account disabled, its GitHub token refused) are plain sentences.
+      if (svc && data && typeof data.error === "string") throw new GhError(r.status, data.error, { code: "service" });
       throw new GhError(r.status, message || `GitHub answered ${r.status}`);
     }
     const data = r.status === 204 ? null : await r.json();
@@ -3187,6 +3222,7 @@ links.addEventListener("click", (event) => {
   }
   const CLASSIC_URL = "https://github.com/settings/tokens/new";
   function explain(e) {
+    if (e.code === "service") return e.message;
     if (e.status === 401) return "GitHub did not accept this token. Check that you copied all of it and that it has not expired.";
     if (e.code === "finegrained") {
       return `This is a fine-grained token, and GitHub does not let fine-grained tokens edit a personal repository that belongs to someone else `
@@ -3834,18 +3870,80 @@ links.addEventListener("click", (event) => {
     who.setAttribute("aria-label", signedIn() ? `Signed in as ${cur.user.name} (${cur.user.login}): curator account` : "");
   }
 
+  // ---- the login service (username and password sign-in) ----
+  const SVC_DOWN = "The sign-in service could not be reached. Check your connection, or try again in a few minutes.";
+  // svc(path, { method, body, token }): its JSON answer; failures throw a GhError whose message is a plain sentence.
+  async function svc(path, { method = "GET", body, token } = {}) {
+    if (!LOGIN_URL) throw new GhError(0, "Username and password sign-in is not set up for this site.", { code: "service" });
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), 30000);
+    let r;
+    try {
+      r = await fetch(LOGIN_URL + path, {
+        method, cache: "no-store", signal: stop.signal,
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new GhError(0, SVC_DOWN, { code: "service" });
+    } finally { clearTimeout(timer); }
+    let data = null;
+    try { data = await r.json(); } catch { /* not JSON */ }
+    if (!r.ok) {
+      const message = data && typeof data.error === "string" ? data.error : r.status >= 500 ? SVC_DOWN : `The sign-in service answered ${r.status}.`;
+      throw new GhError(r.status, message, { code: "service" });
+    }
+    return data || {};
+  }
+  const svcUser = (u) => ({ login: u.username, name: u.displayName || u.username, role: u.role === "admin" ? "admin" : "curator", avatar: "", url: "" });
+  const isAdmin = () => signedIn() && cur.mode === "password" && cur.user.role === "admin";
+  function deviceTokens() {
+    try { const v = JSON.parse(localStorage.getItem(DEVICE_KEY) || "{}"); return isObj(v) ? v : {}; } catch { return {}; }
+  }
+  function keepDevice(username, token) {
+    if (typeof token !== "string" || !token) return;
+    try { localStorage.setItem(DEVICE_KEY, JSON.stringify({ ...deviceTokens(), [username]: token })); } catch { /* storage blocked */ }
+  }
+  // Whether the service still needs its first administrator. Asked once per page
+  // load; after a failure, asked again when the Curators tab is shown (at most every 10 s).
+  const svcState = { status: null, asking: false };
+  function askSetupStatus() {
+    if (!LOGIN_URL || svcState.asking) return;
+    if (svcState.status && !(svcState.status.down && Date.now() - svcState.status.at > 10000)) return;
+    svcState.asking = true;
+    svc("/status").then((d) => {
+      svcState.status = { needsSetup: d.needsSetup === true };
+      // The service is back: pick up a kept session that could not be checked earlier.
+      if (cur.mode === "password" && cur.token && !cur.user && !cur.verifying) { cur.error = ""; resumeSession(); }
+    })
+      // The service's own words when it answered (for example, that its set-up is incomplete), else "could not be reached".
+      .catch((e) => { svcState.status = { down: true, at: Date.now(), message: e.status ? explain(e) : SVC_DOWN }; })
+      .finally(() => { svcState.asking = false; if (lastRoute === "curators" && !signedIn()) rerenderKeep(); });
+  }
+  // Re-render while someone may be typing in a Curators form: keep what they typed (never passwords).
+  function rerenderKeep() {
+    const kept = [...app.querySelectorAll("input[data-keep]")].map((i) => [i.id, i.type === "checkbox" ? i.checked : i.value]);
+    rerender();
+    for (const [id, v] of kept) {
+      const i = document.getElementById(id);
+      if (i) { if (i.type === "checkbox") i.checked = v; else i.value = v; }
+    }
+  }
+
   async function resumeSession() {
     if (!cur.token) return;
     cur.verifying = true;
     render();
     try {
-      cur.user = await verify(cur.token);
+      if (cur.mode === "password") cur.user = svcUser((await svc("/me", { token: cur.token })).user);
+      else cur.user = await verify(cur.token);
       await loadRemote();
     } catch (e) {
-      if (e.status === 401 || e.code) {
+      if (cur.mode === "password" ? e.status === 401 || e.status === 403 : e.status === 401 || e.code) {
         forgetToken();
         cur.token = null;
         cur.user = null;
+        cur.mode = "github";
         toast(`You have been signed out. ${explain(e)}`, { kind: "error" });
       } else {
         cur.error = explain(e);
@@ -3871,6 +3969,7 @@ links.addEventListener("click", (event) => {
     try {
       const user = await verify(token);
       cur.token = token;
+      cur.mode = "github";
       cur.user = user;
       cur.error = "";
       keepToken(token, persist);
@@ -3887,20 +3986,58 @@ links.addEventListener("click", (event) => {
     if (target) { if (target.tagName === "H2") target.setAttribute("tabindex", "-1"); target.focus({ preventScroll: true }); }
   }
 
+  // Username and password, through the login service.
+  async function signInPassword(username, password, persist) {
+    cur.signingIn = true;
+    cur.pwNote = "";
+    rerenderKeep();
+    try {
+      const key = String(username).trim().toLowerCase();
+      const d = await svc("/login", { method: "POST", body: { username, password, keep: persist, device: deviceTokens()[key] } });
+      keepDevice(d.user && d.user.username ? d.user.username : key, d.device);
+      cur.token = d.token;
+      cur.mode = "password";
+      cur.user = svcUser(d.user);
+      cur.error = "";
+      keepToken(d.token, persist, "password");
+      adm.users = null;
+      try { await loadRemote(); } catch (e) { toast(`Signed in, but could not read the shared record. ${explain(e)}`, { kind: "error" }); }
+      refreshView();
+      toast(`Signed in as ${cur.user.name}${cur.user.name !== cur.user.login ? ` (${cur.user.login})` : ""}.`, { kind: "success" });
+    } catch (e) {
+      cur.pwNote = e.status === 401 ? "Wrong username or password." : explain(e);
+    }
+    cur.signingIn = false;
+    updateWho();
+    rerenderKeep();
+    const target = signedIn() ? app.querySelector(".mp-view h2") : document.getElementById(document.getElementById("mp-user")?.value ? "mp-pass" : "mp-user");
+    if (target) { if (target.tagName === "H2") target.setAttribute("tabindex", "-1"); target.focus({ preventScroll: true }); }
+  }
+
   function signOut(expired) {
+    // Best effort: ends this session on the service too (the token is forgotten here either way).
+    if (cur.mode === "password" && cur.token && LOGIN_URL) svc("/logout", { method: "POST", token: cur.token }).catch(() => {});
+    const byPassword = cur.mode === "password";
     forgetToken();
     const name = cur.user ? cur.user.login : "";
     cur.token = null;
     cur.user = null;
+    cur.mode = "github";
     cur.error = "";
+    adm.users = null;
+    adm.resetFor = null;
+    if (expired && byPassword) {
+      toast("Your sign-in has ended, so you have been signed out. Sign in again on the Curators tab.", { kind: "error" });
+      expired = "shown";
+    }
     cur.focusToken = /^(log|rejected|approved|curators)/.test(lastRoute);
     rej.selected.clear();
     appr.selected.clear();
     rej.changing = null;
     updateWho();
     logTimer(false);
-    if (expired) toast("GitHub no longer accepts your token, so you have been signed out. Sign in again on the Curators tab.", { kind: "error" });
-    else toast(`Signed out${name ? ` ${name}` : ""}. Your token has been removed from this browser.`);
+    if (expired === "shown") { /* said above */ } else if (expired) toast("GitHub no longer accepts your token, so you have been signed out. Sign in again on the Curators tab.", { kind: "error" });
+    else toast(`Signed out${name ? ` ${name}` : ""}.${byPassword ? "" : " Your token has been removed from this browser."}`);
     if (/^(log|rejected|approved)/.test(lastRoute)) location.hash = "#/curators"; else rerender();
   }
 
@@ -3924,33 +4061,138 @@ links.addEventListener("click", (event) => {
   // Error text from explain() is plain text; only the classic-token page becomes a link.
   const linkify = (text) => esc(text).split(CLASSIC_URL).join(`<a href="${CLASSIC_URL}" rel="noopener">${CLASSIC_URL.replace("https://", "")} ↗</a>`);
 
-  function viewCurators() {
-    if (cur.verifying) return '<div class="mp-view"><h2>Curators</h2><p class="mp-loading">Checking your sign-in with GitHub…</p></div>';
-    if (signedIn()) {
-      const u = cur.user;
-      const mine = Object.values(curation.entries).filter((d) => d.by === u.login).length;
-      return `<div class="mp-view mp-narrow">
-        <h2>Curators</h2>
-        ${uploadOffer()}
-        <div class="mp-curator">
-          ${u.avatar ? `<img class="mp-avatar" src="${esc(u.avatar)}" alt="" width="56" height="56">` : ""}
-          <div><b>${esc(u.name)}</b><span class="mp-of">${u.url ? `<a href="${esc(u.url)}" rel="noopener">${esc(u.login)} on GitHub ↗</a>` : esc(u.login)}</span>
-            <span class="mp-of">Signed in as a curator of ${esc(REPO)}</span></div>
-          <button class="mp-btn secondary" type="button" id="mp-signout">Sign out</button>
-        </div>
-        <p>Your approvals and rejections on the <a href="#/automation">Automation</a> tab are saved as commits to
-          <code>${esc(CUR_PATH)}</code> on the ${esc(BRANCH)} branch. Approved structures wait in <a href="#/approved">Decisions › Approved</a>
-          until a curator pushes them to the <a href="#/">Database</a> tab. Rejected structures are listed, with their reasons, in
-          <a href="#/rejected">Decisions › Rejected</a>.
-          Every change is listed in the <a href="#/log">Activity log</a>. ${mine ? `You have ${mine} current ${mine === 1 ? "decision" : "decisions"}.` : ""}</p>
-        <h3>Curators</h3>
-        ${curatorTable()}
-      </div>`;
+  // ---- Curators tab: password accounts (login service) ----
+  // adm: the administrator's list of accounts; acct: the change-password form.
+  const adm = { users: null, loading: false, error: "", busy: "", resetFor: null, addNote: "", resetNote: "", addOpen: false };
+  const acct = { open: false, note: "", ok: false, busy: false };
+  const ROLE_NAME = { admin: "Administrator", curator: "Curator" };
+  const MIN_PW = 10;
+
+  function loadUsers() {
+    if (!isAdmin() || adm.loading) return;
+    adm.loading = true;
+    svc("/users", { token: cur.token }).then((d) => { adm.users = Array.isArray(d.users) ? d.users : []; adm.error = ""; })
+      .catch((e) => { if (e.status === 401) { adm.loading = false; signOut(true); return; } adm.error = explain(e); adm.users = adm.users || []; })
+      .finally(() => { adm.loading = false; if (lastRoute === "curators" && isAdmin()) rerenderKeep(); });
+  }
+
+  function passwordSignInBlock() {
+    const st = svcState.status;
+    if (st && st.needsSetup) {
+      return `<section class="mp-signin" aria-labelledby="mp-setup-h">
+        <h3 id="mp-setup-h">Create the first administrator</h3>
+        <p class="mp-summary">The sign-in service has no accounts yet. Enter the setup code the site owner chose, and your own details.
+          You can then add the other curators.</p>
+        <form id="mp-setup" class="mp-form-grid" novalidate>
+          <label for="mp-setup-code">Setup code</label>
+          <input id="mp-setup-code" name="setupCode" type="password" autocomplete="off" spellcheck="false" required>
+          <label for="mp-setup-user">Username</label>
+          <input id="mp-setup-user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"
+            minlength="3" maxlength="32" data-keep required aria-describedby="mp-user-rule">
+          <p class="mp-summary" id="mp-user-rule">3 to 32 characters: lowercase letters, digits, dot, dash or underscore.</p>
+          <label for="mp-setup-name">Display name</label>
+          <input id="mp-setup-name" name="displayName" type="text" autocomplete="name" maxlength="80" data-keep>
+          <label for="mp-setup-pass">Password</label>
+          <input id="mp-setup-pass" name="password" type="password" autocomplete="new-password" minlength="${MIN_PW}" required aria-describedby="mp-pw-rule">
+          <p class="mp-summary" id="mp-pw-rule">At least ${MIN_PW} characters.</p>
+          <label for="mp-setup-pass2">Password again</label>
+          <input id="mp-setup-pass2" name="password2" type="password" autocomplete="new-password" required>
+          <p class="mp-form-note" id="mp-setup-note" aria-live="polite">${esc(cur.setupNote || "")}</p>
+          <div class="mp-actions"><button class="mp-btn" type="submit"${cur.signingIn ? " disabled" : ""}>Create administrator</button></div>
+        </form>
+      </section>`;
     }
-    return `<div class="mp-view mp-narrow">
-      <h2>Curators</h2>
-      ${cur.error ? `<p class="mp-flags error">${esc(cur.error)}</p>` : ""}
-      <p>Curators sign in with a GitHub <b>classic</b> personal access token. To make one:</p>
+    const busy = cur.signingIn ? " disabled" : "";
+    return `<p>Sign in with the username and password an administrator gave you.</p>
+      <form class="mp-signin" id="mp-pwsignin" novalidate>
+        <label for="mp-user">Username</label>
+        <input id="mp-user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" data-keep
+          aria-describedby="mp-pw-note"${cur.pwNote ? ' aria-invalid="true"' : ""}${busy}>
+        <label for="mp-pass">Password</label>
+        <input id="mp-pass" name="password" type="password" autocomplete="current-password"
+          aria-describedby="mp-pw-note"${cur.pwNote ? ' aria-invalid="true"' : ""}${busy}>
+        <label class="mp-check"><input type="checkbox" name="keep" id="mp-pw-keep" data-keep aria-describedby="mp-pw-keep-warn"> Keep me signed in on this device</label>
+        <p class="mp-summary mp-keep-warn" id="mp-pw-keep-warn"><b>Only on your own computer.</b> Unticked, you are signed out when you reload
+          or close this page (and after 12 hours at most). Ticked, you stay signed in on this browser for 30 days.</p>
+        ${st && st.down && st.message !== cur.error ? `<p class="mp-summary">${esc(st.message)}</p>` : ""}
+        <p class="mp-form-note" id="mp-pw-note" aria-live="polite">${esc(cur.pwNote || "")}</p>
+        <div class="mp-actions"><button class="mp-btn" type="submit"${busy}>${cur.signingIn ? "Signing in…" : "Sign in"}</button></div>
+      </form>`;
+  }
+
+  function accountBlock() {
+    return `<h3>My account</h3>
+      <details class="mp-acct" id="mp-acct"${acct.open ? " open" : ""}>
+        <summary>Change my password</summary>
+        <form id="mp-chpw" class="mp-form-grid" novalidate>
+          <label for="mp-old-pass">Current password</label>
+          <input id="mp-old-pass" name="oldPassword" type="password" autocomplete="current-password" required>
+          <label for="mp-new-pass">New password</label>
+          <input id="mp-new-pass" name="newPassword" type="password" autocomplete="new-password" minlength="${MIN_PW}" required aria-describedby="mp-new-rule">
+          <p class="mp-summary" id="mp-new-rule">At least ${MIN_PW} characters. Your other devices are signed out when you change it.</p>
+          <label for="mp-new-pass2">New password again</label>
+          <input id="mp-new-pass2" name="newPassword2" type="password" autocomplete="new-password" required>
+          <p class="mp-form-note${acct.ok ? " ok" : ""}" id="mp-chpw-note" aria-live="polite">${esc(acct.note)}</p>
+          <div class="mp-actions"><button class="mp-btn" type="submit"${acct.busy ? " disabled" : ""}>${acct.busy ? "Changing…" : "Change password"}</button></div>
+        </form>
+      </details>`;
+  }
+
+  function manageBlock() {
+    if (adm.users === null) loadUsers();
+    const me = cur.user.login;
+    const rows = (adm.users || []).map((u) => {
+      const self = u.username === me, busy = adm.busy === u.username;
+      const dis = busy || Boolean(adm.busy) ? " disabled" : "";
+      const actions = self ? '<span class="mp-of">This is you</span>' : `
+          <button class="mp-btn secondary small" type="button" data-user-act="reset" data-user="${esc(u.username)}"${dis}
+            aria-expanded="${adm.resetFor === u.username}">Reset password</button>
+          <button class="mp-btn secondary small" type="button" data-user-act="${u.disabled ? "enable" : "disable"}" data-user="${esc(u.username)}"${dis}>${u.disabled ? "Enable" : "Disable"}</button>
+          <button class="mp-btn secondary small danger" type="button" data-user-act="delete" data-user="${esc(u.username)}"${dis}>Delete</button>`;
+      const reset = adm.resetFor === u.username ? `
+        <form class="mp-user-reset mp-form-grid" id="mp-reset" data-user="${esc(u.username)}" novalidate>
+          <label for="mp-reset-pass">New temporary password for ${esc(u.username)}</label>
+          <input id="mp-reset-pass" name="password" type="password" autocomplete="new-password" minlength="${MIN_PW}" required>
+          <p class="mp-form-note" id="mp-reset-note" aria-live="polite">${esc(adm.resetNote)}</p>
+          <div class="mp-actions"><button class="mp-btn" type="submit"${dis}>Set password</button>
+            <button class="mp-btn secondary" type="button" id="mp-reset-cancel">Cancel</button></div>
+        </form>` : "";
+      return `<li class="mp-user${u.disabled ? " off" : ""}">
+          <div class="mp-user-who"><b>${esc(u.displayName || u.username)}</b>
+            <span class="mp-of">${esc(u.username)} · ${esc(ROLE_NAME[u.role] || u.role)}${u.disabled ? ' · <span class="mp-user-off">Disabled</span>' : ""}</span>
+            <span class="mp-of">Added ${esc(fmtDate(u.createdAt))}${u.createdBy && u.createdBy !== "setup" ? ` by ${esc(u.createdBy)}` : ""}</span></div>
+          <div class="mp-user-acts">${actions}</div>${reset}
+        </li>`;
+    }).join("");
+    return `<h3 id="mp-manage-h">Manage curators</h3>
+      <p class="mp-summary">Accounts for the username and password sign-in. Give a new curator their username and temporary password;
+        they can change the password here once signed in. Disabling or resetting signs the person out everywhere.</p>
+      ${adm.error ? `<p class="mp-flags error">${esc(adm.error)}</p>` : ""}
+      ${adm.users === null ? '<p class="mp-loading">Loading the accounts…</p>' : `<ul class="mp-users" aria-labelledby="mp-manage-h">${rows}</ul>`}
+      <details class="mp-acct" id="mp-add-wrap"${adm.addOpen ? " open" : ""}>
+        <summary>Add a curator</summary>
+        <form id="mp-adduser" class="mp-form-grid" novalidate>
+          <label for="mp-add-user">Username</label>
+          <input id="mp-add-user" name="username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="3" maxlength="32"
+            data-keep required aria-describedby="mp-add-rule">
+          <p class="mp-summary" id="mp-add-rule">3 to 32 characters: lowercase letters, digits, dot, dash or underscore.</p>
+          <label for="mp-add-name">Display name</label>
+          <input id="mp-add-name" name="displayName" type="text" autocomplete="off" maxlength="80" data-keep>
+          <label for="mp-add-pass">Temporary password</label>
+          <input id="mp-add-pass" name="password" type="password" autocomplete="new-password" minlength="${MIN_PW}" required aria-describedby="mp-add-pw-rule">
+          <p class="mp-summary" id="mp-add-pw-rule">At least ${MIN_PW} characters. Send it to them privately.</p>
+          <label for="mp-add-role">Role</label>
+          <select id="mp-add-role" name="role" aria-describedby="mp-add-role-note"><option value="curator">Curator</option>
+            <option value="admin">Administrator</option></select>
+          <p class="mp-summary" id="mp-add-role-note">Curators decide on structures and leave feedback; administrators can also manage accounts.</p>
+          <p class="mp-form-note" id="mp-add-note" aria-live="polite">${esc(adm.addNote)}</p>
+          <div class="mp-actions"><button class="mp-btn" type="submit"${adm.busy ? " disabled" : ""}>Add curator</button></div>
+        </form>
+      </details>`;
+  }
+
+  function githubSignInBlock() {
+    return `<p>Curators sign in with a GitHub <b>classic</b> personal access token. To make one:</p>
       <ol class="mp-steps">
         <li>Open <a href="${CLASSIC_URL}" rel="noopener">github.com/settings/tokens/new ↗</a> (signed in to GitHub).</li>
         <li>Give it a name such as “mpstruc curator” and a short expiry, such as 30 days.</li>
@@ -3970,10 +4212,68 @@ links.addEventListener("click", (event) => {
           site, where any other GitHub Pages site of that account could read it.</p>
         <p class="mp-form-note" id="mp-signin-note" aria-live="polite">${linkify(cur.note)}</p>
         <div class="mp-actions"><button class="mp-btn" type="submit"${cur.signingIn ? " disabled" : ""}>${cur.signingIn ? "Signing in…" : "Sign in"}</button></div>
-      </form>
+      </form>`;
+  }
+
+  function viewCurators() {
+    if (cur.verifying) return `<div class="mp-view"><h2>Curators</h2><p class="mp-loading">Checking your sign-in${cur.mode === "password" ? "" : " with GitHub"}…</p></div>`;
+    if (signedIn()) {
+      const u = cur.user;
+      const byPw = cur.mode === "password";
+      const mine = Object.values(curation.entries).filter((d) => d.by === u.login).length;
+      return `<div class="mp-view mp-narrow">
+        <h2>Curators</h2>
+        ${uploadOffer()}
+        <div class="mp-curator">
+          ${u.avatar ? `<img class="mp-avatar" src="${esc(u.avatar)}" alt="" width="56" height="56">` : ""}
+          <div><b>${esc(u.name)}</b><span class="mp-of">${u.url ? `<a href="${esc(u.url)}" rel="noopener">${esc(u.login)} on GitHub ↗</a>` : esc(u.login)}${byPw ? ` · ${esc(ROLE_NAME[u.role])}` : ""}</span>
+            <span class="mp-of">${byPw ? "Signed in with a username and password" : `Signed in as a curator of ${esc(REPO)}`}</span></div>
+          <button class="mp-btn secondary" type="button" id="mp-signout">Sign out</button>
+        </div>
+        <p>Your approvals and rejections on the <a href="#/automation">Automation</a> tab are saved as commits to
+          <code>${esc(CUR_PATH)}</code> on the ${esc(BRANCH)} branch. Approved structures wait in <a href="#/approved">Decisions › Approved</a>
+          until a curator pushes them to the <a href="#/">Database</a> tab. Rejected structures are listed, with their reasons, in
+          <a href="#/rejected">Decisions › Rejected</a>.
+          Every change is listed in the <a href="#/log">Activity log</a>. ${mine ? `You have ${mine} current ${mine === 1 ? "decision" : "decisions"}.` : ""}</p>
+        ${byPw ? accountBlock() : ""}
+        ${byPw && u.role === "admin" ? manageBlock() : ""}
+        <h3>Curators</h3>
+        ${curatorTable()}
+      </div>`;
+    }
+    if (LOGIN_URL) askSetupStatus();
+    return `<div class="mp-view mp-narrow">
+      <h2>Curators</h2>
+      ${cur.error ? `<p class="mp-flags error">${esc(cur.error)}</p>` : ""}
+      ${LOGIN_URL ? `${passwordSignInBlock()}
+        <details class="mp-acct mp-alt-signin" id="mp-gh-alt"${cur.note || cur.ghOpen ? " open" : ""}>
+          <summary>Sign in with a GitHub token instead</summary>
+          ${githubSignInBlock()}
+        </details>` : githubSignInBlock()}
       <h3>Curators</h3>
       ${curatorTable()}
     </div>`;
+  }
+
+  // Run one account change for the administrator, then reload the list.
+  async function admDo(username, run, ok) {
+    adm.busy = username || "*";
+    rerenderKeep();
+    let done = false;
+    try {
+      await run();
+      done = true;
+      toast(ok, { kind: "success" });
+    } catch (e) {
+      adm.busy = "";
+      if (e.status === 401) { signOut(true); return false; }
+      toast(explain(e), { kind: "error" });
+    }
+    adm.busy = "";
+    adm.users = null;
+    loadUsers();
+    rerenderKeep();
+    return done;
   }
 
   function wireCurators() {
@@ -3987,8 +4287,145 @@ links.addEventListener("click", (event) => {
       if (!token) { cur.note = "Paste your GitHub token first."; rerender(); document.getElementById("mp-token")?.focus(); return; }
       signIn(token, form.elements.keep.checked);
     });
+    const ghAlt = document.getElementById("mp-gh-alt");
+    if (ghAlt) ghAlt.addEventListener("toggle", () => { cur.ghOpen = ghAlt.open; });
     const out = document.getElementById("mp-signout");
     if (out) out.addEventListener("click", () => signOut(false));
+
+    const pw = document.getElementById("mp-pwsignin");
+    if (pw) pw.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const username = pw.elements.username.value.trim(), password = pw.elements.password.value;
+      pw.elements.password.value = "";
+      if (!username || !password) {
+        cur.pwNote = "Enter your username and password.";
+        rerenderKeep();
+        document.getElementById(username ? "mp-pass" : "mp-user")?.focus();
+        return;
+      }
+      signInPassword(username, password, pw.elements.keep.checked);
+    });
+
+    const setup = document.getElementById("mp-setup");
+    if (setup) setup.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const f = setup.elements;
+      const body = { setupCode: f.setupCode.value.trim(), username: f.username.value.trim().toLowerCase(), displayName: f.displayName.value.trim(), password: f.password.value };
+      const again = f.password2.value;
+      const note = (text, field) => { cur.setupNote = text; rerenderKeep(); document.getElementById(field)?.focus(); };
+      if (!body.setupCode) return note("Enter the setup code.", "mp-setup-code");
+      if (!/^[a-z0-9._-]{3,32}$/.test(body.username)) return note("A username is 3 to 32 characters: lowercase letters, digits, dot, dash or underscore.", "mp-setup-user");
+      if (body.password.length < MIN_PW) return note(`The password must be at least ${MIN_PW} characters long.`, "mp-setup-pass");
+      if (body.password !== again) return note("The two passwords are not the same.", "mp-setup-pass2");
+      cur.signingIn = true;
+      cur.setupNote = "";
+      rerenderKeep();
+      try {
+        await svc("/setup", { method: "POST", body });
+        cur.signingIn = false;
+        svcState.status = { needsSetup: false };
+        toast(`Administrator ${body.username} created.`, { kind: "success" });
+        await signInPassword(body.username, body.password, false);
+      } catch (e) {
+        cur.signingIn = false;
+        if (e.status === 403) svcState.status = { needsSetup: false }; // someone else finished the setup
+        note(explain(e), "mp-setup-code");
+      }
+    });
+
+    const acctWrap = document.getElementById("mp-acct");
+    if (acctWrap) acctWrap.addEventListener("toggle", () => { acct.open = acctWrap.open; });
+    const chpw = document.getElementById("mp-chpw");
+    if (chpw) chpw.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const f = chpw.elements;
+      const oldPassword = f.oldPassword.value, newPassword = f.newPassword.value, again = f.newPassword2.value;
+      const note = (text, field, ok = false) => { acct.note = text; acct.ok = ok; rerenderKeep(); if (field) document.getElementById(field)?.focus(); };
+      if (!oldPassword) return note("Enter your current password.", "mp-old-pass");
+      if (newPassword.length < MIN_PW) return note(`The new password must be at least ${MIN_PW} characters long.`, "mp-new-pass");
+      if (newPassword !== again) return note("The two new passwords are not the same.", "mp-new-pass2");
+      acct.busy = true;
+      note("");
+      try {
+        const d = await svc("/password", { method: "POST", token: cur.token, body: { oldPassword, newPassword } });
+        const kept = tokenKept();
+        cur.token = d.token; // the old session has ended; this browser carries on with the new one
+        keepToken(d.token, kept, "password");
+        acct.busy = false;
+        note("Your password has been changed. Other devices have been signed out.", "", true);
+        toast("Your password has been changed.", { kind: "success" });
+      } catch (e) {
+        acct.busy = false;
+        if (e.status === 401) { signOut(true); return; }
+        note(explain(e), e.status === 400 && /current/.test(e.message) ? "mp-old-pass" : "mp-new-pass");
+      }
+    });
+
+    const addWrap = document.getElementById("mp-add-wrap");
+    if (addWrap) addWrap.addEventListener("toggle", () => { adm.addOpen = addWrap.open; });
+    const add = document.getElementById("mp-adduser");
+    if (add) add.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const f = add.elements;
+      const body = { username: f.username.value.trim().toLowerCase(), displayName: f.displayName.value.trim(), password: f.password.value, role: f.role.value };
+      const note = (text, field) => { adm.addNote = text; rerenderKeep(); document.getElementById(field)?.focus(); };
+      if (!/^[a-z0-9._-]{3,32}$/.test(body.username)) return note("A username is 3 to 32 characters: lowercase letters, digits, dot, dash or underscore.", "mp-add-user");
+      if (body.password.length < MIN_PW) return note(`The temporary password must be at least ${MIN_PW} characters long.`, "mp-add-pass");
+      adm.addNote = "";
+      let failed = "";
+      const ok = await admDo("*", async () => {
+        try { await svc("/users", { method: "POST", token: cur.token, body }); } catch (e) { if (e.status !== 401) failed = explain(e); throw e; }
+      }, `Added ${body.role === "admin" ? "administrator" : "curator"} ${body.username}. Give them their username and temporary password.`);
+      if (ok) {
+        for (const id of ["mp-add-user", "mp-add-name", "mp-add-pass"]) { const i = document.getElementById(id); if (i) i.value = ""; }
+      } else if (failed) note(failed, "mp-add-user");
+    });
+
+    app.querySelectorAll("[data-user-act]").forEach((b) => b.addEventListener("click", async () => {
+      const name = b.dataset.user, act = b.dataset.userAct;
+      if (act === "reset") {
+        adm.resetFor = adm.resetFor === name ? null : name;
+        adm.resetNote = "";
+        rerenderKeep();
+        document.getElementById("mp-reset-pass")?.focus();
+        return;
+      }
+      if (act === "delete") {
+        const yes = await confirmDialog({ title: `Delete the account ${name}?`, opener: b, confirm: "Delete account",
+          text: "They will no longer be able to sign in. Their past decisions and feedback stay in the record under their name. This cannot be undone." });
+        if (!yes) return;
+        await admDo(name, () => svc(`/users/${encodeURIComponent(name)}`, { method: "DELETE", token: cur.token }), `Deleted the account ${name}.`);
+        app.querySelector("#mp-manage-h")?.setAttribute("tabindex", "-1");
+        app.querySelector("#mp-manage-h")?.focus();
+        return;
+      }
+      await admDo(name, () => svc(`/users/${encodeURIComponent(name)}/${act}`, { method: "POST", token: cur.token }),
+        act === "disable" ? `Disabled ${name}. They have been signed out and cannot sign in until you enable the account again.` : `Enabled ${name}. They can sign in again.`);
+      app.querySelector(`[data-user="${CSS.escape(name)}"][data-user-act]`)?.focus();
+    }));
+    const reset = document.getElementById("mp-reset");
+    if (reset) {
+      document.getElementById("mp-reset-cancel")?.addEventListener("click", () => {
+        const name = adm.resetFor;
+        adm.resetFor = null;
+        rerenderKeep();
+        app.querySelector(`[data-user-act="reset"][data-user="${CSS.escape(name)}"]`)?.focus();
+      });
+      reset.addEventListener("submit", async (ev) => {
+        ev.preventDefault();
+        const name = reset.dataset.user, password = reset.elements.password.value;
+        if (password.length < MIN_PW) {
+          adm.resetNote = `The temporary password must be at least ${MIN_PW} characters long.`;
+          rerenderKeep();
+          document.getElementById("mp-reset-pass")?.focus();
+          return;
+        }
+        adm.resetNote = "";
+        const ok = await admDo(name, () => svc(`/users/${encodeURIComponent(name)}/reset`, { method: "POST", token: cur.token, body: { password } }),
+          `New password set for ${name}. They have been signed out everywhere; give them the new password.`);
+        if (ok) { adm.resetFor = null; rerenderKeep(); app.querySelector(`[data-user-act="reset"][data-user="${CSS.escape(name)}"]`)?.focus(); }
+      });
+    }
   }
 
   // ---- Activity log tab ----
@@ -7823,7 +8260,7 @@ links.addEventListener("click", (event) => {
       if (typing && typing.type === "search" && app.contains(typing)) typing.setSelectionRange(typing.value.length, typing.value.length);
       if (cur.focusToken && kind === "curators") {
         cur.focusToken = false;
-        const t = document.getElementById("mp-token");
+        const t = document.getElementById("mp-user") || document.getElementById("mp-token");
         if (t) t.focus({ preventScroll: true });
       }
       const moreA = document.getElementById("mp-more");
