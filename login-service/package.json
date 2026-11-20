@@ -1,0 +1,13 @@
+{
+  "name": "mpstruc-login-service",
+  "private": true,
+  "description": "Username and password sign-in for mpstruc curators (Cloudflare Worker). This file is only for the local tests; the Worker itself needs no build step.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "dev": "node test/dev-server.mjs"
+  },
+  "devDependencies": {
+    "miniflare": "^3.20241106.0"
+  }
+}

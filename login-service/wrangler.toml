@@ -1,0 +1,19 @@
+# Cloudflare Worker settings, used only when deploying from the command line
+# (npx wrangler deploy). Deploying in the Cloudflare dashboard does not need it.
+name = "mpstruc-login"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Curator accounts, session revocations and sign-in failure counters.
+# Create the namespace (npx wrangler kv namespace create USERS) and paste its id here.
+[[kv_namespaces]]
+binding = "USERS"
+id = "PASTE_KV_NAMESPACE_ID_HERE"
+
+[vars]
+ALLOWED_ORIGIN = "https://andyyjiang.github.io"
+
+# Secrets are NOT written here. Add them with:
+#   npx wrangler secret put GITHUB_TOKEN
+#   npx wrangler secret put SESSION_SECRET
+#   npx wrangler secret put SETUP_CODE
