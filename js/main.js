@@ -18,6 +18,30 @@ links.addEventListener("click", (event) => {
   }
 });
 
+// Links that leave this site (mpstruc, the RCSB PDB, EMDB, UniProt, DOI, PubMed,
+// GitHub, ...) open in a new tab, wherever they are and whenever they were added
+// to the page. Links within the site (tabs, listings, #/... addresses) and
+// download links stay as they are. The check runs as the link is followed
+// (click, Enter, middle click), so links drawn later are covered too.
+(function () {
+  const outward = (a) => {
+    if (!a || !a.href || a.hasAttribute("download")) return false;
+    let u;
+    try { u = new URL(a.href, location.href); } catch { return false; }
+    return /^https?:$/.test(u.protocol) && u.origin !== location.origin;
+  };
+  const mark = (ev) => {
+    const a = ev.target && ev.target.closest ? ev.target.closest("a[href]") : null;
+    if (!outward(a)) return;
+    a.target = "_blank";
+    const rel = new Set((a.getAttribute("rel") || "").split(/\s+/).filter(Boolean));
+    rel.add("noopener"); rel.add("noreferrer");
+    a.setAttribute("rel", [...rel].join(" "));
+  };
+  document.addEventListener("click", mark, true);
+  document.addEventListener("auxclick", mark, true);
+})();
+
 // Version label in the header, on every page: "v1.12 · updated 13 Nov 2026",
 // linking to the pull request that was merged last. data/version.json is
 // rewritten by .github/workflows/version.yml each time a pull request is
