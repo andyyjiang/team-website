@@ -4,6 +4,7 @@ from __future__ import annotations
 import http.client
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -364,3 +365,45 @@ def entry_chains(pdb_ids: list[str], batch: int = 40, max_age_s: float = 30 * 86
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(cache))
     return {p: cache.get(p.upper()) for p in pdb_ids}
+
+
+EMDB_ID_RE = re.compile(r"^EMD-\d{4,6}$")
+
+
+def emdb_ids(pdb_ids: list[str], batch: int = 200, max_age_s: float = 30 * 86400,
+             post=None) -> dict[str, list[str]]:
+    """The EMDB map IDs ("EMD-12345") each entry was built from, in the PDB's order.
+
+    {PDB ID: ["EMD-...", ...]}; an entry with no map (X-ray, NMR) or one the PDB
+    does not know maps to []. Cached in its own file, refetched as a whole once
+    it is older than max_age_s (maps are added to entries rarely, but they are).
+    post: stand-in for the GraphQL call, for tests.
+    """
+    post = post or _post_json
+    path = CACHE_DIR / "emdb_ids.json"
+    cache: dict[str, list[str]] = {}
+    started = time.time()
+    if path.exists():
+        try:
+            doc = json.loads(path.read_text())
+            if isinstance(doc, dict) and time.time() - float(doc.get("at", 0)) < max_age_s:
+                cache, started = dict(doc.get("ids") or {}), float(doc["at"])
+        except (ValueError, TypeError, KeyError):
+            cache = {}
+    todo = sorted({str(p).upper() for p in pdb_ids if p} - cache.keys())
+    q = "query($ids: [String!]!) { entries(entry_ids: $ids) { rcsb_id rcsb_entry_container_identifiers { emdb_ids } } }"
+    for i in range(0, len(todo), batch):
+        chunk = todo[i:i + batch]
+        data = post(GRAPHQL, {"query": q, "variables": {"ids": chunk}})
+        found: dict[str, list[str]] = {}
+        for e in (data.get("data") or {}).get("entries") or []:
+            if not e or not e.get("rcsb_id"):
+                continue
+            raw = (e.get("rcsb_entry_container_identifiers") or {}).get("emdb_ids") or []
+            ids = [x.strip().upper() for x in raw if isinstance(x, str)]
+            found[e["rcsb_id"].upper()] = list(dict.fromkeys(x for x in ids if EMDB_ID_RE.match(x)))
+        for pid in chunk:
+            cache[pid] = found.get(pid, [])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"at": started, "ids": cache}))
+    return {p: list(cache.get(str(p).upper(), [])) for p in pdb_ids if p}

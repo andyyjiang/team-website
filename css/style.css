@@ -642,6 +642,32 @@ a.mp-pdb:hover { color: var(--color-accent); text-decoration-color: currentColor
   transition: border-color 0.15s, color 0.15s;
 }
 .mp-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+/* Links out: a PDB ID to its RCSB PDB page, and its EMDB maps (js/main.js pdbOut, emdbLinks). */
+.mp-out-arrow { display: inline-block; margin-left: 0.18em; font-size: 0.78em; font-weight: 400; text-decoration: none; }
+.mp-side-out { margin-left: 0.15em; font-size: 0.78em; text-decoration: none; color: var(--color-muted); }
+.mp-side-out:hover, .mp-side-out:focus-visible { color: var(--color-accent); }
+.mp-desc .mp-emdbs, .mp-of .mp-emdbs, .mp-table .mp-emdbs { margin-left: 0.3em; vertical-align: baseline; }
+.mp-emdbs { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
+.mp-emdb-rest { display: contents; }
+.mp-emdb-rest[hidden] { display: none; }
+.mp-emdb, .mp-emdb-more {
+  font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.02em; line-height: 1.5; padding: 0 6px; border-radius: 4px;
+  border: 1px dashed var(--color-border-strong); color: var(--color-muted); background: transparent; text-decoration: none;
+  white-space: nowrap; transition: border-color 0.15s, color 0.15s;
+}
+.mp-emdb-more { cursor: pointer; font-weight: 600; }
+.mp-emdb:hover, .mp-emdb-more:hover { border-color: var(--color-accent); color: var(--color-accent); border-style: solid; }
+.mp-emdb:focus-visible, .mp-emdb-more:focus-visible, .mp-out:focus-visible, .mp-entry-link:focus-visible {
+  outline: 2px solid var(--color-focus); outline-offset: 2px;
+}
+.mp-chipset { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; }
+.mp-entry-link { color: inherit; text-decoration: underline; text-decoration-color: var(--color-border-strong); text-underline-offset: 0.18em; }
+.mp-entry-link:hover { color: var(--color-accent); text-decoration-color: currentColor; }
+.mp-pdb-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.mp-pdb-h .mp-pdb { font-size: inherit; }
+.mp-pdb-h .mp-emdbs { font-size: 1rem; }
+.mp-td-ids { min-width: 7.5rem; }
+.mp-td-ids .mp-emdbs { margin-top: 4px; display: flex; }
 .mp-daughters {
   --lin-pad: 14px;
   position: relative; margin-top: 14px; padding-left: var(--lin-pad);

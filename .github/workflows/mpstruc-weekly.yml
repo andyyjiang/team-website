@@ -58,6 +58,15 @@ jobs:
         working-directory: mpstruc
         run: python -m mpstruc.web
 
+      # The rebuild above already puts the EMDB map IDs into data/mpstruc.json; this
+      # adds them to this week's suggestions in data/candidates.json (written by the
+      # automation step without them). Both files stay as they are if it fails.
+      - name: Add EMDB map links to the suggestions (keeps the files as they are if this fails)
+        working-directory: mpstruc
+        continue-on-error: true
+        timeout-minutes: 15
+        run: python -m mpstruc.web links
+
       - name: Refresh the links to official mpstruc listings (keeps the saved file if this fails)
         working-directory: mpstruc
         continue-on-error: true

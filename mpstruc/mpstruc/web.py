@@ -1,9 +1,12 @@
 """Export the database as one JSON file for the static web page.
 
     python -m mpstruc.web [--offline]
+    python -m mpstruc.web links [--mpstruc FILE] [--candidates FILE]
 
 Writes ../data/mpstruc.json (relative to this project folder), which the
-site's mpstruc.html page loads. Curated fields are kept as sanitised HTML
+site's mpstruc.html page loads. `links` only refreshes the EMDB map IDs
+("emdb") of every structure in the existing ../data/mpstruc.json and
+../data/candidates.json, in place (see patch_links). Curated fields are kept as sanitised HTML
 (sub/sup/italics survive; broken tags are dropped); PDB-derived fields are
 kept separate so the page can label them "from PDB".
 """
@@ -22,6 +25,7 @@ from .resolution import parse_resolution
 from .text import BR_RE, INVISIBLE_RE, decode_entities, to_text
 
 OUT = Path(__file__).resolve().parent.parent.parent / "data" / "mpstruc.json"
+CANDIDATES = OUT.parent / "candidates.json"
 
 ALLOWED = {"sub", "sup", "em", "i", "b"}
 RENAME = {"super": "sup"}
@@ -125,7 +129,8 @@ def _method(methods: list[str]) -> str | None:
     return m.replace("Electron Microscopy", "Cryo-EM")
 
 
-def _pdb_info(s: dict | None) -> dict | None:
+def _pdb_info(s: dict | None, emdb: list[str] | None = None) -> dict | None:
+    """PDB facts shown on the page; "emdb" lists the entry's EMDB maps (only when it has any)."""
     if not s:
         return None
     res = (s.get("rcsb_entry_info") or {}).get("resolution_combined") or []
@@ -134,10 +139,12 @@ def _pdb_info(s: dict | None) -> dict | None:
         "method": _method([m.get("method", "") for m in s.get("exptl") or []]),
         "res": min(res) if res else None,
         "released": ((s.get("rcsb_accession_info") or {}).get("initial_release_date") or "")[:10] or None,
+        "emdb": list(emdb) if emdb else None,
     }.items() if v is not None}
 
 
-def _entry(e: Entry, flags: dict, pdb: dict) -> dict:
+def _entry(e: Entry, flags: dict, pdb: dict, emdb: dict | None = None) -> dict:
+    emdb = emdb or {}
     res = parse_resolution(e.resolution)
     d = {
         "k": e.key, "pdb": e.pdbCode, "kind": e.kind[0],  # "p" | "d"
@@ -148,11 +155,11 @@ def _entry(e: Entry, flags: dict, pdb: dict) -> dict:
         "year": int(y) if (y := to_text(e.bibliography.year)) and y.isdigit() else None,
         "bib": [_bib(b) for b in (e.bibliography, *e.secondary)],
         "rel": [r.pdb for r in e.related],
-        "x": _pdb_info(pdb.get(e.pdbCode)),
+        "x": _pdb_info(pdb.get(e.pdbCode), emdb.get(e.pdbCode)),
         "flags": flags.get(e.key),
     }
     if e.kind == "parent":
-        d["d"] = [_entry(x, flags, pdb) for x in e.daughters]
+        d["d"] = [_entry(x, flags, pdb, emdb) for x in e.daughters]
     return {k: v for k, v in d.items() if v not in (None, [], "")}
 
 
@@ -183,19 +190,25 @@ def build(db: Database, online: bool = True) -> dict:
     ents = list(db.entries())
     related = sorted({r.pdb for e in ents for r in e.related})
     pdb: dict = {}
+    emdb: dict = {}
     rel_info: dict = {}
     if online:
         from . import rcsb
         pdb = rcsb.entry_summaries([e.pdbCode for e in ents])
+        try:  # optional: without it the page still links to the PDB; the "links" step fills the maps in later
+            emdb = rcsb.emdb_ids(sorted({e.pdbCode for e in ents} | set(related)))
+        except Exception as ex:  # noqa: BLE001
+            print(f"::warning::EMDB maps not fetched ({type(ex).__name__}: {ex}); building without them")
+            emdb = {}
         for pid, s in rcsb.entry_summaries(related).items():
-            if info := _pdb_info(s):
+            if info := _pdb_info(s, emdb.get(pid)):
                 rel_info[pid] = info
 
     groups = []
     for g in db.groups:
         sgs = []
         for sg in g.subgroups:
-            parents = [_entry(p, flags, pdb) for p in sg.parents]
+            parents = [_entry(p, flags, pdb, emdb) for p in sg.parents]
             n = sum(1 + len(p.daughters) + len(p.related) + sum(len(d.related) for d in p.daughters)
                     for p in sg.parents)
             sgs.append({"k": sg.key, "name": safe_html(sg.name), "n": n, "parents": parents})
@@ -220,11 +233,116 @@ def build(db: Database, online: bool = True) -> dict:
     }
 
 
-def main() -> None:
+# ---- EMDB links, patched into the published files in place -------------------
+_JSON_STYLES = [  # how this project writes its data files; the first that reproduces a file is kept
+    {"ensure_ascii": False, "separators": (",", ":")},
+    {"separators": (",", ":")},
+    {"indent": 1, "ensure_ascii": False},
+    {"indent": 1},
+    {"indent": 2, "ensure_ascii": False},
+    {"indent": 2},
+]
+
+
+def _json_style(text: str, doc) -> dict | None:
+    body = text[:-1] if text.endswith("\n") else text
+    for st in _JSON_STYLES:
+        if json.dumps(doc, **st) == body:
+            return st
+    return None
+
+
+def _set_emdb(rec: dict, ids: list[str] | None) -> bool:
+    """Set rec["emdb"] to ids (dropped when there are none); True if rec changed."""
+    old = rec.get("emdb")
+    if ids:
+        if old == ids:
+            return False
+        rec["emdb"] = list(ids)
+        return True
+    if "emdb" in rec:
+        del rec["emdb"]
+        return True
+    return False
+
+
+def _mp_records(doc: dict):
+    """(PDB ID, record to hold "emdb") for every parent, daughter and related structure."""
+    for g in doc.get("groups") or []:
+        for sg in g.get("subgroups") or []:
+            for p in sg.get("parents") or []:
+                for e in [p, *(p.get("d") or [])]:
+                    if isinstance(e.get("x"), dict) and e.get("pdb"):
+                        yield str(e["pdb"]).upper(), e["x"]
+    for pid, info in (doc.get("relPdb") or {}).items():
+        if isinstance(info, dict):
+            yield str(pid).upper(), info
+
+
+def _cand_records(doc: dict):
+    """(PDB ID, candidate) for every suggestion, same-paper siblings included."""
+    for c in doc.get("candidates") or []:
+        if isinstance(c, dict) and c.get("pdb"):
+            yield str(c["pdb"]).upper(), c
+
+
+def patch_links(mp_path: Path = OUT, cand_path: Path | None = CANDIDATES, fetch=None) -> dict:
+    """Refresh "emdb" (EMDB map IDs) on every structure of the existing site files.
+
+    data/mpstruc.json: each parent's and daughter's "x" and each "relPdb" record;
+    data/candidates.json: each candidate (siblings are candidates too). Nothing
+    else is touched; each file keeps its own JSON formatting and is only rewritten
+    when something changed, so running it twice changes nothing the second time.
+    fetch: rcsb.emdb_ids, or a stand-in for tests. Returns counts per file.
+    """
+    if fetch is None:
+        from .rcsb import emdb_ids as fetch
+    files = [(Path(mp_path), _mp_records)]
+    if cand_path is not None and Path(cand_path).exists():
+        files.append((Path(cand_path), _cand_records))
+    loaded = []
+    for path, records in files:
+        text = path.read_text(encoding="utf-8")
+        doc = json.loads(text)
+        style = _json_style(text, doc)
+        if style is None:
+            raise SystemExit(f"{path}: unknown JSON formatting; not rewritten")
+        loaded.append((path, records, text, doc, style))
+    ids = sorted({pid for _, records, _, doc, _ in loaded for pid, _ in records(doc)})
+    maps = {str(k).upper(): v for k, v in fetch(ids).items()}
+    out = {}
+    for path, records, text, doc, style in loaded:
+        changed, with_maps, n = 0, set(), set()
+        for pid, rec in records(doc):
+            got = [m for m in maps.get(pid) or [] if re.fullmatch(r"EMD-\d{4,6}", str(m))]
+            changed += _set_emdb(rec, got)
+            n.add(pid)
+            if got:
+                with_maps.add(pid)
+        if changed:
+            new = json.dumps(doc, **style) + ("\n" if text.endswith("\n") else "")
+            path.write_text(new, encoding="utf-8")
+        out[path.name] = {"structures": len(n), "withEmdb": len(with_maps), "recordsChanged": changed}
+    return out
+
+
+def main(argv: list[str] | None = None) -> None:
+    import sys
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["links"]:
+        lp = argparse.ArgumentParser(prog="python -m mpstruc.web links",
+                                     description="Refresh the EMDB map IDs in the existing site data files, in place.")
+        lp.add_argument("--mpstruc", default=str(OUT))
+        lp.add_argument("--candidates", default=str(CANDIDATES))
+        la = lp.parse_args(argv[1:])
+        for name, c in patch_links(Path(la.mpstruc), Path(la.candidates)).items():
+            print(f"{name}: {c['withEmdb']} of {c['structures']} structures have EMDB maps; "
+                  f"{c['recordsChanged']} records updated")
+        return
     ap = argparse.ArgumentParser()
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--out", default=str(OUT))
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     data = build(load(source_xml()), online=not args.offline)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
