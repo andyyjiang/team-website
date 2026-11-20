@@ -2846,6 +2846,9 @@ links.addEventListener("click", (event) => {
   const REPO_OWNER = REPO.split("/")[0];
   const TOKEN_KEY = "mpstruc-curator-token-v1", OFFER_KEY = "mpstruc-upload-offered-v1";
   const SESSION_KEY = "mpstruc-curator-session-v1";
+  // Device tokens from the login service, by username: proof that this browser signed in to that
+  // account before, so other people's failed guesses do not pause its sign-in. Not a sign-in by itself.
+  const DEVICE_KEY = "mpstruc-curator-devices-v1";
   // For trying the site against a login service running on this computer:
   // ?login-service=http://localhost:8787 is honoured only when the page itself is served from localhost.
   const LOGIN_URL = (() => {
@@ -3894,13 +3897,27 @@ links.addEventListener("click", (event) => {
   }
   const svcUser = (u) => ({ login: u.username, name: u.displayName || u.username, role: u.role === "admin" ? "admin" : "curator", avatar: "", url: "" });
   const isAdmin = () => signedIn() && cur.mode === "password" && cur.user.role === "admin";
-  // Whether the service still needs its first administrator (asked once per page load).
+  function deviceTokens() {
+    try { const v = JSON.parse(localStorage.getItem(DEVICE_KEY) || "{}"); return isObj(v) ? v : {}; } catch { return {}; }
+  }
+  function keepDevice(username, token) {
+    if (typeof token !== "string" || !token) return;
+    try { localStorage.setItem(DEVICE_KEY, JSON.stringify({ ...deviceTokens(), [username]: token })); } catch { /* storage blocked */ }
+  }
+  // Whether the service still needs its first administrator. Asked once per page
+  // load; after a failure, asked again when the Curators tab is shown (at most every 10 s).
   const svcState = { status: null, asking: false };
   function askSetupStatus() {
-    if (!LOGIN_URL || svcState.status || svcState.asking) return;
+    if (!LOGIN_URL || svcState.asking) return;
+    if (svcState.status && !(svcState.status.down && Date.now() - svcState.status.at > 10000)) return;
     svcState.asking = true;
-    svc("/status").then((d) => { svcState.status = { needsSetup: d.needsSetup === true }; })
-      .catch(() => { svcState.status = { down: true }; })
+    svc("/status").then((d) => {
+      svcState.status = { needsSetup: d.needsSetup === true };
+      // The service is back: pick up a kept session that could not be checked earlier.
+      if (cur.mode === "password" && cur.token && !cur.user && !cur.verifying) { cur.error = ""; resumeSession(); }
+    })
+      // The service's own words when it answered (for example, that its set-up is incomplete), else "could not be reached".
+      .catch((e) => { svcState.status = { down: true, at: Date.now(), message: e.status ? explain(e) : SVC_DOWN }; })
       .finally(() => { svcState.asking = false; if (lastRoute === "curators" && !signedIn()) rerenderKeep(); });
   }
   // Re-render while someone may be typing in a Curators form: keep what they typed (never passwords).
@@ -3975,7 +3992,9 @@ links.addEventListener("click", (event) => {
     cur.pwNote = "";
     rerenderKeep();
     try {
-      const d = await svc("/login", { method: "POST", body: { username, password, keep: persist } });
+      const key = String(username).trim().toLowerCase();
+      const d = await svc("/login", { method: "POST", body: { username, password, keep: persist, device: deviceTokens()[key] } });
+      keepDevice(d.user && d.user.username ? d.user.username : key, d.device);
       cur.token = d.token;
       cur.mode = "password";
       cur.user = svcUser(d.user);
@@ -4095,7 +4114,7 @@ links.addEventListener("click", (event) => {
         <label class="mp-check"><input type="checkbox" name="keep" id="mp-pw-keep" data-keep aria-describedby="mp-pw-keep-warn"> Keep me signed in on this device</label>
         <p class="mp-summary mp-keep-warn" id="mp-pw-keep-warn"><b>Only on your own computer.</b> Unticked, you are signed out when you reload
           or close this page (and after 12 hours at most). Ticked, you stay signed in on this browser for 30 days.</p>
-        ${st && st.down ? `<p class="mp-summary">${esc(SVC_DOWN)}</p>` : ""}
+        ${st && st.down && st.message !== cur.error ? `<p class="mp-summary">${esc(st.message)}</p>` : ""}
         <p class="mp-form-note" id="mp-pw-note" aria-live="polite">${esc(cur.pwNote || "")}</p>
         <div class="mp-actions"><button class="mp-btn" type="submit"${busy}>${cur.signingIn ? "Signing in…" : "Sign in"}</button></div>
       </form>`;

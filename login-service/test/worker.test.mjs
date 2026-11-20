@@ -44,8 +44,9 @@ test("setup is locked once an administrator exists", async () => {
 });
 
 test("passwords are stored as salted PBKDF2-SHA256, never in clear", async () => {
-  const raw = JSON.parse(await (await w.kv()).get("user:owner"));
-  assert.equal(raw.iterations, 100000);
+  const raw = JSON.parse((await w.sql("SELECT data FROM users WHERE username = 'owner'"))[0].data);
+  assert.equal(raw.iterations, 20000, "fits the free plan's CPU limit");
+  assert.equal(typeof raw.id, "string");
   assert.equal(raw.salt.length, 22); // 16 random bytes
   assert.equal(Buffer.from(raw.hash, "base64url").length, 32);
   assert.ok(!JSON.stringify(raw).includes(ADMIN.password));
@@ -82,15 +83,18 @@ test("login succeeds with the right password (any case of username) and fails ot
 
 test("sessions: tampered, expired and logged-out tokens are refused", async () => {
   const [body] = adminToken.split(".");
+  const a = JSON.parse((await w.sql("SELECT data FROM users WHERE username = 'owner'"))[0].data).id;
   let r = await w.call("/me", { token: `${body}.${"A".repeat(43)}` });
   assert.equal(r.status, 401);
-  r = await w.call("/me", { token: forge({ u: "owner", r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) + 600 }, "some-other-secret-value") });
+  r = await w.call("/me", { token: forge({ u: "owner", a, r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) + 600 }, "some-other-secret-value") });
   assert.equal(r.status, 401);
-  r = await w.call("/me", { token: forge({ u: "owner", r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) - 5 }) });
+  r = await w.call("/me", { token: forge({ u: "owner", a, r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) - 5 }) });
   assert.equal(r.status, 401);
   assert.match(r.data.error, /expired/);
-  r = await w.call("/me", { token: forge({ u: "owner", r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) + 600 }) });
+  r = await w.call("/me", { token: forge({ u: "owner", a, r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) + 600 }) });
   assert.equal(r.status, 200, "a correctly signed, unexpired token works");
+  r = await w.call("/me", { token: forge({ u: "owner", r: "admin", v: 0, exp: Math.floor(Date.now() / 1000) + 600 }) });
+  assert.equal(r.status, 401, "a token without the account id is refused");
   const t = (await w.call("/login", { method: "POST", body: { username: "owner", password: ADMIN.password } })).data.token;
   assert.equal((await w.call("/logout", { method: "POST", token: t })).status, 200);
   assert.equal((await w.call("/me", { token: t })).status, 401);
@@ -166,32 +170,97 @@ test("reset, disable, enable and delete by an admin", async () => {
   await w.call("/users", { method: "POST", token: adminToken, body: { username: "temp", password: "temp-password-1", role: "curator" } });
   r = await w.call("/users/temp", { method: "DELETE", token: adminToken });
   assert.equal(r.status, 200);
-  assert.equal(await (await w.kv()).get("user:temp"), null);
+  assert.equal((await w.sql("SELECT * FROM users WHERE username = 'temp'")).length, 0);
   r = await w.call("/users/temp", { method: "DELETE", token: adminToken });
   assert.equal(r.status, 404);
 });
 
-test("rate limit: 10 failures per username, then 429 even with the right password", async () => {
+test("rate limit: 10 attempts per username and address, then 429 even with the right password", async () => {
   await w.call("/users", { method: "POST", token: adminToken, body: { username: "victim", password: "victim-password-1", role: "curator" } });
+  const ip = "192.0.2.10";
   for (let i = 0; i < 10; i++) {
-    const r = await w.call("/login", { method: "POST", body: { username: "victim", password: `guess-${i}-xxxxx` }, ip: freshIp() });
+    const r = await w.call("/login", { method: "POST", body: { username: "victim", password: `guess-${i}-xxxxx` }, ip });
     assert.equal(r.status, 401);
   }
-  const r = await w.call("/login", { method: "POST", body: { username: "victim", password: "victim-password-1" }, ip: freshIp() });
+  const r = await w.call("/login", { method: "POST", body: { username: "victim", password: "victim-password-1" }, ip });
   assert.equal(r.status, 429);
   assert.match(r.data.error, /^Too many failed sign-in attempts\. Try again in 15 minutes\.$/);
   assert.equal(r.data.retryMinutes, 15);
-  // When the window has passed, the count starts again.
-  await (await w.kv()).put("fail:user:victim", JSON.stringify({ n: 10, reset: Math.floor(Date.now() / 1000) - 1 }));
+  // Someone else (another address) is not held up by it.
   assert.equal((await w.call("/login", { method: "POST", body: { username: "victim", password: "victim-password-1" }, ip: freshIp() })).status, 200);
+  // When the window has passed, the count starts again.
+  await w.sql("UPDATE attempts SET reset = ?1 WHERE key = ?2", Math.floor(Date.now() / 1000) - 1, `ui:victim|${ip}`);
+  assert.equal((await w.call("/login", { method: "POST", body: { username: "victim", password: "victim-password-1" }, ip })).status, 200);
 });
 
-test("rate limit: 10 failures per IP address across usernames", async () => {
+test("rate limit: parallel guesses are counted before the password is checked", async () => {
+  await w.call("/users", { method: "POST", token: adminToken, body: { username: "racer", password: "racer-password-1", role: "curator" } });
+  const ip = "192.0.2.20";
+  const guesses = Array.from({ length: 60 }, (_, i) => w.call("/login", { method: "POST", body: { username: "racer", password: `guess-${i}-xxxxx` }, ip }));
+  const right = w.call("/login", { method: "POST", body: { username: "racer", password: "racer-password-1" }, ip });
+  const all = await Promise.all([...guesses, right]);
+  const checked = all.filter((r) => r.status !== 429).length;
+  assert.equal(checked, 10, `only 10 of 61 parallel attempts were checked (got ${checked})`);
+  const row = (await w.sql("SELECT n FROM attempts WHERE key = ?1", `ui:racer|${ip}`))[0];
+  assert.ok(row.n <= 10, `counter ${row.n}`);
+});
+
+test("rate limit: spread over many addresses, an account pauses for new devices but not for the curator's own browser", async () => {
+  await w.call("/users", { method: "POST", token: adminToken, body: { username: "target", password: "target-password-1", role: "curator" } });
+  // The curator signed in on this browser before: it holds a device token.
+  const first = await w.call("/login", { method: "POST", body: { username: "target", password: "target-password-1" }, ip: freshIp() });
+  assert.equal(first.status, 200);
+  const device = first.data.device;
+  assert.ok(device);
+  // Strangers on 20 addresses make 20 wrong guesses.
+  for (let i = 0; i < 20; i++) {
+    assert.equal((await w.call("/login", { method: "POST", body: { username: "target", password: `guess-${i}-xxxxx` }, ip: `203.0.113.${100 + i}` })).status, 401);
+  }
+  // Another stranger, even with the right password, is paused.
+  const r = await w.call("/login", { method: "POST", body: { username: "target", password: "target-password-1" }, ip: freshIp() });
+  assert.equal(r.status, 429);
+  // The curator, from a new address but on their own browser, gets in.
+  const mine = await w.call("/login", { method: "POST", body: { username: "target", password: "target-password-1", device }, ip: freshIp() });
+  assert.equal(mine.status, 200, JSON.stringify(mine.data));
+  assert.equal(mine.data.device, device, "the device token is kept");
+  // A device token for another account does not help.
+  const other = await w.call("/login", { method: "POST", body: { username: "victim", password: "victim-password-1" }, ip: freshIp() });
+  const r2 = await w.call("/login", { method: "POST", body: { username: "target", password: "target-password-1", device: other.data.device }, ip: freshIp() });
+  assert.equal(r2.status, 429);
+});
+
+test("rate limit: 30 attempts per address across usernames; IPv6 counts per /64", async () => {
   const ip = "192.0.2.77";
-  for (let i = 0; i < 10; i++) await w.call("/login", { method: "POST", body: { username: `user${i}`, password: "whatever-pass" }, ip });
+  for (let i = 0; i < 30; i++) await w.call("/login", { method: "POST", body: { username: `user${i}`, password: "whatever-pass" }, ip });
   const r = await w.call("/login", { method: "POST", body: { username: "owner", password: ADMIN.password }, ip });
   assert.equal(r.status, 429);
   assert.equal((await w.call("/login", { method: "POST", body: { username: "owner", password: ADMIN.password }, ip: freshIp() })).status, 200);
+  const { addressKey } = await import("../worker.js");
+  assert.equal(addressKey("2001:db8:a:b:1:2:3:4"), "2001:db8:a:b::/64");
+  assert.equal(addressKey("2001:0db8:000a:000b::9"), "2001:db8:a:b::/64");
+  assert.equal(addressKey("2001:db8::1"), "2001:db8:0:0::/64");
+  assert.equal(addressKey("198.51.100.4"), "198.51.100.4");
+});
+
+test("refused attempts past the limit write nothing to the database", async () => {
+  const ip = "192.0.2.88";
+  for (let i = 0; i < 12; i++) await w.call("/login", { method: "POST", body: { username: "victim", password: "nope-nope-nope" }, ip });
+  const before = (await w.sql("SELECT n, reset FROM attempts WHERE key = ?1", `ui:victim|${ip}`))[0];
+  assert.equal(before.n, 10);
+  await w.call("/login", { method: "POST", body: { username: "victim", password: "nope-nope-nope" }, ip });
+  assert.deepEqual((await w.sql("SELECT n, reset FROM attempts WHERE key = ?1", `ui:victim|${ip}`))[0], before);
+});
+
+test("a deleted account's sessions never come back, even if the name is reused", async () => {
+  await w.call("/users", { method: "POST", token: adminToken, body: { username: "gone", password: "gone-password-1", role: "curator" } });
+  const old = (await w.call("/login", { method: "POST", body: { username: "gone", password: "gone-password-1", keep: true }, ip: freshIp() })).data.token;
+  assert.equal((await w.call("/me", { token: old })).status, 200);
+  assert.equal((await w.call("/users/gone", { method: "DELETE", token: adminToken })).status, 200);
+  assert.equal((await w.call("/me", { token: old })).status, 401);
+  await w.call("/users", { method: "POST", token: adminToken, body: { username: "gone", password: "another-pass-9", role: "admin" } });
+  assert.equal((await w.call("/me", { token: old })).status, 401, "old token does not work for the new account");
+  assert.equal((await w.call("/users", { token: old })).status, 401);
+  assert.equal((await w.call("/users/gone", { method: "DELETE", token: adminToken })).status, 200);
 });
 
 test("CORS: only the site and localhost", async () => {
@@ -212,7 +281,8 @@ test("CORS: only the site and localhost", async () => {
   r = await w.call("/login", { method: "OPTIONS", origin: "http://localhost.evil.example" });
   assert.equal(r.status, 403);
   r = await w.call("/", { origin: null });
-  assert.equal(r.status, 200, "a plain visit says the service runs");
+  assert.equal(r.status, 200, "a plain visit says the service is ready");
+  assert.match(r.data, /^READY/);
 });
 
 test("GitHub proxy: reads go through with the bot token", async () => {
@@ -270,8 +340,21 @@ test("GitHub proxy: a PUT carries the bot token and names the signed-in curator"
   // Another branch is refused.
   r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, body: { message: "x", content, branch: "gh-pages" } });
   assert.equal(r.status, 400);
-  // Bodies over 2 MB are refused.
-  r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, raw: JSON.stringify({ message: "x", content: "A".repeat(2 * 1024 * 1024 + 10) }) });
+  // Content that is not plain base64 (for example, extra JSON fields smuggled in) is refused.
+  const n0 = w.github.calls.length;
+  r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, body: { message: "x", content: 'AAAA","author":{"name":"x","email":"x@example.com"},"x":"' } });
+  assert.equal(r.status, 400);
+  r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, body: { message: "x", content, sha: 'abc","author":"x' } });
+  assert.equal(r.status, 400);
+  assert.equal(w.github.calls.length, n0);
+  // A large file (3 MB, about 3.5 times today's curation.json) saves.
+  const fbSha = (await w.call(`/gh${FB}?ref=main`, { token: curatorToken })).data.sha;
+  const big = Buffer.from(JSON.stringify({ version: 1, items: [], pad: "x".repeat(3 * 1024 * 1024) })).toString("base64");
+  r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, body: { message: "big", content: big, branch: "main", sha: fbSha } });
+  assert.equal(r.status, 200, JSON.stringify(r.data).slice(0, 200));
+  assert.equal(w.github.calls.at(-1).body.content, big);
+  // Bodies over 40 MB are refused.
+  r = await w.call(`/gh${FB}`, { method: "PUT", token: curatorToken, raw: JSON.stringify({ message: "x", content: "A".repeat(40 * 1024 * 1024 + 10) }) });
   assert.equal(r.status, 413);
   // A disabled curator cannot write.
   await w.call("/users/ana.lee/disable", { method: "POST", token: adminToken });
@@ -302,4 +385,46 @@ test("the last administrator cannot be removed; a second admin can do it", async
   r = await w.call("/users/second/disable", { method: "POST", token: t2 });
   assert.equal(r.status, 400);
   await w.call("/users/owner/enable", { method: "POST", token: t2 });
+});
+
+test("the address page and /status say what is missing from the set-up", async () => {
+  const w3 = await startWorker({ secrets: {}, d1: false });
+  try {
+    let r = await w3.call("/", { origin: null });
+    assert.equal(r.status, 503);
+    assert.match(r.data, /^NOT READY/);
+    assert.match(r.data, /D1 database binding with the variable name DB/);
+    assert.match(r.data, /SESSION_SECRET is missing/);
+    assert.match(r.data, /GITHUB_TOKEN is missing/);
+    r = await w3.call("/status");
+    assert.equal(r.status, 503);
+    assert.match(r.data.error, /not set up completely/);
+    r = await w3.call("/login", { method: "POST", body: { username: "owner", password: "whatever-pass" } });
+    assert.equal(r.status, 503);
+  } finally { await w3.mf.dispose(); }
+  const w4 = await startWorker({ secrets: { ...SECRETS, SESSION_SECRET: "short-secret", SETUP_CODE: "" }, githubAccepts: "other-token" });
+  try {
+    const r = await w4.call("/", { origin: null });
+    assert.equal(r.status, 503);
+    assert.match(r.data, /SESSION_SECRET is too short/);
+    assert.match(r.data, /GitHub does not accept GITHUB_TOKEN/);
+  } finally { await w4.mf.dispose(); }
+  const w5 = await startWorker({ secrets: { ...SECRETS, SETUP_CODE: "" } });
+  try {
+    const r = await w5.call("/", { origin: null });
+    assert.match(r.data, /SETUP_CODE is missing/);
+  } finally { await w5.mf.dispose(); }
+});
+
+test("raising PBKDF2_ITERATIONS upgrades an account when it signs in", async () => {
+  const w6 = await startWorker();
+  try {
+    await w6.call("/setup", { method: "POST", body: { ...ADMIN, setupCode: SECRETS.SETUP_CODE } });
+    await w6.mf.setOptions({ modules: true, scriptPath: new URL("../worker.js", import.meta.url).pathname, compatibilityDate: "2024-11-01",
+      d1Databases: ["DB"], bindings: { ...SECRETS, PBKDF2_ITERATIONS: "50000" }, outboundService: w6.github.handler });
+    assert.equal((await w6.call("/login", { method: "POST", body: { username: "owner", password: ADMIN.password } })).status, 200);
+    const raw = JSON.parse((await w6.sql("SELECT data FROM users WHERE username = 'owner'"))[0].data);
+    assert.equal(raw.iterations, 50000);
+    assert.equal((await w6.call("/login", { method: "POST", body: { username: "owner", password: ADMIN.password } })).status, 200);
+  } finally { await w6.mf.dispose(); }
 });

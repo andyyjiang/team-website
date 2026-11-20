@@ -6,7 +6,7 @@
 //   open http://localhost:8000/mpstruc.html?login-service=http://localhost:8787#/curators
 //   setup code: open-sesame-42
 //
-// http://localhost:8788/calls lists what reached the fake GitHub; POST /reset-limits clears sign-in failure counts.
+// http://localhost:8788/calls lists what reached the fake GitHub; POST /reset-limits clears sign-in attempt counts.
 import { createServer } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { startWorker } from "./harness.mjs";
@@ -23,10 +23,9 @@ createServer(async (req, res) => {
   res.setHeader("Content-Type", "application/json");
   if (req.url === "/calls") return res.end(JSON.stringify(w.github.calls));
   if (req.url === "/reset-limits" && req.method === "POST") {
-    const kv = await w.kv();
-    const { keys } = await kv.list({ prefix: "fail:" });
-    await Promise.all(keys.map((k) => kv.delete(k.name)));
-    return res.end(JSON.stringify({ cleared: keys.length }));
+    const n = (await w.sql("SELECT COUNT(*) AS n FROM attempts"))[0].n;
+    await w.sql("DELETE FROM attempts");
+    return res.end(JSON.stringify({ cleared: n }));
   }
   res.statusCode = 404;
   res.end("{}");

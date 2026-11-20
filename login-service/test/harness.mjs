@@ -1,4 +1,4 @@
-// Runs worker.js in Miniflare (the Workers runtime) with an in-memory KV and a
+// Runs worker.js in Miniflare (the Workers runtime) with an in-memory D1 database and a
 // fake api.github.com, for the tests and for local trials of the site.
 import { Miniflare } from "miniflare";
 import { fileURLToPath } from "node:url";
@@ -6,14 +6,14 @@ import { fakeGitHub } from "./fake-github.mjs";
 
 export const SECRETS = { GITHUB_TOKEN: "bot-token", SESSION_SECRET: "test-session-secret-0123456789abcdef", SETUP_CODE: "open-sesame-42" };
 
-export async function startWorker({ seed = {}, port, secrets = SECRETS, githubAccepts = secrets.GITHUB_TOKEN } = {}) {
+export async function startWorker({ seed = {}, port, secrets = SECRETS, githubAccepts = secrets.GITHUB_TOKEN, d1 = true, vars = {} } = {}) {
   const github = fakeGitHub(seed, { token: githubAccepts });
   const mf = new Miniflare({
     modules: true,
     scriptPath: fileURLToPath(new URL("../worker.js", import.meta.url)),
     compatibilityDate: "2024-11-01",
-    kvNamespaces: ["USERS"],
-    bindings: { ...secrets, ALLOWED_ORIGIN: "https://andyyjiang.github.io" },
+    ...(d1 ? { d1Databases: ["DB"] } : {}),
+    bindings: { ...secrets, ALLOWED_ORIGIN: "https://andyyjiang.github.io", ...vars },
     outboundService: github.handler,
     ...(port ? { host: "127.0.0.1", port } : {}),
   });
@@ -30,5 +30,10 @@ export async function startWorker({ seed = {}, port, secrets = SECRETS, githubAc
     try { data = JSON.parse(text); } catch { data = text; }
     return { status: res.status, data, headers: res.headers };
   }
-  return { mf, call, github, base, kv: () => mf.getKVNamespace("USERS") };
+  // sql(query, ...params): rows, straight from the Worker's database.
+  async function sql(query, ...params) {
+    const db = await mf.getD1Database("DB");
+    return (await db.prepare(query).bind(...params).all()).results;
+  }
+  return { mf, call, github, base, sql };
 }

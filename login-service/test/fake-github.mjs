@@ -19,6 +19,7 @@ export function fakeGitHub(seed = {}, { token = "bot-token" } = {}) {
     calls.push(call);
     if (url.host !== "api.github.com") return reply(599, { message: "unexpected host" });
     if (call.authorization !== `Bearer ${token}`) return reply(401, { message: "Bad credentials" });
+    if (url.pathname === "/repos/andyyjiang/team-website" && request.method === "GET") return reply(200, { full_name: "andyyjiang/team-website" });
     let m = /^\/repos\/andyyjiang\/team-website\/contents\/(.+)$/.exec(url.pathname);
     if (m && request.method === "GET") {
       const f = files.get(m[1]);

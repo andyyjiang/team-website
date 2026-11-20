@@ -4,14 +4,17 @@ name = "mpstruc-login"
 main = "worker.js"
 compatibility_date = "2024-11-01"
 
-# Curator accounts, session revocations and sign-in failure counters.
-# Create the namespace (npx wrangler kv namespace create USERS) and paste its id here.
-[[kv_namespaces]]
-binding = "USERS"
-id = "PASTE_KV_NAMESPACE_ID_HERE"
+# Curator accounts, signed-out sessions and sign-in attempt counts. The Worker
+# creates its tables itself. Create the database (npx wrangler d1 create mpstruc-users)
+# and paste the database_id it prints here.
+[[d1_databases]]
+binding = "DB"
+database_name = "mpstruc-users"
+database_id = "PASTE_D1_DATABASE_ID_HERE"
 
 [vars]
 ALLOWED_ORIGIN = "https://andyyjiang.github.io"
+# PBKDF2_ITERATIONS = "100000"   # only on the Workers Paid plan (see README)
 
 # Secrets are NOT written here. Add them with:
 #   npx wrangler secret put GITHUB_TOKEN
