@@ -69,6 +69,33 @@
     "notMembrane": 3,
     "agree": 5
    }
+  },
+  {
+   "at": "2026-11-26T04:30+00:00",
+   "window": [
+    "2026-05-28",
+    "2026-11-26"
+   ],
+   "released": 9362,
+   "candidates": 1056,
+   "membrane50": 913,
+   "already_decided": 15,
+   "awaiting": 486,
+   "newly_published": 14,
+   "autoRejected": 33,
+   "autoUnrejected": 14,
+   "siblings": 25,
+   "siblingSeconds": 9.6,
+   "vercel": {
+    "pageRead": true,
+    "compared": true,
+    "snapshotEntries": 19090,
+    "week": "2026-11-25",
+    "vercelListed": 0,
+    "missed": 55,
+    "notMembrane": 0,
+    "agree": 0
+   }
   }
  ]
 }

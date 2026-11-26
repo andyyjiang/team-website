@@ -4169,46 +4169,6 @@
    "suggestedOwner": "6X2L",
    "membrane": 0.949
   },
-  "31JS": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Oxidized E.coli aerotaxis receptor in MH-cap bound state",
-   "released": "2026-11-04",
-   "organism": "Escherichia coli K-12",
-   "res": 4,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Aerotaxis receptor",
-    "species": "Escherichia coli K-12",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Escherichia coli BL21(DE3)",
-    "resolution": "4",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Olsthoorn FA, Muok AR, Maschmann ZA, Xu Y, Chandrasekaran S, &amp; Crane BR",
-     "year": null,
-     "title": "Signaling mechanism of the transmembrane energy receptor Aer",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Oxidized E.coli aerotaxis receptor in MH-cap bound state"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S037",
-   "suggestedOwner": "",
-   "membrane": 0.947
-  },
   "32FI": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -4738,87 +4698,6 @@
    "suggestedSubgroup": null,
    "suggestedOwner": "37BM",
    "membrane": 0.696
-  },
-  "37LU": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "NPC1-NPC2 complex with bis-sterol molecule JM046, pH 5.5",
-   "released": "2026-09-30",
-   "organism": "Homo sapiens",
-   "res": 3.2,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Niemann-Pick C1 protein (NPC1), pH 5.5",
-    "species": "Homo sapiens",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "3.2",
-    "description": "cryo-EM structure<br /> NPC1 expressed from Sf9 and purified, 3.10 &Aring;: 37LV",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wu X, Dehghani-Ghahnaviyeh S, Rasouli A, Malona J, Antalek M, Jones LH, Fan X, Peng A, Tajkhorshid E, Qian H, &amp; Yan N",
-     "year": null,
-     "title": "Conformation switch of NPC1 epitomizes a lumen-to-membrane alternating access for nonpolar substrates",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "NPC1-NPC2 complex with bis-sterol molecule JM046, pH 5.5"
-   },
-   "suggested": "daughter",
-   "suggestedSubgroup": "G03-S124",
-   "suggestedOwner": "5U73",
-   "membrane": 0.902
-  },
-  "37LV": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "NPC1 expressed from Sf9 and purified at pH 5.5",
-   "released": "2026-09-30",
-   "organism": "Homo sapiens",
-   "res": 3.1,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Niemann-Pick C1 protein (NPC1), pH 5.5",
-    "species": "Homo sapiens",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "3.1",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wu X, Dehghani-Ghahnaviyeh S, Rasouli A, Malona JA, Antalek M, Jones LH, Fan X, Peng A, Tajkhorshid E, Qian H, &amp; Yan N",
-     "year": null,
-     "title": "Conformation switch of NPC1 epitomizes a lumen-to-membrane alternating access for nonpolar substrates",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "NPC1 expressed from Sf9 and purified at pH 5.5",
-    "relatedLine": "NPC1 expressed from Sf9 and purified, 3.10 &Aring;: 37LV"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S124",
-   "suggestedOwner": "37LU",
-   "membrane": 0.943
   },
   "37NP": {
    "status": "rejected",
@@ -8631,88 +8510,6 @@
    "suggestedOwner": "5U6O",
    "membrane": 0.949
   },
-  "9R1U": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Structure of the human HCN1dC hyperpolarization-activated cyclic nucleotide-gated ion channel.",
-   "released": "2026-05-13",
-   "organism": "Homo sapiens",
-   "res": 3.92,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "HCN1 hyperpolarization-activated channel",
-    "species": "Homo sapiens",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "3.92",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Zorzini V, Gallardo R, Brams M, &amp; Ulens C",
-     "year": null,
-     "title": "Interactions between CNBD and HCND domains control gating inhibition in HCN1 family.",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Structure of the human HCN1dC hyperpolarization-activated cyclic nucleotide-gated ion channel.",
-    "relatedLine": "HCN1dC, 3.92 &Aring;: 9R1U"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S037",
-   "suggestedOwner": "9R1T",
-   "membrane": 0.949
-  },
-  "9R1V": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Structure of the human chimera HCN112 hyperpolarization-activated cyclic nucleotide-gated ion channel.",
-   "released": "2026-05-13",
-   "organism": "Homo sapiens",
-   "res": 3.53,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Potassium/sodium hyperpolarization-activated cyclic nucleotide-gated channel 1, Potassium/sodium hyperpolarization-activated cyclic nucleotide-gated channel 2",
-    "species": "Homo sapiens",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": "Homo sapiens",
-    "resolution": "3.53",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Zorzini V, Gallardo R, Brams M, &amp; Ulens C",
-     "year": null,
-     "title": "Interactions between CNBD and HCND domains control gating inhibition in HCN1 family.",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Structure of the human chimera HCN112 hyperpolarization-activated cyclic nucleotide-gated ion channel.",
-    "relatedLine": "chimera HCN112, 3.53 &Aring;: 9R1V"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S037",
-   "suggestedOwner": "9R1T",
-   "membrane": 0.949
-  },
   "9R41": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -9643,87 +9440,6 @@
    "suggestedSubgroup": null,
    "suggestedOwner": "30US",
    "membrane": 0.933
-  },
-  "9SAS": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Chlorophyll synthase in complex with the LHC-like protein HliD, apo state",
-   "released": "2026-08-26",
-   "organism": "Synechocystis sp. PCC 6803",
-   "res": 3.4,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Chlorophyll a synthase / High light-inducible protein HliD with bound zeaxanthin",
-    "species": "Synechocystis sp. PCC 6803",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Synechocystis sp. PCC 6803",
-    "resolution": "3.4",
-    "description": "cryo-EM structure<br /> with bound GGPP and geranylgeranyl diphosphate, 3.60 &Aring;: 9SAU",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Shvarev D, Wysocka A, Morey-Burrows F, Panas K, Pazuki A, Kulik N, Proctor M, Pilny J, Hunter N, Hitchcock A, &amp; Sobotka R",
-     "year": null,
-     "title": "Structure of chlorophyll synthase in complex with the LHC-like protein HliD",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Chlorophyll synthase in complex with the LHC-like protein HliD, apo state"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S083",
-   "suggestedOwner": "",
-   "membrane": 0.949
-  },
-  "9SAU": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Chlorophyll synthase in complex with the LHC-like protein HliD, GGPP-bound state",
-   "released": "2026-08-19",
-   "organism": "Synechocystis sp. PCC 6803",
-   "res": 3.6,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Chlorophyll a synthase / High light-inducible protein HliD with bound GGPP, geranylgeranyl diphosphate and zeaxanthin",
-    "species": "Synechocystis sp. PCC 6803",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Synechocystis sp. PCC 6803",
-    "resolution": "3.6",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Shvarev D, Wysocka A, Morey-Burrows F, Panas K, Pazuki A, Kulik N, Proctor M, Pilny J, Hunter N, Hitchcock A, &amp; Sobotka R",
-     "year": null,
-     "title": "Structure of chlorophyll synthase in complex with the LHC-like protein HliD",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Chlorophyll synthase in complex with the LHC-like protein HliD, GGPP-bound state",
-    "relatedLine": "with bound GGPP and geranylgeranyl diphosphate, 3.60 &Aring;: 9SAU"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S083",
-   "suggestedOwner": "9SAS",
-   "membrane": 0.948
   },
   "9SDB": {
    "status": "rejected",
@@ -13660,46 +13376,6 @@
    "suggestedOwner": "",
    "membrane": 0.455
   },
-  "9WLS": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "PSI complex of A.thaliana isolated using DOC based Clear-Native-PAGE method",
-   "released": "2026-06-17",
-   "organism": "Arabidopsis thaliana",
-   "res": 2.18,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "NDH-PSI Cyclic electron transport supercomplex with bound chlorophyll a isomer and lutein",
-    "species": "Arabidopsis thaliana",
-    "taxonomicDomain": "Eukaryota",
-    "expressedInSpecies": null,
-    "resolution": "2.18",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Yang Z, Kameo S, Seki S, Kurisu G, Tanaka R, Kawamoto A, &amp; Takabayashi A",
-     "year": null,
-     "title": "A novel method for cryo-EM protein sample preparation based on Clear-Native-PAGE",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "PSI complex of A.thaliana isolated using DOC based Clear-Native-PAGE method"
-   },
-   "suggested": "review",
-   "suggestedSubgroup": "G03-S149",
-   "suggestedOwner": "7WG5",
-   "membrane": 0.949
-  },
   "9WMJ": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -16385,167 +16061,6 @@
    "suggestedOwner": "9P81",
    "membrane": 0.942
   },
-  "9YDT": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "LPHT-ring in Vibrio cholerae at disassembled, closed state",
-   "released": "2026-06-10",
-   "organism": "Vibrio cholerae O1 biovar El Tor str. N16961",
-   "res": 2.75,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Flagellar assembly lipoprotein FlgP / Sodium-type flagellar protein MotY, closed state",
-    "species": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": null,
-    "resolution": "2.75",
-    "description": "cryo-EM structure<br /> additional structure, 3.57 &Aring;: 9YEC",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wangbiao G, Rajeev K, &amp; Jian Y",
-     "year": null,
-     "title": "In-situ cryo-EM structures reveal mechanisms of sheathed flagellar assembly, rotation, and disassembly in Vibrio cholerae",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "LPHT-ring in Vibrio cholerae at disassembled, closed state"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S131",
-   "suggestedOwner": "",
-   "membrane": 0.1
-  },
-  "9YEC": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "LPHT-ring in Vibrio cholerae at disassembled, closed state",
-   "released": "2026-06-10",
-   "organism": "Vibrio cholerae O1 biovar El Tor str. N16961",
-   "res": 3.57,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Lipoprotein / Sodium-type flagellar protein MotX, closed state",
-    "species": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": null,
-    "resolution": "3.57",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wangbiao G, Jian Y, Jin HP, Fitnat Y, &amp; Jun L",
-     "year": null,
-     "title": "In-situ cryo-EM structures reveal mechanisms of sheathed flagellar assembly, rotation, and disassembly in Vibrio cholerae",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "LPHT-ring in Vibrio cholerae at disassembled, closed state",
-    "relatedLine": "additional structure, 3.57 &Aring;: 9YEC"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S131",
-   "suggestedOwner": "9YDT",
-   "membrane": 0.1
-  },
-  "9YED": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "T-ring-PomB complex in Vibrio cholerae",
-   "released": "2026-06-10",
-   "organism": "Vibrio cholerae O1 biovar El Tor str. N16961",
-   "res": 4.98,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Chemotaxis protein PomB",
-    "species": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": null,
-    "resolution": "4.98",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wangbiao G, Jian Y, Jin HP, Fitnat Y, &amp; Jun L",
-     "year": null,
-     "title": "In-situ cryo-EM structures reveal mechanisms of sheathed flagellar assembly, rotation, and disassembly in Vibrio cholerae",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "T-ring-PomB complex in Vibrio cholerae"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S131",
-   "suggestedOwner": "",
-   "membrane": 0.153
-  },
-  "9YFG": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "Flagellar outer membrane complex in Vibrio cholerae at disassembled, closed state",
-   "released": "2026-06-10",
-   "organism": "Vibrio cholerae O1 biovar El Tor str. N16961",
-   "res": 3.55,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "FlgO domain-containing protein / Lipoprotein, closed state",
-    "species": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "resolution": "3.55",
-    "description": "cryo-EM structure<br /> LPHT-ring subunit with C13 MotX, assembled, 3.60 &Aring;: 9YH0",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wangbiao G, Jian Y, &amp; Jun L",
-     "year": null,
-     "title": "In-situ cryo-EM structures reveal mechanisms of sheathed flagellar assembly, rotation, and disassembly in Vibrio cholerae",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "Flagellar outer membrane complex in Vibrio cholerae at disassembled, closed state"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S131",
-   "suggestedOwner": "",
-   "membrane": 0.115
-  },
   "9YFT": {
    "status": "rejected",
    "reasonCode": "unpublished",
@@ -16665,47 +16180,6 @@
    "suggestedSubgroup": "G03-S149",
    "suggestedOwner": "",
    "membrane": 0.916
-  },
-  "9YH0": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-06T20:54:48.661Z",
-   "auto": true,
-   "title": "LPHT-ring subunit with C13 MotX in Vibrio cholerae at assembled state",
-   "released": "2026-06-10",
-   "organism": "Vibrio cholerae O1 biovar El Tor str. N16961",
-   "res": 3.6,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Flagellar assembly lipoprotein FlgP / Sodium-type flagellar protein MotX",
-    "species": "Vibrio cholerae O1 biovar El Tor str. N16961",
-    "taxonomicDomain": "Bacteria",
-    "expressedInSpecies": null,
-    "resolution": "3.6",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Wangbiao G, Jian Y, &amp; Jun L",
-     "year": null,
-     "title": "T-ring subunit in Vibrio cholerae at assembled state.",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "LPHT-ring subunit with C13 MotX in Vibrio cholerae at assembled state",
-    "relatedLine": "LPHT-ring subunit with C13 MotX, assembled, 3.60 &Aring;: 9YH0"
-   },
-   "suggested": "related",
-   "suggestedSubgroup": "G03-S131",
-   "suggestedOwner": "9YFG",
-   "membrane": 0.109
   },
   "9YJV": {
    "status": "rejected",
@@ -17598,46 +17072,6 @@
    "suggestedSubgroup": "G03-S030",
    "suggestedOwner": "",
    "membrane": 0.124
-  },
-  "21DF": {
-   "status": "rejected",
-   "reasonCode": "unpublished",
-   "reason": "Not published yet (PDB lists it as 'To be published')",
-   "by": "mpstruc-automation",
-   "byName": "Automation (Claude)",
-   "at": "2026-11-12T15:35:40.336Z",
-   "auto": true,
-   "title": "MtSzR methanogenic Schizorhodopsin",
-   "released": "2026-11-11",
-   "organism": "Methanoculleus taiwanensis",
-   "res": 2.38,
-   "method": "ELECTRON MICROSCOPY",
-   "pmid": null,
-   "doi": null,
-   "mp": {
-    "name": "Rhodopsin",
-    "species": "Methanoculleus taiwanensis",
-    "taxonomicDomain": "Archaea",
-    "expressedInSpecies": "Escherichia coli",
-    "resolution": "2.38",
-    "description": "cryo-EM structure",
-    "bibliography": {
-     "pubMedId": null,
-     "authors": "Ebisu I, Tanaka T, Kawasaki Y, Murakoshi S, Shibata K, Kato Y, Konno M, Shihoya W, Inoue K, &amp; Nureki O",
-     "year": null,
-     "title": "MtSzR methanogenic Schizorhodopsin",
-     "journal": null,
-     "volume": null,
-     "issue": null,
-     "pages": null,
-     "doi": null
-    },
-    "pdbTitle": "MtSzR methanogenic Schizorhodopsin"
-   },
-   "suggested": "parent",
-   "suggestedSubgroup": "G03-S027",
-   "suggestedOwner": "",
-   "membrane": 0.932
   },
   "28VK": {
    "status": "rejected",
@@ -20125,6 +19559,1832 @@
    "suggestedSubgroup": "G03-S102",
    "suggestedOwner": "9F1R",
    "membrane": 0.932
+  },
+  "22FV": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of PFENT1-apo",
+   "released": "2026-11-25",
+   "organism": "Plasmodium falciparum 3D7",
+   "res": 3.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Equilibrative nucleoside transporter 1 (ENT1) SLC29 family",
+    "species": "Plasmodium falciparum 3D7",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "3.4",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Chen XY, Wang X, &amp; Deng D",
+     "year": null,
+     "title": "Structure of PfENT1-apo",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of PFENT1-apo",
+    "ligandNotes": []
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "7WN0",
+   "membrane": 0.944
+  },
+  "23BC": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of 5-HT transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 2.86,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Serotonin transporter (SERT)",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.86",
+    "description": "cryo-EM structure<br /> with bound ansofaxine, 3.18 &Aring;: 23BE<br /> with bound lumateperone, 3.40 &Aring;: 23CB",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of 5-HT transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of 5-HT transporter",
+    "ligandNotes": [
+     {
+      "id": "NA",
+      "name": "SODIUM ION",
+      "decision": "omitted",
+      "why": "curators named SODIUM ION in 4 of the 745 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CL",
+      "name": "CHLORIDE ION",
+      "decision": "omitted",
+      "why": "curators named CHLORIDE ION in 2 of the 560 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "29J",
+      "name": "4-[(1R)-2-(dimethylamino)-1-(1-hydroxycyclohexyl)ethyl]phenol",
+      "decision": "omitted",
+      "why": "curators would name a ligand like this, but the PDB gives it no readable name and the title names no compound for it"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "5I6X",
+   "membrane": 0.95
+  },
+  "23BE": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of 5HT transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.18,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Serotonin transporter with bound ansofaxine",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.18",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of 5HT transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of 5HT transporter",
+    "ligandNotes": [
+     {
+      "id": "A1EA3",
+      "name": "[4-[(1~{R})-2-(dimethylamino)-1-(1-oxidanylcyclohexyl)ethyl]phenyl] 4-methylbenzoate",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound ansofaxine, 3.18 &Aring;: 23BE"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BC",
+   "membrane": 0.95
+  },
+  "23BI": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of norepinephrine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.18,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SLC6A2 norepinephrine transporter (NET) with bound ansofaxine",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.18",
+    "description": "cryo-EM structure<br /> with bound lumateperone, 2.99 &Aring;: 23CC<br /> apo, 3.33 &Aring;: 23CE",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of norepinephrine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of norepinephrine transporter",
+    "ligandNotes": [
+     {
+      "id": "A1EA3",
+      "name": "[4-[(1~{R})-2-(dimethylamino)-1-(1-oxidanylcyclohexyl)ethyl]phenyl] 4-methylbenzoate",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "8HFE",
+   "membrane": 0.95
+  },
+  "23BJ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of dopamine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.41,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "DAT Dopamine transporter",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.41",
+    "description": "cryo-EM structure<br /> with bound ansofaxine, 3.40 &Aring;: 23BK<br /> additional structure, 3.58 &Aring;: 23CK",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of dopamine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of dopamine transporter",
+    "ligandNotes": []
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "8Y2C",
+   "membrane": 0.95
+  },
+  "23BK": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of dopamine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "DAT Dopamine transporter with bound ansofaxine",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.4",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of dopamine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of dopamine transporter",
+    "ligandNotes": [
+     {
+      "id": "A1EA3",
+      "name": "[4-[(1~{R})-2-(dimethylamino)-1-(1-oxidanylcyclohexyl)ethyl]phenyl] 4-methylbenzoate",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound ansofaxine, 3.40 &Aring;: 23BK"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BJ",
+   "membrane": 0.95
+  },
+  "23CB": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of 5ht transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Serotonin transporter with bound lumateperone",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo",
+    "resolution": "3.4",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of 5ht transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of 5ht transporter",
+    "ligandNotes": [
+     {
+      "id": "92S",
+      "name": "1-(4-fluorophenyl)-4-[(10~{R},15~{S})-4-methyl-1,4,12-triazatetracyclo[7.6.1.0^{5,16}.0^{10,15}]hexadeca-5,7,9(16)-trien-12-yl]butan-1-one",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound lumateperone, 3.40 &Aring;: 23CB"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BC",
+   "membrane": 0.95
+  },
+  "23CC": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of norepinephrine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 2.99,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SLC6A2 norepinephrine transporter (NET) with bound lumateperone",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.99",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of norepinephrine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of norepinephrine transporter",
+    "ligandNotes": [
+     {
+      "id": "92S",
+      "name": "1-(4-fluorophenyl)-4-[(10~{R},15~{S})-4-methyl-1,4,12-triazatetracyclo[7.6.1.0^{5,16}.0^{10,15}]hexadeca-5,7,9(16)-trien-12-yl]butan-1-one",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound lumateperone, 2.99 &Aring;: 23CC"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BI",
+   "membrane": 0.95
+  },
+  "23CE": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of norepinephrine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.33,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SLC6A2 norepinephrine transporter (NET)",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.33",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of norepinephrine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of norepinephrine transporter",
+    "ligandNotes": [],
+    "relatedLine": "apo, 3.33 &Aring;: 23CE"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BI",
+   "membrane": 0.95
+  },
+  "23CK": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of dopamine transporter",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.58,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "DAT Dopamine transporter",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.58",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Jiang DH, &amp; Chen HW",
+     "year": null,
+     "title": "Cryo-EM structure of dopamine transporter",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of dopamine transporter",
+    "ligandNotes": [],
+    "relatedLine": "additional structure, 3.58 &Aring;: 23CK"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "23BJ",
+   "membrane": 0.95
+  },
+  "23SU": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "The tail-tip structure of F-pyocin",
+   "released": "2026-11-25",
+   "organism": "Pseudomonas aeruginosa PAO1",
+   "res": 2.52,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Probable bacteriophage protein in complex with tail",
+    "species": "Pseudomonas aeruginosa PAO1",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": null,
+    "resolution": "2.52",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Yang FL, Zhang ZL, Yang CK, Hou J, Feng HZ, Gou HR, Wang Y, Lei DS, &amp; He YX",
+     "year": null,
+     "title": "Structural basis for repurposing a flexible phage tail into a membrane-puncturing bacterial weapon",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "The tail-tip structure of F-pyocin",
+    "ligandNotes": [
+     {
+      "id": "SF4",
+      "name": "IRON/SULFUR CLUSTER",
+      "decision": "omitted",
+      "why": "curators named IRON/SULFUR CLUSTER in 0 of the 357 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G02-S003",
+   "suggestedOwner": "",
+   "membrane": 0.389
+  },
+  "24ZT": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of MCD4 from Candida albicans with M743/YW3548",
+   "released": "2026-11-25",
+   "organism": "Candida albicans SC5314",
+   "res": 2.34,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "MCD4 GPI ethanolamine phosphate transferase 1 with bound M743",
+    "species": "Candida albicans SC5314",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.34",
+    "description": "cryo-EM structure<br /> with bound colamine phosphoric acid, 2.75 &Aring;: 24ZU<br /> apo, 2.87 &Aring;: 25LX",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Li Y, Fan S, &amp; Li D",
+     "year": null,
+     "title": "Structural Insights into the Catalysis and Inhibition of the Antifungal Target MCD4",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of MCD4 from Candida albicans with M743/YW3548",
+    "ligandNotes": [
+     {
+      "id": "R16",
+      "name": "HEXADECANE",
+      "decision": "omitted",
+      "why": "curators named HEXADECANE in 0 of the 61 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1E8F",
+      "name": "(~{Z})-octadec-9-ene",
+      "decision": "omitted",
+      "why": "lipid or fatty acyl chain: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     },
+     {
+      "id": "LBN",
+      "name": "1-palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine",
+      "decision": "omitted",
+      "why": "curators named 1-palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine in 0 of the 63 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "C14",
+      "name": "TETRADECANE",
+      "decision": "omitted",
+      "why": "curators named TETRADECANE in 0 of the 86 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "AV0",
+      "name": "Lauryl Maltose Neopentyl Glycol",
+      "decision": "omitted",
+      "why": "curators named Lauryl Maltose Neopentyl Glycol in 0 of the 24 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1FB4",
+      "name": "(1R,2R,3S,4R,7R,8R,11R,12S,14R,16S,17S,18R)-3,4-dihydroxy-2,7,11,14-tetramethyl-5-oxo-17-(propan-2-yl)-6-oxatetracyclo[10.7.0.03,8.014,18]nonadecan-16-yl (3S,5R)-3-hydroxy-3,5-dimethylheptanoate",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S078",
+   "suggestedOwner": "",
+   "membrane": 0.854
+  },
+  "24ZU": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of MCD4 from Candida albicans with GPI",
+   "released": "2026-11-25",
+   "organism": "Candida albicans",
+   "res": 2.75,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "MCD4 GPI ethanolamine phosphate transferase 1 with bound colamine phosphoric acid",
+    "species": "Candida albicans",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.75",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Li Y, Fan S, &amp; Li D",
+     "year": null,
+     "title": "Structural Insights into the Catalysis and GPI of the Antifungal Target MCD4",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of MCD4 from Candida albicans with GPI",
+    "ligandNotes": [
+     {
+      "id": "C14",
+      "name": "TETRADECANE",
+      "decision": "omitted",
+      "why": "curators named TETRADECANE in 0 of the 86 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "R16",
+      "name": "HEXADECANE",
+      "decision": "omitted",
+      "why": "curators named HEXADECANE in 0 of the 61 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "OPE",
+      "name": "PHOSPHORIC ACID MONO-(2-AMINO-ETHYL) ESTER",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 45% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     },
+     {
+      "id": "AV0",
+      "name": "Lauryl Maltose Neopentyl Glycol",
+      "decision": "omitted",
+      "why": "curators named Lauryl Maltose Neopentyl Glycol in 0 of the 24 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1FAL",
+      "name": "[(2~{R})-1-[[(1~{S},2~{R},3~{R},4~{S},5~{S},6~{R})-2-decanoyloxy-3,4,5,6-tetrakis(oxidanyl)cyclohexyl]oxy-oxidanyl-phosphoryl]oxy-3-hexoxy-propan-2-yl] (5~{E},8~{Z})-undeca-5,8-dienoate",
+      "decision": "omitted",
+      "why": "lipid or fatty acyl chain: curators name such ligands in 3% of mpstruc structures when the PDB title does not mention them; mpstruc has not seen this one"
+     },
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "Y01",
+      "name": "CHOLESTEROL HEMISUCCINATE",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL HEMISUCCINATE in 1 of the 337 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "with bound colamine phosphoric acid, 2.75 &Aring;: 24ZU"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S078",
+   "suggestedOwner": "24ZT",
+   "membrane": 0.818
+  },
+  "25LX": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of MCD4 from Candida albicans",
+   "released": "2026-11-25",
+   "organism": "Candida albicans SC5314",
+   "res": 2.87,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "MCD4 GPI ethanolamine phosphate transferase 1",
+    "species": "Candida albicans SC5314",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.87",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Li Y, Fan S, &amp; Li D",
+     "year": null,
+     "title": "Structural Insights into the Catalysis of the Antifungal Target MCD4",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of MCD4 from Candida albicans",
+    "ligandNotes": [
+     {
+      "id": "AV0",
+      "name": "Lauryl Maltose Neopentyl Glycol",
+      "decision": "omitted",
+      "why": "curators named Lauryl Maltose Neopentyl Glycol in 0 of the 24 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "C14",
+      "name": "TETRADECANE",
+      "decision": "omitted",
+      "why": "curators named TETRADECANE in 0 of the 86 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "R16",
+      "name": "HEXADECANE",
+      "decision": "omitted",
+      "why": "curators named HEXADECANE in 0 of the 61 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LBN",
+      "name": "1-palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine",
+      "decision": "omitted",
+      "why": "curators named 1-palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine in 0 of the 63 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "apo, 2.87 &Aring;: 25LX"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S078",
+   "suggestedOwner": "24ZT",
+   "membrane": 0.854
+  },
+  "30CI": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Leishmania cytochrome bc1 complex with GNF5885",
+   "released": "2026-11-25",
+   "organism": "Leishmania tarentolae",
+   "res": 2.8,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.1073/pnas.2622005123",
+   "mp": {
+    "name": "Cytochrome bc<sub>1</sub> complex / Rieske iron-sulfur protein with bound GNF5885",
+    "species": "Leishmania tarentolae",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "2.8",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Srinivas H",
+     "year": null,
+     "title": "Leishmania cytochrome bc1 complex inhibition has potential for shortening leishmaniasis treatment duration",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.1073/pnas.2622005123"
+    },
+    "pdbTitle": "Leishmania cytochrome bc1 complex with GNF5885",
+    "ligandNotes": [
+     {
+      "id": "A1J54",
+      "name": "2,5-dimethyl-6-[4-(2-phenylethyl)piperidin-1-yl]-4H-[1,2,4]triazolo[1,5-a]pyrimidin-7-one",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     },
+     {
+      "id": "HEM",
+      "name": "PROTOPORPHYRIN IX CONTAINING FE",
+      "decision": "omitted",
+      "why": "curators named PROTOPORPHYRIN IX CONTAINING FE in 2 of the 299 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "HEC",
+      "name": "HEME C",
+      "decision": "omitted",
+      "why": "curators named HEME C in 0 of the 215 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S144",
+   "suggestedOwner": "",
+   "membrane": 0.795
+  },
+  "39CZ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of PORCN and QI-2-2d complex",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.44,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "PORCN (Porcupine) with bound QI-2-2d",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.44",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Kim C, Li X, &amp; Liu F",
+     "year": null,
+     "title": "Ultra-large Docking Reveals Novel Chemotypes and a Distinct Binding Mode for Porcupine Inhibition",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of PORCN and QI-2-2d complex",
+    "ligandNotes": [
+     {
+      "id": "ZN",
+      "name": "ZINC ION",
+      "decision": "omitted",
+      "why": "curators named ZINC ION in 8 of the 622 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PLC",
+      "name": "DIUNDECYL PHOSPHATIDYL CHOLINE",
+      "decision": "omitted",
+      "why": "curators named DIUNDECYL PHOSPHATIDYL CHOLINE in 0 of the 52 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1PUU",
+      "name": "N-(2-aminoethyl)-4-(thieno[3,2-b]pyridin-5-yl)benzamide",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     },
+     {
+      "id": "AJP",
+      "name": "Digitonin",
+      "decision": "omitted",
+      "why": "curators named Digitonin in 0 of the 36 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S075",
+   "suggestedOwner": "7URA",
+   "membrane": 0.944
+  },
+  "44EZ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Myosin motor domain of Pyricularia oryzae ChsV",
+   "released": "2026-11-25",
+   "organism": "Pyricularia oryzae 70-15",
+   "res": 3.66,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "CHS5 Chitin synthase 5",
+    "species": "Pyricularia oryzae 70-15",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "3.66",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang DL, Yu JF, &amp; Wang XQ",
+     "year": null,
+     "title": "Myosin motor domain of Pyricularia oryzae ChsV",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Myosin motor domain of Pyricularia oryzae ChsV",
+    "ligandNotes": []
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S068",
+   "suggestedOwner": "",
+   "membrane": 0.225
+  },
+  "44FJ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Myosin motor domain of Pyricularia oryzae ChsVI",
+   "released": "2026-11-25",
+   "organism": "Pyricularia oryzae 70-15",
+   "res": 3.3,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "CHS6 Chitin synthase 6",
+    "species": "Pyricularia oryzae 70-15",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "3.3",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang DL, Yu JF, Chen MQ, &amp; Liu JF",
+     "year": null,
+     "title": "Myosin motor domain of Pyricularia oryzae ChsVI",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Myosin motor domain of Pyricularia oryzae ChsVI",
+    "ligandNotes": []
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S068",
+   "suggestedOwner": "",
+   "membrane": 0.225
+  },
+  "9TGC": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (accepted, not out yet)",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of B10 anti-stem antibody in complex with ZEBOV spike complex",
+   "released": "2026-10-07",
+   "organism": "Ebola virus - Mayinga, Zaire, 1976",
+   "res": 2.5,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "GP2",
+    "species": "Ebola virus - Mayinga, Zaire, 1976",
+    "taxonomicDomain": "Viruses",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.5",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Tarnow P, Cohen-Dvashi H, Rohde C, Krahling V, Ullrich L, Gieselmann L, Zar Shuker H, Amatya S, Fathi A, Kupke A, Kreer C, Koch M, Addo MM, Becker S, Diskin R, Zehner M, &amp; Klein F",
+     "year": "2026",
+     "title": "Identification of a pan-orthoebolavirus-reactive antibody from an rVSV-EBOV vaccinated individual",
+     "journal": "Nat Commun",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of B10 anti-stem antibody in complex with ZEBOV spike complex",
+    "ligandNotes": []
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S124",
+   "suggestedOwner": "",
+   "membrane": 0.135
+  },
+  "9TXM": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Crystal structure of the inward-open state of the L-galactonate:proton symporter from E.coli",
+   "released": "2026-11-25",
+   "organism": "Escherichia coli",
+   "res": 2.21,
+   "method": "X-RAY DIFFRACTION",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Probable L-galactonate transporter, inward-open state",
+    "species": "Escherichia coli",
+    "taxonomicDomain": "Bacteria",
+    "expressedInSpecies": "Escherichia coli",
+    "resolution": "2.21",
+    "description": "x-ray structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Bartels K, Loew C, Jungnickel KEJ, Steinke J, &amp; Joel S",
+     "year": null,
+     "title": "Structural basis of substrate recognition and transport in bacterial ACS transporters",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Crystal structure of the inward-open state of the L-galactonate:proton symporter from E.coli",
+    "ligandNotes": [
+     {
+      "id": "GOL",
+      "name": "GLYCEROL",
+      "decision": "omitted",
+      "why": "curators named GLYCEROL in 1 of the 251 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "SO4",
+      "name": "SULFATE ION",
+      "decision": "omitted",
+      "why": "curators named SULFATE ION in 0 of the 309 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "",
+   "membrane": 0.906
+  },
+  "9XQV": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) in outward-open conformation",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.42,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6), outward-open state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.42",
+    "description": "cryo-EM structure<br /> with bound biotin, occluded state, state 3, 3.70 &Aring;: 22AD<br /> with bound biotin, occluded state, state 1, 3.57 &Aring;: 9XQW<br /> with bound biotin, occluded state, state 2, 3.40 &Aring;: 9XQX<br /> with bound lipoic acid, occluded state, state 1, 3.43 &Aring;: 9XQY<br /> with bound lipoic acid, occluded state, state 2, 3.66 &Aring;: 9XQZ<br /> with bound pantothenic acid, occluded state, 3.33 &Aring;: 9XR0<br /> inward-facing state, 3.52 &Aring;: 9XR1",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) in outward-open conformation",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PC1",
+      "name": "1,2-DIACYL-SN-GLYCERO-3-PHOSPHOCHOLINE",
+      "decision": "omitted",
+      "why": "curators named 1,2-DIACYL-SN-GLYCERO-3-PHOSPHOCHOLINE in 0 of the 243 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "7UUV",
+   "membrane": 0.954
+  },
+  "9XQW": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 1",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.57,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound biotin, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.57",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 1",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "BTN",
+      "name": "BIOTIN",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 2 such structures, named in 1"
+     }
+    ],
+    "relatedLine": "with bound biotin, occluded state, state 1, 3.57 &Aring;: 9XQW"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.953
+  },
+  "9XQX": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 2",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound biotin, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.4",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with biotin in occluded conformation, state 2",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "BTN",
+      "name": "BIOTIN",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 2 such structures, named in 1"
+     }
+    ],
+    "relatedLine": "with bound biotin, occluded state, state 2, 3.40 &Aring;: 9XQX"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.953
+  },
+  "9XQY": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with lipoic acid in occluded conformation, state 1",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.43,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound lipoic acid, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.43",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with lipoic acid in occluded conformation, state 1",
+    "ligandNotes": [
+     {
+      "id": "LPX",
+      "name": "(2S)-3-{[(R)-(2-aminoethoxy)(hydroxy)phosphoryl]oxy}-2-hydroxypropyl hexadecanoate",
+      "decision": "omitted",
+      "why": "curators named (2S)-3-{[(R)-(2-aminoethoxy)(hydroxy)phosphoryl]oxy}-2-hydroxypropyl hexadecanoate in 0 of the 7 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "3PE",
+      "name": "1,2-Distearoyl-sn-glycerophosphoethanolamine",
+      "decision": "omitted",
+      "why": "curators named 1,2-Distearoyl-sn-glycerophosphoethanolamine in 0 of the 253 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LPA",
+      "name": "LIPOIC ACID",
+      "decision": "named",
+      "why": "cofactor, pigment or metal cluster: curators name such ligands in 75% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 1 such structure, named in 1"
+     },
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "with bound lipoic acid, occluded state, state 1, 3.43 &Aring;: 9XQY"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.954
+  },
+  "9XQZ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with lipoic acid in occluded conformation, state 2",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.66,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound lipoic acid, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.66",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with lipoic acid in occluded conformation, state 2",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "3PE",
+      "name": "1,2-Distearoyl-sn-glycerophosphoethanolamine",
+      "decision": "omitted",
+      "why": "curators named 1,2-Distearoyl-sn-glycerophosphoethanolamine in 0 of the 253 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LPX",
+      "name": "(2S)-3-{[(R)-(2-aminoethoxy)(hydroxy)phosphoryl]oxy}-2-hydroxypropyl hexadecanoate",
+      "decision": "omitted",
+      "why": "curators named (2S)-3-{[(R)-(2-aminoethoxy)(hydroxy)phosphoryl]oxy}-2-hydroxypropyl hexadecanoate in 0 of the 7 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "LPA",
+      "name": "LIPOIC ACID",
+      "decision": "named",
+      "why": "cofactor, pigment or metal cluster: curators name such ligands in 75% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 1 such structure, named in 1"
+     }
+    ],
+    "relatedLine": "with bound lipoic acid, occluded state, state 2, 3.66 &Aring;: 9XQZ"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.954
+  },
+  "9XR0": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with pantothenic acid in occluded conformation",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.33,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6) with bound pantothenic acid, occluded state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.33",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) complexed with pantothenic acid in occluded conformation",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PAU",
+      "name": "PANTOTHENOIC ACID",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has this one in 1 such structure, named in 1"
+     },
+     {
+      "id": "NA",
+      "name": "SODIUM ION",
+      "decision": "omitted",
+      "why": "curators named SODIUM ION in 4 of the 745 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "with bound pantothenic acid, occluded state, 3.33 &Aring;: 9XR0"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.954
+  },
+  "9XR1": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Structure of human sodium-dependent multivitamin transporter (SMVT) in inward-facing conformation in the presence of cefmetazole",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 3.52,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "SMVT Sodium-dependent multivitamin transporter (SLC5A6), inward-facing state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "3.52",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zhu C, &amp; Qin L",
+     "year": null,
+     "title": "Molecular basis for the broad substrate specificity of human SMVT",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Structure of human sodium-dependent multivitamin transporter (SMVT) in inward-facing conformation in the presence of cefmetazole",
+    "ligandNotes": [
+     {
+      "id": "CLR",
+      "name": "CHOLESTEROL",
+      "decision": "omitted",
+      "why": "curators named CHOLESTEROL in 4 of the 742 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "inward-facing state, 3.52 &Aring;: 9XR1"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S102",
+   "suggestedOwner": "9XQV",
+   "membrane": 0.953
+  },
+  "9XRV": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (preprint only)",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of the inward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana at pH 8",
+   "released": "2026-11-25",
+   "organism": "Arabidopsis thaliana",
+   "res": 3.2,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.21203/rs.3.rs-8174075/v1",
+   "mp": {
+    "name": "Protein NRT1/ PTR FAMILY 2.10, pH 8, inward-open state",
+    "species": "Arabidopsis thaliana",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Saccharomyces cerevisiae",
+    "resolution": "3.2",
+    "description": "cryo-EM structure<br /> with bound I3M, pH 6, inward-open state, 2.90 &Aring;: 9XRZ<br /> pH 6, outward-open state, 3.60 &Aring;: 9XS0",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Nour-Eldin H, Yoon GY, Kim U, Kanstrup C, Pasquadibisceglie A, Steffen JH, Crocoll C, Mirza O, Delemotte L, Cho HS, &amp; Gourdon P",
+     "year": "2025",
+     "title": "Structural basis of glucosinolate binding and transport by Arabidopsis thaliana GTRs",
+     "journal": "Res Sq",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.21203/rs.3.rs-8174075/v1"
+    },
+    "pdbTitle": "Cryo-EM structure of the inward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana at pH 8",
+    "ligandNotes": []
+   },
+   "suggested": "parent",
+   "suggestedSubgroup": "G03-S116",
+   "suggestedOwner": "",
+   "membrane": 0.954
+  },
+  "9XRY": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of T17-bound porcine succinate dehydrogenase",
+   "released": "2026-11-25",
+   "organism": "Sus scrofa",
+   "res": 2.86,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Succinate:ubiquinone oxidoreductase (SQR, Complex II; pig heart) with bound T17",
+    "species": "Sus scrofa",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": null,
+    "resolution": "2.86",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Wang YX, &amp; Yang GF",
+     "year": null,
+     "title": "Cryo-EM structure of T17-bound porcine succinate dehydrogenase",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of T17-bound porcine succinate dehydrogenase",
+    "ligandNotes": [
+     {
+      "id": "FAD",
+      "name": "FLAVIN-ADENINE DINUCLEOTIDE",
+      "decision": "omitted",
+      "why": "curators named FLAVIN-ADENINE DINUCLEOTIDE in 0 of the 84 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1E1W",
+      "name": "2-[3,5-bis(chloranyl)-4-(2,4-di~{tert}-butylphenoxy)phenyl]-1,2,4-triazine-3,5-dione",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     },
+     {
+      "id": "FES",
+      "name": "FE2/S2 (INORGANIC) CLUSTER",
+      "decision": "omitted",
+      "why": "curators named FE2/S2 (INORGANIC) CLUSTER in 0 of the 352 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "SF4",
+      "name": "IRON/SULFUR CLUSTER",
+      "decision": "omitted",
+      "why": "curators named IRON/SULFUR CLUSTER in 0 of the 357 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "F3S",
+      "name": "FE3-S4 CLUSTER",
+      "decision": "omitted",
+      "why": "curators named FE3-S4 CLUSTER in 1 of the 47 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "HEM",
+      "name": "PROTOPORPHYRIN IX CONTAINING FE",
+      "decision": "omitted",
+      "why": "curators named PROTOPORPHYRIN IX CONTAINING FE in 2 of the 299 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ]
+   },
+   "suggested": "review",
+   "suggestedSubgroup": "G03-S143",
+   "suggestedOwner": "1ZOY",
+   "membrane": 0.608
+  },
+  "9XRZ": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (preprint only)",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of the inward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana in complex with I3M at pH 6",
+   "released": "2026-11-25",
+   "organism": "Arabidopsis thaliana",
+   "res": 2.9,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.21203/rs.3.rs-8174075/v1",
+   "mp": {
+    "name": "Protein NRT1/ PTR FAMILY 2.10 with bound I3M, pH 6, inward-open state",
+    "species": "Arabidopsis thaliana",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "2.9",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Nour-Eldin H, Yoon GY, Kim U, Kanstrup C, Pasquadibisceglie A, Steffen JH, Crocoll C, Mirza O, Delemotte L, Cho HS, &amp; Gourdon P",
+     "year": "2025",
+     "title": "Structural basis of glucosinolate binding and transport by Arabidopsis thaliana GTRs",
+     "journal": "Res Sq",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.21203/rs.3.rs-8174075/v1"
+    },
+    "pdbTitle": "Cryo-EM structure of the inward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana in complex with I3M at pH 6",
+    "ligandNotes": [
+     {
+      "id": "A1EPL",
+      "name": "[(2~{S},3~{R},4~{S},5~{S},6~{R})-6-(hydroxymethyl)-3,4,5-tris(oxidanyl)oxan-2-yl] 2-(1~{H}-indol-3-yl)-~{N}-sulfooxy-ethanimidothioate",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 85% of mpstruc structures when the PDB title names a compound that may be them; mpstruc has not seen this one"
+     }
+    ],
+    "relatedLine": "with bound I3M, pH 6, inward-open state, 2.90 &Aring;: 9XRZ"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S116",
+   "suggestedOwner": "9XRV",
+   "membrane": 0.954
+  },
+  "9XS0": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (preprint only)",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of the outward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana at pH 6",
+   "released": "2026-11-25",
+   "organism": "Arabidopsis thaliana",
+   "res": 3.6,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": "10.21203/rs.3.rs-8174075/v1",
+   "mp": {
+    "name": "Protein NRT1/ PTR FAMILY 2.10, pH 6, outward-open state",
+    "species": "Arabidopsis thaliana",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Spodoptera frugiperda",
+    "resolution": "3.6",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Nour-Eldin H, Yoon GY, Kim U, Kanstrup C, Pasquadibisceglie A, Steffen JH, Crocoll C, Mirza O, Delemotte L, Cho HS, &amp; Gourdon P",
+     "year": "2025",
+     "title": "Structural basis of glucosinolate binding and transport by Arabidopsis thaliana GTRs",
+     "journal": "Res Sq",
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": "10.21203/rs.3.rs-8174075/v1"
+    },
+    "pdbTitle": "Cryo-EM structure of the outward-open glucosinolate transporter AtGTR1/NPF2.10 from Arabidopsis thaliana at pH 6",
+    "ligandNotes": [],
+    "relatedLine": "pH 6, outward-open state, 3.60 &Aring;: 9XS0"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S116",
+   "suggestedOwner": "9XRV",
+   "membrane": 0.954
+  },
+  "9XTM": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of upacicalcet-bound active-state human extracellular calcium-sensing receptor",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 2.4,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Calcium-Sensing Receptor (CaSR) with bound upacicalcet, active state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.4",
+    "description": "cryo-EM structure<br /> with bound neomycin, 2.41 &Aring;: 9XTP",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zeng X, Liu H, Wang X, &amp; Gao Y",
+     "year": null,
+     "title": "Cryo-EM structure of upacicalcet-bound active-state human extracellular calcium-sensing receptor",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of upacicalcet-bound active-state human extracellular calcium-sensing receptor",
+    "ligandNotes": [
+     {
+      "id": "NAG",
+      "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+      "decision": "omitted",
+      "why": "curators named 2-acetamido-2-deoxy-beta-D-glucopyranose in 5 of the 1147 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "omitted",
+      "why": "curators named CALCIUM ION in 32 of the 629 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "PO4",
+      "name": "PHOSPHATE ION",
+      "decision": "omitted",
+      "why": "curators named PHOSPHATE ION in 0 of the 238 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "A1E1P",
+      "name": "Upacicalcet",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has not seen this one"
+     }
+    ]
+   },
+   "suggested": "daughter",
+   "suggestedSubgroup": "G03-S054",
+   "suggestedOwner": "7DTT",
+   "membrane": 0.955
+  },
+  "9XTP": {
+   "status": "rejected",
+   "reasonCode": "unpublished",
+   "reason": "Not published yet (PDB lists it as 'To be published')",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "at": "2026-11-26T04:30:28.456Z",
+   "auto": true,
+   "title": "Cryo-EM structure of neomycin-bound active-state human extracellular calcium-sensing receptor",
+   "released": "2026-11-25",
+   "organism": "Homo sapiens",
+   "res": 2.41,
+   "method": "ELECTRON MICROSCOPY",
+   "pmid": null,
+   "doi": null,
+   "mp": {
+    "name": "Calcium-Sensing Receptor (CaSR) with bound neomycin, active state",
+    "species": "Homo sapiens",
+    "taxonomicDomain": "Eukaryota",
+    "expressedInSpecies": "Homo sapiens",
+    "resolution": "2.41",
+    "description": "cryo-EM structure",
+    "bibliography": {
+     "pubMedId": null,
+     "authors": "Zeng X, Liu H, Wang X, &amp; Gao Y",
+     "year": null,
+     "title": "Cryo-EM structure of neomycin-bound active-state human extracellular calcium-sensing receptor",
+     "journal": null,
+     "volume": null,
+     "issue": null,
+     "pages": null,
+     "doi": null
+    },
+    "pdbTitle": "Cryo-EM structure of neomycin-bound active-state human extracellular calcium-sensing receptor",
+    "ligandNotes": [
+     {
+      "id": "NAG",
+      "name": "2-acetamido-2-deoxy-beta-D-glucopyranose",
+      "decision": "omitted",
+      "why": "curators named 2-acetamido-2-deoxy-beta-D-glucopyranose in 5 of the 1147 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "TRP",
+      "name": "TRYPTOPHAN",
+      "decision": "omitted",
+      "why": "curators named TRYPTOPHAN in 1 of the 13 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "CA",
+      "name": "CALCIUM ION",
+      "decision": "omitted",
+      "why": "curators named CALCIUM ION in 32 of the 629 mpstruc structures that have it and where the PDB title does not mention it"
+     },
+     {
+      "id": "NMY",
+      "name": "NEOMYCIN",
+      "decision": "named",
+      "why": "small-molecule ligand: curators name such ligands in 96% of mpstruc structures when the PDB title mentions them; mpstruc has not seen this one"
+     },
+     {
+      "id": "PO4",
+      "name": "PHOSPHATE ION",
+      "decision": "omitted",
+      "why": "curators named PHOSPHATE ION in 0 of the 238 mpstruc structures that have it and where the PDB title does not mention it"
+     }
+    ],
+    "relatedLine": "with bound neomycin, 2.41 &Aring;: 9XTP"
+   },
+   "suggested": "related",
+   "suggestedSubgroup": "G03-S054",
+   "suggestedOwner": "9XTM",
+   "membrane": 0.955
   }
  },
  "log": [
@@ -24263,6 +25523,382 @@
    "action": "reject",
    "pdb": "24VA",
    "detail": "Rejected 24VA: Not a membrane protein"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "22FV",
+   "detail": "Rejected 22FV automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23BC",
+   "detail": "Rejected 23BC automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23BE",
+   "detail": "Rejected 23BE automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23BI",
+   "detail": "Rejected 23BI automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23BJ",
+   "detail": "Rejected 23BJ automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23BK",
+   "detail": "Rejected 23BK automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23CB",
+   "detail": "Rejected 23CB automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23CC",
+   "detail": "Rejected 23CC automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23CE",
+   "detail": "Rejected 23CE automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23CK",
+   "detail": "Rejected 23CK automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "23SU",
+   "detail": "Rejected 23SU automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "24ZT",
+   "detail": "Rejected 24ZT automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "24ZU",
+   "detail": "Rejected 24ZU automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "25LX",
+   "detail": "Rejected 25LX automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "30CI",
+   "detail": "Rejected 30CI automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "39CZ",
+   "detail": "Rejected 39CZ automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "44EZ",
+   "detail": "Rejected 44EZ automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "44FJ",
+   "detail": "Rejected 44FJ automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9TGC",
+   "detail": "Rejected 9TGC automatically: not published yet (accepted, but not out yet). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9TXM",
+   "detail": "Rejected 9TXM automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XQV",
+   "detail": "Rejected 9XQV automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XQW",
+   "detail": "Rejected 9XQW automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XQX",
+   "detail": "Rejected 9XQX automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XQY",
+   "detail": "Rejected 9XQY automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XQZ",
+   "detail": "Rejected 9XQZ automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XR0",
+   "detail": "Rejected 9XR0 automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XR1",
+   "detail": "Rejected 9XR1 automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XRV",
+   "detail": "Rejected 9XRV automatically: not published yet (only a preprint so far). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XRY",
+   "detail": "Rejected 9XRY automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XRZ",
+   "detail": "Rejected 9XRZ automatically: not published yet (only a preprint so far). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XS0",
+   "detail": "Rejected 9XS0 automatically: not published yet (only a preprint so far). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XTM",
+   "detail": "Rejected 9XTM automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-reject",
+   "pdb": "9XTP",
+   "detail": "Rejected 9XTP automatically: not published yet (PDB lists it as 'To be published'). It will come back to To decide when the paper is out."
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "21DF",
+   "detail": "Paper for 21DF is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "31JS",
+   "detail": "Paper for 31JS is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "37LU",
+   "detail": "Paper for 37LU is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "37LV",
+   "detail": "Paper for 37LV is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9R1U",
+   "detail": "Paper for 9R1U is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9R1V",
+   "detail": "Paper for 9R1V is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9SAS",
+   "detail": "Paper for 9SAS is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9SAU",
+   "detail": "Paper for 9SAU is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9WLS",
+   "detail": "Paper for 9WLS is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9YDT",
+   "detail": "Paper for 9YDT is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9YEC",
+   "detail": "Paper for 9YEC is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9YED",
+   "detail": "Paper for 9YED is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9YFG",
+   "detail": "Paper for 9YFG is now published (2026-11-26): back in To decide"
+  },
+  {
+   "at": "2026-11-26T04:30:28.456Z",
+   "by": "mpstruc-automation",
+   "byName": "Automation (Claude)",
+   "action": "auto-unreject",
+   "pdb": "9YH0",
+   "detail": "Paper for 9YH0 is now published (2026-11-26): back in To decide"
   }
  ]
 }
